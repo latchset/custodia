@@ -1,0 +1,23 @@
+#!/usr/bin/python
+#
+# Copyright (C) 2015  Custodia Project Contributors - see LICENSE file
+
+import sys
+import os
+import cherrypy
+from custodia.root import Root
+
+
+cfgfile = None
+if (len(sys.argv) > 1):
+    cfgfile = sys.argv[-1]
+elif os.path.isfile('custodia.conf'):
+    cfgfile = 'custodia.conf'
+elif os.path.isfile('/etc/custodia/custodia.conf'):
+    cfgfile = '/etc/custodia/custodia.conf'
+else:
+    raise IOError("Configuration file not found")
+
+if __name__ == '__main__':
+    cherrypy.config.update(cfgfile)
+    cherrypy.quickstart(Root())
