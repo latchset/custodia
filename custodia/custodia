@@ -4,7 +4,7 @@
 
 import sys
 import os
-import cherrypy
+from custodia.http.server import LocalHTTPServer
 from custodia.root import Root
 
 
@@ -18,6 +18,11 @@ elif os.path.isfile('/etc/custodia/custodia.conf'):
 else:
     raise IOError("Configuration file not found")
 
+
 if __name__ == '__main__':
-    cherrypy.config.update(cfgfile)
-    cherrypy.quickstart(Root())
+    address = os.path.join(os.getcwd(), 'server_socket')
+    config = {'server_string': 'Secret/0.0.7',
+              'consumers': {'/': Root()}}
+    httpd = LocalHTTPServer(address, config)
+    print httpd.get_socket()
+    httpd.serve()

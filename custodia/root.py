@@ -1,14 +1,10 @@
 # Copyright (C) 2015  Custodia Project Contributors - see LICENSE file
 
-import cherrypy
 import json
+from custodia.http.consumer import HTTPConsumer
 
 
-class Root(object):
+class Root(HTTPConsumer):
 
-    def __init__(self):
-        print "started"
-
-    @cherrypy.expose
-    def index(self):
+    def GET(self, request, response):
         return json.dumps({'message': "Quis custodiet ipsos custodes?"})
