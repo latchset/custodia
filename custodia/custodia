@@ -2,27 +2,77 @@
 #
 # Copyright (C) 2015  Custodia Project Contributors - see LICENSE file
 
-import sys
-import os
+try:
+    from ConfigParser import RawConfigParser
+except ImportError:
+    from configparser import RawConfigParser
 from custodia.http.server import LocalHTTPServer
-from custodia.root import Root
+import importlib
+import os
+import sys
 
 
-cfgfile = None
-if (len(sys.argv) > 1):
-    cfgfile = sys.argv[-1]
-elif os.path.isfile('custodia.conf'):
-    cfgfile = 'custodia.conf'
-elif os.path.isfile('/etc/custodia/custodia.conf'):
-    cfgfile = '/etc/custodia/custodia.conf'
-else:
-    raise IOError("Configuration file not found")
+def source_config():
+    cfgfile = None
+    if (len(sys.argv) > 1):
+        cfgfile = sys.argv[-1]
+    elif os.path.isfile('custodia.conf'):
+        cfgfile = 'custodia.conf'
+    elif os.path.isfile('/etc/custodia/custodia.conf'):
+        cfgfile = '/etc/custodia/custodia.conf'
+    else:
+        raise IOError("Configuration file not found")
+    return cfgfile
+
+def parse_config(cfgfile):
+    parser = RawConfigParser()
+    parser.optionxform = str
+    files = parser.read(cfgfile)
+    if len(files) == 0:
+        raise IOError("Failed to read config file")
+
+    config = {'consumers': dict()}
+    for s in parser.sections():
+        if s == 'global':
+            for opt, val in parser.items(s):
+                if opt == 'consumers':
+                    raise ValueError('"consumers" is an invalid '
+                                     '[global] option')
+                config[opt] = val
+            continue
+
+        if not s.startswith('/'):
+            raise ValueError('Invalid section name [%s].\n'
+                             'Sections must be path names' % s)
+
+        if not parser.has_option(s, 'handler'):
+            raise ValueError('Invalid consumer section, missing "handler"')
+
+        handler = None
+        hconf = None
+        for opt, val in parser.items(s):
+            if opt == 'handler':
+                try:
+                    module, classname = val.rsplit('.', 1)
+                    m = importlib.import_module(module)
+                    handler = getattr(m, classname)
+                except Exception, e:  # pylint: disable=broad-except
+                    raise ValueError('Invalid format for "handler" option '
+                                     '[%r]' % e)
+
+            else:
+                if hconf is None:
+                    hconf = dict()
+                hconf[opt] = val
+        config['consumers'][s] = handler(hconf)
+
+    return config
 
 
 if __name__ == '__main__':
+    cfgfile = source_config()
+    config = parse_config(cfgfile)
+
     address = os.path.join(os.getcwd(), 'server_socket')
-    config = {'server_string': 'Secret/0.0.7',
-              'consumers': {'/': Root()}}
     httpd = LocalHTTPServer(address, config)
-    print httpd.get_socket()
     httpd.serve()

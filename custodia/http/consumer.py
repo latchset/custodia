@@ -8,6 +8,9 @@ DEFAULT_CTYPE = 'text/html; charset=utf-8'
 
 class HTTPConsumer(object):
 
+    def __init__(self, config=None):
+        self.config = config
+
     def handle(self, request):
         command = request.get('command', 'GET')
         if not hasattr(self, command):
