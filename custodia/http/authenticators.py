@@ -30,3 +30,34 @@ class SimpleCredsAuth(HTTPAuthenticator):
             request['valid_user'] = True
         else:
             raise HTTPError(403)
+
+
+class SimpleHeaderAuth(HTTPAuthenticator):
+
+    def __init__(self, config=None):
+        super(SimpleHeaderAuth, self).__init__(config)
+        self.name = 'REMOTE_USER'
+        self.value = None
+        if 'header' in self.config:
+            self.name = self.config['header']
+        if 'value' in self.config:
+            self.value = self.config['value']
+
+    def handle(self, request):
+        if self.name not in request['headers']:
+            raise HTTPError(403)
+        value = request['headers'][self.name]
+        if self.value is None:
+            # Any value is accepted
+            pass
+        elif isinstance(self.value, str):
+            if value != self.value:
+                raise HTTPError(403)
+        elif isinstance(self.value, list):
+            if value not in self.value:
+                raise HTTPError(403)
+        else:
+            raise HTTPError(403)
+
+        request['valid_user'] = True
+        request['valid_header'] = value
