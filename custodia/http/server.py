@@ -56,8 +56,11 @@ class ForkingLocalHTTPServer(ForkingMixIn, UnixStreamServer):
     def pipeline(self, request):
 
         # auth framework here
-        if 'creds' not in request:
+        authers = self.config.get('authenticators')
+        if authers is None:
             raise HTTPError(403)
+        for auth in authers:
+            authers[auth].handle(request)
 
         # Select consumer
         path = request.get('path', '')
