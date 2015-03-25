@@ -1,6 +1,7 @@
 # Copyright (C) 2015  Custodia Project Contributors - see LICENSE file
 
 from custodia.http.server import HTTPError
+import os
 
 
 class HTTPAuthenticator(object):
@@ -27,9 +28,7 @@ class SimpleCredsAuth(HTTPAuthenticator):
         uid = int(request['creds']['gid'])
         gid = int(request['creds']['uid'])
         if self._gid == gid or self._uid == uid:
-            request['valid_user'] = True
-        else:
-            raise HTTPError(403)
+            request['valid_auth'] = True
 
 
 class SimpleHeaderAuth(HTTPAuthenticator):
@@ -45,19 +44,38 @@ class SimpleHeaderAuth(HTTPAuthenticator):
 
     def handle(self, request):
         if self.name not in request['headers']:
-            raise HTTPError(403)
+            return
         value = request['headers'][self.name]
         if self.value is None:
             # Any value is accepted
             pass
         elif isinstance(self.value, str):
             if value != self.value:
-                raise HTTPError(403)
+                return
         elif isinstance(self.value, list):
             if value not in self.value:
-                raise HTTPError(403)
+                return
         else:
-            raise HTTPError(403)
+            return
 
-        request['valid_user'] = True
+        request['valid_auth'] = True
         request['valid_header'] = value
+
+
+class SimpleNULLAuth(HTTPAuthenticator):
+
+    def __init__(self, config=None):
+        super(SimpleNULLAuth, self).__init__(config)
+        self.paths = []
+        if 'paths' in self.config:
+            self.paths = self.config['paths'].split()
+
+    def handle(self, request):
+        path = request.get('path', '')
+        while path != '':
+            if path in self.paths:
+                request['valid_auth'] = True
+            if path == '/':
+                path = ''
+            else:
+                path, _ = os.path.split(path)

@@ -61,6 +61,8 @@ class ForkingLocalHTTPServer(ForkingMixIn, UnixStreamServer):
             raise HTTPError(403)
         for auth in authers:
             authers[auth].handle(request)
+        if 'valid_auth' not in request or request['valid_auth'] is not True:
+            raise HTTPError(403)
 
         # Select consumer
         path = request.get('path', '')
