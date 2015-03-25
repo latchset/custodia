@@ -31,7 +31,7 @@ def parse_config(cfgfile):
     if len(files) == 0:
         raise IOError("Failed to read config file")
 
-    config = {'authenticators': dict(), 'consumers': dict()}
+    config = {'authenticators': dict(), 'consumers': dict(), 'stores': dict()}
     for s in parser.sections():
         if s == 'global':
             for opt, val in parser.items(s):
@@ -48,6 +48,9 @@ def parse_config(cfgfile):
             if s.startswith('auth:'):
                 menu = 'authenticators'
                 name = s[5:]
+            elif s.startswith('store:'):
+                menu = 'stores'
+                name = s[6:]
             else:
                 raise ValueError('Invalid section name [%s].\n' % s)
 
