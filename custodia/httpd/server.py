@@ -11,6 +11,7 @@ except ImportError:
 import io
 import os
 import shutil
+import six
 import socket
 import struct
 import sys
@@ -138,22 +139,22 @@ class LocalHTTPRequestHandler(BaseHTTPRequestHandler):
                 response = self.server.pipeline(request)
                 if response is None:
                     raise HTTPError(500)
-            except HTTPError, e:
+            except HTTPError as e:
                 self.send_error(e.code, e.mesg)
                 self.wfile.flush()
                 return
-            except socket.timeout, e:
+            except socket.timeout as e:
                 self.log_error("Request timed out: %r", e)
                 self.close_connection = 1
                 return
-            except Exception, e:  # pylint: disable=broad-except
+            except Exception as e:  # pylint: disable=broad-except
                 self.log_error("Handler failed: %r", e)
                 self.log_traceback()
                 self.send_error(500)
                 self.wfile.flush()
                 return
             self.send_response(response.get('code', 200))
-            for header, value in response.get('headers', {}).iteritems():
+            for header, value in six.iteritems(response.get('headers', {})):
                 self.send_header(header, value)
             self.end_headers()
             output = response.get('output', None)
@@ -161,10 +162,10 @@ class LocalHTTPRequestHandler(BaseHTTPRequestHandler):
                 shutil.copyfileobj(output, self.wfile)
                 output.close()
             else:
-                self.wfile.write(output)
+                self.wfile.write(output.encode('utf-8'))
             self.wfile.flush()
             return
-        except socket.timeout, e:
+        except socket.timeout as e:
             self.log_error("Request timed out: %r", e)
             self.close_connection = 1
             return
