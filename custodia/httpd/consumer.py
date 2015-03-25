@@ -10,6 +10,9 @@ class HTTPConsumer(object):
 
     def __init__(self, config=None):
         self.config = config
+        self.store_name = None
+        if config and 'store' in config:
+            self.store_name = config['store']
 
     def handle(self, request):
         command = request.get('command', 'GET')

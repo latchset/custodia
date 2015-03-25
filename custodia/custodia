@@ -9,6 +9,7 @@ except ImportError:
 from custodia.httpd.server import LocalHTTPServer
 import importlib
 import os
+import six
 import sys
 
 
@@ -74,6 +75,15 @@ def parse_config(cfgfile):
                     hconf = dict()
                 hconf[opt] = val
         config[menu][name] = handler(hconf)
+
+    # Attach stores to consumers
+    for name, c in six.iteritems(config['consumers']):
+        if c.store_name is not None:
+            try:
+                c.store = config['stores'][c.store_name]
+            except KeyError:
+                raise ValueError('Consumer "%s" references unexisting '
+                                 'store "%s"' % (name, c.store_name))
 
     return config
 
