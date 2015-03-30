@@ -4,10 +4,12 @@ try:
     # pylint: disable=import-error
     from BaseHTTPServer import BaseHTTPRequestHandler
     from SocketServer import ForkingMixIn, UnixStreamServer
+    from urlparse import urlparse, parse_qs
 except ImportError:
     # pylint: disable=import-error
     from http.server import BaseHTTPRequestHandler
     from socketserver import ForkingMixIn, UnixStreamServer
+    from urllib.parse import urlparse, parse_qs
 import io
 import os
 import shutil
@@ -167,6 +169,25 @@ class LocalHTTPRequestHandler(BaseHTTPRequestHandler):
         pid, uid, gid = struct.unpack('3i', creds)
         return {'pid': pid, 'uid': uid, 'gid': gid}
 
+    def parse_request(self, *args, **kwargs):
+        if not BaseHTTPRequestHandler.parse_request(self, *args, **kwargs):
+            return False
+
+        # after basic parsing also use urlparse to retrieve individual
+        # elements of a request.
+        url = urlparse(self.path)
+
+        # Yes, override path with the path part only
+        self.path = url.path
+
+        # Create dict out of query
+        self.query = parse_qs(url.query)
+
+        # keep the rest into the 'url' element in case someone needs it
+        self.url = url
+
+        return True
+
     def handle_one_request(self):
         # Set a fake client address to make log functions happy
         self.client_address = ['127.0.0.1', 0]
@@ -186,10 +207,13 @@ class LocalHTTPRequestHandler(BaseHTTPRequestHandler):
                 self.wfile.flush()
                 return
             if not self.parse_request():
+                self.close_connection = 1
                 return
             request = {'creds': self.peer_creds,
                        'command': self.command,
                        'path': self.path,
+                       'query': self.query,
+                       'url': self.url,
                        'version': self.request_version,
                        'headers': self.headers}
             try:
