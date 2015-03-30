@@ -38,6 +38,35 @@ def stacktrace():
 
 class ForkingLocalHTTPServer(ForkingMixIn, UnixStreamServer):
 
+    """
+    A forking HTTP Server.
+    Each request runs into a forked server so that the whole environment
+    is clean and isolated, and parallel requests cannot unintentionally
+    influence one another.
+
+    When a request is received it is parsed by the handler_class provided
+    at server initialization. The hanlder is suppoed to call the pipeline()
+    function provided by the server to handle requests after parsing.
+
+    The pipeline() function handles authentication and invocation of the
+    correct consumer based on the server configuration, that is provided
+    at initialization time.
+
+    When authentication is performed the request dictionary will have
+    a 'valid_auth' boolean member set to True if authentication was
+    successful. Additional attributes may be set by authentication plugins.
+
+    Once authentication is successful the pipeline will parse the path
+    component and find the consumer plugin that handles the provided path
+    walking up the path component by component until a consumer is found.
+
+    Paths are walked up from the leaf to the root, so if two consumers hang
+    on the same tree, the one closer to the leaf will be used. If there is
+    a trailing path when the conumer is selected then it will be stored in
+    the request dicstionary named 'trail'. The 'trail' is an ordered list
+    of the path components below the consumer entry point.
+    """
+
     server_string = "Custodia/0.1"
     allow_reuse_address = True
     socket_file = None
@@ -88,6 +117,34 @@ class ForkingLocalHTTPServer(ForkingMixIn, UnixStreamServer):
 
 
 class LocalHTTPRequestHandler(BaseHTTPRequestHandler):
+
+    """
+    This request handler is a slight modification of BaseHTTPRequestHandler
+    where the per-request handler is replaced.
+
+    When a request comes in it is parsed and the 'request' dictionary is
+    populated accordingly. Additionally a 'creds' structure is added to the
+    request.
+
+    The 'creds' structure contains the data retrieved via a call to
+    getsockopt with the SO_PEERCRED option. This retrieves via kernel assist
+    the uid,gid and pid of the process on the other side of the unix socket
+    on which the request has been made. This can be used for authentication
+    and/or authorization purposes.
+
+    after the request is parsed the server's pipeline() function is invoked
+    in order to handle it. The pipeline() should return a response object,
+    where te return 'code', the 'output' and 'headers' may be found.
+
+    If no 'code' is present the request is assumed to be successful and a
+    '200 OK' status code will be sent back to the client.
+
+    The 'output' parameter can be a string or a file like object.
+
+    The 'headers' objct must be a dictionary where keys are headers names.
+
+    By default we assume HTTP1.1, so connections may remain open.
+    """
 
     protocol_version = "HTTP/1.1"
 
