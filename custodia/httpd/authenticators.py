@@ -59,7 +59,7 @@ class SimpleHeaderAuth(HTTPAuthenticator):
             return
 
         request['valid_auth'] = True
-        request['valid_header'] = value
+        request['remote_user'] = value
 
 
 class SimpleNULLAuth(HTTPAuthenticator):
