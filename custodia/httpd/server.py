@@ -20,6 +20,7 @@ import sys
 import traceback
 
 SO_PEERCRED = 17
+MAX_REQUEST_SIZE = 10*1024*1024  # For now limit body to 10MiB
 
 
 class HTTPError(Exception):
@@ -160,6 +161,7 @@ class LocalHTTPRequestHandler(BaseHTTPRequestHandler):
         self.path = None
         self.query = None
         self.url = None
+        self.body = None
 
     def version_string(self):
         return self.server.server_string
@@ -191,6 +193,15 @@ class LocalHTTPRequestHandler(BaseHTTPRequestHandler):
 
         return True
 
+    def parse_body(self):
+        length = int(self.headers.get('content-length', 0))
+        if length > MAX_REQUEST_SIZE:
+            raise HTTPError(413)
+        if length == 0:
+            self.body = None
+        else:
+            self.body = self.rfile.read(length)
+
     def handle_one_request(self):
         # Set a fake client address to make log functions happy
         self.client_address = ['127.0.0.1', 0]
@@ -212,13 +223,20 @@ class LocalHTTPRequestHandler(BaseHTTPRequestHandler):
             if not self.parse_request():
                 self.close_connection = 1
                 return
+            try:
+                self.parse_body()
+            except HTTPError as e:
+                self.send_error(e.code, e.mesg)
+                self.wfile.flush()
+                return
             request = {'creds': self.peer_creds,
                        'command': self.command,
                        'path': self.path,
                        'query': self.query,
                        'url': self.url,
                        'version': self.request_version,
-                       'headers': self.headers}
+                       'headers': self.headers,
+                       'body': self.body}
             try:
                 response = self.server.pipeline(request)
                 if response is None:
