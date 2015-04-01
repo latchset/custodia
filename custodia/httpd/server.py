@@ -6,7 +6,7 @@ try:
     from SocketServer import ForkingMixIn, UnixStreamServer
     from urlparse import urlparse, parse_qs
 except ImportError:
-    # pylint: disable=import-error
+    # pylint: disable=import-error,no-name-in-module
     from http.server import BaseHTTPRequestHandler
     from socketserver import ForkingMixIn, UnixStreamServer
     from urllib.parse import urlparse, parse_qs
@@ -145,10 +145,10 @@ class LocalHTTPRequestHandler(BaseHTTPRequestHandler):
 
     The 'headers' objct must be a dictionary where keys are headers names.
 
-    By default we assume HTTP1.1, so connections may remain open.
+    By default we assume HTTP1.0
     """
 
-    protocol_version = "HTTP/1.1"
+    protocol_version = "HTTP/1.0"
 
     def __init__(self, *args, **kwargs):
         BaseHTTPRequestHandler.__init__(self, *args, **kwargs)
@@ -157,6 +157,9 @@ class LocalHTTPRequestHandler(BaseHTTPRequestHandler):
         self.command = ''
         self.raw_requestline = None
         self.close_connection = 0
+        self.path = None
+        self.query = None
+        self.url = None
 
     def version_string(self):
         return self.server.server_string
@@ -242,8 +245,10 @@ class LocalHTTPRequestHandler(BaseHTTPRequestHandler):
             if hasattr(output, 'read'):
                 shutil.copyfileobj(output, self.wfile)
                 output.close()
+            elif output is not None:
+                self.wfile.write(str(output).encode('utf-8'))
             else:
-                self.wfile.write(output.encode('utf-8'))
+                self.close_connection = 1
             self.wfile.flush()
             return
         except socket.timeout as e:
