@@ -1,5 +1,6 @@
 # Copyright (C) 2015  Custodia Project Contributors - see LICENSE file
 
+from __future__ import print_function
 from custodia.store.interface import CSStore, CSStoreError
 import os
 import sqlite3
@@ -7,7 +8,7 @@ import sys
 
 
 def log_error(error):
-    print >> sys.stderr, error
+    print(error, file=sys.stderr)
 
 
 class SqliteStore(CSStore):
@@ -26,15 +27,19 @@ class SqliteStore(CSStore):
         try:
             conn = sqlite3.connect(self.dburi)
             c = conn.cursor()
-            r = c.execute(query, (key))
+            r = c.execute(query, (key,))
             value = r.fetchall()
         except sqlite3.Error as err:
             log_error("Error fetching key %s: [%r]" % (key, repr(err)))
             raise CSStoreError('Error occurred while trying to get key')
-        return value
+        if len(value) > 0:
+            return value[0][0]
+        else:
+            return None
 
     def _create(self, cur):
-        create = "CREATE TABLE IF NOT EXISTS %s (key, value)" % self.table
+        create = "CREATE TABLE IF NOT EXISTS %s " \
+                 "(key PRIMARY KEY UNIQUE, value)" % self.table
         cur.execute(create)
 
     def set(self, key, value):
