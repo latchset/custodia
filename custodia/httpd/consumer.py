@@ -13,13 +13,36 @@ class HTTPConsumer(object):
         self.store_name = None
         if config and 'store' in config:
             self.store_name = config['store']
+        self.store = None
+        self.subs = dict()
+        self.root = self
 
-    def handle(self, request):
+    def add_sub(self, name, sub):
+        self.subs[name] = sub
+        if hasattr(sub, 'root'):
+            sub.root = self.root
+
+    def _find_handler(self, request):
+        base = self
         command = request.get('command', 'GET')
-        if not hasattr(self, command):
+        trail = request.get('trail', None)
+        if trail is not None:
+            for comp in trail:
+                subs = getattr(base, 'subs', {})
+                if comp in subs:
+                    base = subs[comp]
+                    trail.pop(0)
+                else:
+                    break
+
+        handler = getattr(base, command)
+        if handler is None:
             raise HTTPError(400)
 
-        handler = getattr(self, command)
+        return handler
+
+    def handle(self, request):
+        handler = self._find_handler(request)
         response = {'headers': dict()}
 
         # Handle request
