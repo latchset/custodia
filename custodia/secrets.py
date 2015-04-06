@@ -9,9 +9,25 @@ import os
 
 class Secrets(HTTPConsumer):
 
-    def _get_key(self, namespace, trail):
+    def _get_key(self, namespaces, trail):
+        # Check tht the keys is in one of the authorized namespaces
+        if len(trail) < 1 or trail[0] not in namespaces:
+            raise HTTPError(403)
         # pylint: disable=star-args
-        return os.path.join(namespace, 'keys', *trail)
+        return os.path.join('keys', *trail)
+
+    def _get_filter(self, namespaces, trail, userfilter):
+        f = None
+        if len(trail) > 0:
+            for ns in namespaces:
+                if ns == trail[0]:
+                    f = self._get_key(namespaces, trail)
+                break
+        if f is None:
+            # Consider the first namespace as the default one
+            t = [namespaces[0]] + trail
+            f = self._get_key(namespaces, t)
+        return '%s/%s' % (f, userfilter)
 
     def _validate(self, value):
         try:
@@ -27,31 +43,44 @@ class Secrets(HTTPConsumer):
         if len(msg.keys()) != 2:
             raise ValueError('Unknown attributes in Message')
 
-    def _namespace(self, request):
+    def _namespaces(self, request):
         if 'remote_user' not in request:
             raise HTTPError(403)
-        return request['remote_user']
+        # At the moment we just have one namespace, the user's name
+        return [request['remote_user']]
 
     def GET(self, request, response):
         trail = request.get('trail', [])
-        ns = self._namespace(request)
-        if len(trail) == 0:
+        ns = self._namespaces(request)
+        if len(trail) == 0 or trail[-1] == '':
             try:
-                self.root.store.list(request.get('query',
-                                                 dict()).get('filter', '*'))
+                userfilter = request.get('query', dict()).get('filter', '')
+                keyfilter = self._get_filter(ns, trail[:-1], userfilter)
+                keydict = self.root.store.list(keyfilter)
+                if keydict is None:
+                    raise HTTPError(404)
+                output = dict()
+                for k in keydict:
+                    # strip away the internal prefix for storing keys
+                    name = k[len('keys/'):]
+                    output[name] = json.loads(keydict[k])
+                response['output'] = json.dumps(output)
             except CSStoreError:
-                raise HTTPError(500)
+                raise HTTPError(404)
         else:
             key = self._get_key(ns, trail)
             try:
-                response['output'] = self.root.store.get(key)
+                output = self.root.store.get(key)
+                if output is None:
+                    raise HTTPError(404)
+                response['output'] = output
             except CSStoreError:
                 raise HTTPError(500)
 
     def PUT(self, request, response):
         trail = request.get('trail', [])
-        ns = self._namespace(request)
-        if len(trail) == 0:
+        ns = self._namespaces(request)
+        if len(trail) == 0 or trail[-1] == '':
             raise HTTPError(405)
         else:
             content_type = request.get('headers',
