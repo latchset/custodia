@@ -101,3 +101,48 @@ class Secrets(HTTPConsumer):
                 self.root.store.set(key, value)
             except CSStoreError:
                 raise HTTPError(500)
+
+
+# unit tests
+import unittest
+from custodia.store.sqlite import SqliteStore
+
+
+class SecretsTests(unittest.TestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        cls.secrets = Secrets()
+        cls.secrets.root.store = SqliteStore({'dburi': 'testdb.sqlite'})
+
+    @classmethod
+    def tearDownClass(self):
+        try:
+            os.unlink('testdb.sqlite')
+        except OSError:
+            pass
+
+    def test_1_PUTKey(self):
+        req = {'headers': {'Content-Type': 'application/json'},
+               'remote_user': 'test',
+               'trail': ['test', 'key1'],
+               'body': '{"type":"simple","value":"1234"}'}
+        rep = {}
+        self.secrets.PUT(req, rep)
+
+    def test_2_GETKey(self):
+        req = {'remote_user': 'test',
+               'trail': ['test', 'key1']}
+        rep = {}
+        self.secrets.GET(req, rep)
+        self.assertEqual(rep['output'],
+                         '{"type":"simple","value":"1234"}')
+
+    def test_3_LISTKeys(self):
+        req = {'remote_user': 'test',
+               'trail': ['test', '']}
+        rep = {}
+        self.secrets.GET(req, rep)
+        self.assertEqual(json.loads(rep['output']),
+                         json.loads('{"test/key1":'\
+                                    '{"type":"simple","value":"1234"}}'))
