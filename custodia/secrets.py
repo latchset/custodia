@@ -122,6 +122,15 @@ class SecretsTests(unittest.TestCase):
         except OSError:
             pass
 
+    def test_0_LISTkey_404(self):
+        req = {'remote_user': 'test',
+               'trail': ['test', '']}
+        rep = {}
+        with self.assertRaises(HTTPError) as err:
+            self.secrets.GET(req, rep)
+
+        self.assertEqual(err.exception.code, 404)
+
     def test_1_PUTKey(self):
         req = {'headers': {'Content-Type': 'application/json'},
                'remote_user': 'test',
@@ -146,3 +155,105 @@ class SecretsTests(unittest.TestCase):
         self.assertEqual(json.loads(rep['output']),
                          json.loads('{"test/key1":'\
                                     '{"type":"simple","value":"1234"}}'))
+
+    def test_3_LISTKeys_2(self):
+        req = {'remote_user': 'test',
+               'query': {'filter': 'key'},
+               'trail': ['test', '']}
+        rep = {}
+        self.secrets.GET(req, rep)
+        self.assertEqual(json.loads(rep['output']),
+                         json.loads('{"test/key1":'\
+                                    '{"type":"simple","value":"1234"}}'))
+
+    def test_4_PUTKey_errors_400_1(self):
+        req = {'headers': {'Content-Type': 'text/plain'},
+               'remote_user': 'test',
+               'trail': ['test', 'key2'],
+               'body': '{"type":"simple","value":"2345"}'}
+        rep = {}
+        with self.assertRaises(HTTPError) as err:
+            self.secrets.PUT(req, rep)
+        self.assertEqual(err.exception.code, 400)
+
+    def test_4_PUTKey_errors_400_2(self):
+        req = {'headers': {'Content-Type': 'text/plain'},
+               'remote_user': 'test',
+               'trail': ['test', 'key2']}
+        rep = {}
+        with self.assertRaises(HTTPError) as err:
+            self.secrets.PUT(req, rep)
+        self.assertEqual(err.exception.code, 400)
+
+    def test_4_PUTKey_errors_400_3(self):
+        req = {'headers': {'Content-Type': 'text/plain'},
+               'remote_user': 'test',
+               'trail': ['test', 'key2'],
+               'body': '{"type":}"simple","value":"2345"}'}
+        rep = {}
+        with self.assertRaises(HTTPError) as err:
+            self.secrets.PUT(req, rep)
+        self.assertEqual(err.exception.code, 400)
+
+    def test_4_PUTKey_errors_403(self):
+        req = {'headers': {'Content-Type': 'application/json; charset=utf-8'},
+               'remote_user': 'test',
+               'trail': ['case', 'key2'],
+               'body': '{"type":"simple","value":"2345"}'}
+        rep = {}
+        with self.assertRaises(HTTPError) as err:
+            self.secrets.PUT(req, rep)
+        self.assertEqual(err.exception.code, 403)
+
+    def test_4_PUTKey_errors_405(self):
+        req = {'headers': {'Content-Type': 'application/json; charset=utf-8'},
+               'remote_user': 'test',
+               'trail': ['test', 'key2', ''],
+               'body': '{"type":"simple","value":"2345"}'}
+        rep = {}
+        with self.assertRaises(HTTPError) as err:
+            self.secrets.PUT(req, rep)
+        self.assertEqual(err.exception.code, 405)
+
+    def test_5_GETKey_errors_403(self):
+        req = {'remote_user': 'case',
+               'trail': ['test', 'key1']}
+        rep = {}
+        with self.assertRaises(HTTPError) as err:
+            self.secrets.GET(req, rep)
+        self.assertEqual(err.exception.code, 403)
+
+    def test_5_GETkey_errors_404(self):
+        req = {'remote_user': 'test',
+               'trail': ['test', 'key0']}
+        rep = {}
+        with self.assertRaises(HTTPError) as err:
+            self.secrets.GET(req, rep)
+
+        self.assertEqual(err.exception.code, 404)
+
+    def test_6_LISTkeys_errors_404_1(self):
+        req = {'remote_user': 'case',
+               'trail': ['test', '']}
+        rep = {}
+        with self.assertRaises(HTTPError) as err:
+            self.secrets.GET(req, rep)
+        self.assertEqual(err.exception.code, 404)
+
+    def test_6_LISTkeys_errors_404_1(self):
+        req = {'remote_user': 'test',
+               'trail': ['test', 'case', '']}
+        rep = {}
+        with self.assertRaises(HTTPError) as err:
+            self.secrets.GET(req, rep)
+        self.assertEqual(err.exception.code, 404)
+
+    def test_6_LISTkeys_errors_404_2(self):
+        req = {'remote_user': 'test',
+               'query': {'filter': 'foo'},
+               'trail': ['test', '']}
+        rep = {}
+        with self.assertRaises(HTTPError) as err:
+            self.secrets.GET(req, rep)
+        self.assertEqual(err.exception.code, 404)
+
