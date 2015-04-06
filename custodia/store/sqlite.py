@@ -56,12 +56,18 @@ class SqliteStore(CSStore):
 
     def list(self, keyfilter='/'):
         search = "SELECT * FROM %s WHERE key LIKE ?" % self.table
-        key = os.path.join(keyfilter, '%')
+        key = "%s%%" % (keyfilter,)
         try:
             conn = sqlite3.connect(self.dburi)
             r = conn.execute(search, (key,))
-            value = r.fetchall()
+            rows = r.fetchall()
         except sqlite3.Error as err:
             log_error("Error listing (filter: %s): [%r]" % (key, repr(err)))
             raise CSStoreError('Error occurred while trying to list keys')
-        return value
+        if len(rows) > 0:
+            value = dict()
+            for row in rows:
+                value[row[0]] = row[1]
+            return value
+        else:
+            return None
