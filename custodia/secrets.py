@@ -51,6 +51,28 @@ class Secrets(HTTPConsumer):
         # At the moment we just have one namespace, the user's name
         return [request['remote_user']]
 
+    def _parent_exists(self, ns, trail):
+        # check that the containers exist
+        exists = True
+        n = 0
+        for n in range(1, len(trail)):
+            probe = self._db_key(ns, trail[:n] + [''])
+            try:
+                check = self.root.store.get(probe)
+                if check is None:
+                    exists = False
+                    break
+            except CSStoreError:
+                exists = False
+                break
+
+        # create if default namespace
+        if not exists and len(trail) == 2 and n == 1 and ns[0] == trail[0]:
+            self.root.store.set(probe, '')
+            exists = True
+
+        return exists
+
     def GET(self, request, response):
         trail = request.get('trail', [])
         if len(trail) == 0 or trail[-1] == '':
@@ -70,9 +92,16 @@ class Secrets(HTTPConsumer):
         if len(trail) == 0:
             raise HTTPError(405)
         if trail[-1] == '':
-            raise HTTPError(405)
+            self._destroy(trail, request, response)
         else:
             self._del_key(trail, request, response)
+
+    def POST(self, request, response):
+        trail = request.get('trail', [])
+        if len(trail) > 0 and trail[-1] == '':
+            self._create(trail, request, response)
+        else:
+            raise HTTPError(405)
 
     def _list(self, trail, request, response):
         ns = self._namespaces(request)
@@ -97,6 +126,43 @@ class Secrets(HTTPConsumer):
             response['output'] = json.dumps(output)
         except CSStoreError:
             raise HTTPError(404)
+
+    def _create(self, trail, request, response):
+        ns = self._namespaces(request)
+        basename = self._db_container_key(ns, trail[:-1])
+        try:
+            ok = self._parent_exists(ns, trail[:-1])
+            if not ok:
+                raise HTTPError(404)
+
+            self.root.store.set(basename, '')
+        except CSStoreError:
+            raise HTTPError(500)
+
+        response['code'] = 201
+
+    def _destroy(self, trail, request, response):
+        ns = self._namespaces(request)
+        basename = self._db_container_key(ns, trail[:-1])
+        try:
+            keydict = self.root.store.list(basename)
+            if keydict is None:
+                raise HTTPError(404)
+            keys = keydict.keys()
+            if len(keys) != 1:
+                raise HTTPError(409)
+            if keys[0] != basename:
+                # uh ?
+                raise HTTPError(409)
+            print((basename, keys))
+            ret = self.root.store.cut(basename)
+        except CSStoreError:
+            ret = False
+
+        if ret is False:
+            raise HTTPError(404)
+
+        response['code'] = 204
 
     def _get_key(self, trail, request, response):
         ns = self._namespaces(request)
@@ -130,20 +196,8 @@ class Secrets(HTTPConsumer):
         key = self._db_key(ns, trail)
 
         try:
-            # check that the containers exist
-            n = 0
-            for n in range(1, len(trail)):
-                probe = self._db_key(ns, trail[:n] + [''])
-                try:
-                    check = self.root.store.get(probe)
-                    if check is None:
-                        break
-                except CSStoreError:
-                    break
-            # create if default namespace
-            if n == 1 and ns[0] == trail[0]:
-                self.root.store.set(probe, '')
-            else:
+            ok = self._parent_exists(ns, trail)
+            if not ok:
                 raise HTTPError(404)
 
             self.root.store.set(key, value)
@@ -349,3 +403,66 @@ class SecretsTests(unittest.TestCase):
         with self.assertRaises(HTTPError) as err:
             self.secrets.DELETE(req, rep)
         self.assertEqual(err.exception.code, 405)
+
+    def test_8_CREATEcont(self):
+        req = {'remote_user': 'test',
+               'trail': ['test', 'container', '']}
+        rep = {}
+        self.secrets.POST(req, rep)
+        self.assertEqual(rep['code'], 201)
+
+    def test_8_CREATEcont_erros_403(self):
+        req = {'remote_user': 'case',
+               'trail': ['test', 'container', '']}
+        rep = {}
+        with self.assertRaises(HTTPError) as err:
+            self.secrets.POST(req, rep)
+        self.assertEqual(err.exception.code, 403)
+
+    def test_8_CREATEcont_erros_404(self):
+        req = {'remote_user': 'test',
+               'trail': ['test', 'mid', 'container', '']}
+        rep = {}
+        with self.assertRaises(HTTPError) as err:
+            self.secrets.POST(req, rep)
+        self.assertEqual(err.exception.code, 404)
+
+    def test_8_CREATEcont_erros_405(self):
+        req = {'remote_user': 'test',
+               'trail': ['test', 'container']}
+        rep = {}
+        with self.assertRaises(HTTPError) as err:
+            self.secrets.POST(req, rep)
+        self.assertEqual(err.exception.code, 405)
+
+    def test_8_DESTROYcont(self):
+        req = {'remote_user': 'test',
+               'trail': ['test', 'container', '']}
+        rep = {}
+        self.secrets.DELETE(req, rep)
+        self.assertEqual(rep['code'], 204)
+
+    def test_8_DESTROYcont_erros_403(self):
+        req = {'remote_user': 'case',
+               'trail': ['test', 'container', '']}
+        rep = {}
+        with self.assertRaises(HTTPError) as err:
+            self.secrets.DELETE(req, rep)
+        self.assertEqual(err.exception.code, 403)
+
+    def test_8_DESTROYcont_erros_404(self):
+        req = {'remote_user': 'test',
+               'trail': ['test', 'mid', 'container', '']}
+        rep = {}
+        with self.assertRaises(HTTPError) as err:
+            self.secrets.DELETE(req, rep)
+        self.assertEqual(err.exception.code, 404)
+
+    def test_8_DESTROYcont_erros_409(self):
+        self.test_1_PUTKey()
+        req = {'remote_user': 'test',
+               'trail': ['test', '']}
+        rep = {}
+        with self.assertRaises(HTTPError) as err:
+            self.secrets.DELETE(req, rep)
+        self.assertEqual(err.exception.code, 409)
