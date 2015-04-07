@@ -10,7 +10,7 @@ class CSStore(object):
     def get(self, key):
         raise NotImplementedError
 
-    def set(self, key, value):
+    def set(self, key, value, replace=False):
         raise NotImplementedError
 
     def list(self, keyfilter=None):

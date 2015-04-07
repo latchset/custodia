@@ -42,8 +42,12 @@ class SqliteStore(CSStore):
                  "(key PRIMARY KEY UNIQUE, value)" % self.table
         cur.execute(create)
 
-    def set(self, key, value):
-        setdata = "INSERT OR REPLACE into %s VALUES (?, ?)" % self.table
+    def set(self, key, value, replace=False):
+        if replace:
+            query = "INSERT OR REPLACE into %s VALUES (?, ?)"
+        else:
+            query = "INSERT into %s VALUES (?, ?)"
+        setdata = query % (self.table,)
         try:
             conn = sqlite3.connect(self.dburi)
             with conn:
@@ -160,3 +164,12 @@ class SqliteStoreTests(unittest.TestCase):
 
         value = self.store.get('/sub%')
         self.assertEqual(value, None)
+
+    def test_5_set_replace(self):
+        with self.assertRaises(CSStoreError):
+            self.store.set('key', 'replaced')
+
+        self.store.set('key', 'replaced', replace=True)
+
+        value = self.store.get('key')
+        self.assertEqual(value, 'replaced')
