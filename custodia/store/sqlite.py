@@ -1,7 +1,7 @@
 # Copyright (C) 2015  Custodia Project Contributors - see LICENSE file
 
 from __future__ import print_function
-from custodia.store.interface import CSStore, CSStoreError
+from custodia.store.interface import CSStore, CSStoreError, CSStoreExists
 import os
 import sqlite3
 import sys
@@ -54,6 +54,8 @@ class SqliteStore(CSStore):
                 c = conn.cursor()
                 self._create(c)
                 c.execute(setdata, (key, value))
+        except sqlite3.IntegrityError as err:
+            raise CSStoreExists(str(err))
         except sqlite3.Error as err:
             log_error("Error storing key %s: [%r]" % (key, repr(err)))
             raise CSStoreError('Error occurred while trying to store key')
@@ -182,7 +184,7 @@ class SqliteStoreTests(unittest.TestCase):
         self.assertEqual(value, None)
 
     def test_5_set_replace(self):
-        with self.assertRaises(CSStoreError):
+        with self.assertRaises(CSStoreExists):
             self.store.set('key', 'replaced')
 
         self.store.set('key', 'replaced', replace=True)

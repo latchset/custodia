@@ -5,6 +5,10 @@ class CSStoreError(Exception):
     pass
 
 
+class CSStoreExists(Exception):
+    pass
+
+
 class CSStore(object):
 
     def get(self, key):
