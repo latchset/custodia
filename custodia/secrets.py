@@ -23,7 +23,9 @@ class Secrets(HTTPConsumer):
                 if ns == trail[0]:
                     f = self._get_key(namespaces, trail)
                 break
-        if f is None:
+            if f is None:
+                raise HTTPError(403)
+        else:
             # Consider the first namespace as the default one
             t = [namespaces[0]] + trail
             f = self._get_key(namespaces, t)
@@ -63,7 +65,14 @@ class Secrets(HTTPConsumer):
                 for k in keydict:
                     # strip away the internal prefix for storing keys
                     name = k[len('keys/'):]
-                    output[name] = json.loads(keydict[k])
+                    value = keydict[k]
+                    # remove the containers themselves, we list only keys
+                    if name.endswith('/'):
+                        continue
+                    if value == '':
+                        output[name] = ''
+                    else:
+                        output[name] = json.loads(value)
                 response['output'] = json.dumps(output)
             except CSStoreError:
                 raise HTTPError(404)
@@ -96,8 +105,28 @@ class Secrets(HTTPConsumer):
         except ValueError as e:
             raise HTTPError(400, str(e))
 
+        # must _get_key first as access control is done here for now
+        # otherwise users would e able to probe containers in namespaces
+        # they do not have access to.
         key = self._get_key(ns, trail)
+
         try:
+            # check that the containers exist
+            n = 0
+            for n in range(1, len(trail)):
+                probe = self._get_key(ns, trail[:n] + [''])
+                try:
+                    check = self.root.store.get(probe)
+                    if check is None:
+                        break
+                except CSStoreError:
+                    break
+            # create if default namespace
+            if n == 1 and ns[0] == trail[0]:
+                self.root.store.set(probe, '')
+            else:
+                raise HTTPError(404)
+
             self.root.store.set(key, value)
         except CSStoreError:
             raise HTTPError(500)
@@ -206,6 +235,16 @@ class SecretsTests(unittest.TestCase):
         with self.assertRaises(HTTPError) as err:
             self.secrets.PUT(req, rep)
         self.assertEqual(err.exception.code, 403)
+
+    def test_4_PUTKey_errors_404(self):
+        req = {'headers': {'Content-Type': 'application/json; charset=utf-8'},
+               'remote_user': 'test',
+               'trail': ['test', 'more', 'key1'],
+               'body': '{"type":"simple","value":"1234"}'}
+        rep = {}
+        with self.assertRaises(HTTPError) as err:
+            self.secrets.PUT(req, rep)
+        self.assertEqual(err.exception.code, 404)
 
     def test_4_PUTKey_errors_405(self):
         req = {'headers': {'Content-Type': 'application/json; charset=utf-8'},
