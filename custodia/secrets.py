@@ -65,6 +65,15 @@ class Secrets(HTTPConsumer):
         else:
             self._set_key(trail, request, response)
 
+    def DELETE(self, request, response):
+        trail = request.get('trail', [])
+        if len(trail) == 0:
+            raise HTTPError(405)
+        if trail[-1] == '':
+            raise HTTPError(405)
+        else:
+            self._del_key(trail, request, response)
+
     def _list(self, trail, request, response):
         ns = self._namespaces(request)
         try:
@@ -143,6 +152,18 @@ class Secrets(HTTPConsumer):
 
         response['code'] = 201
 
+    def _del_key(self, trail, request, response):
+        ns = self._namespaces(request)
+        key = self._db_key(ns, trail)
+        try:
+            ret = self.root.store.cut(key)
+        except CSStoreError:
+            ret = False
+
+        if ret is False:
+            raise HTTPError(404)
+
+        response['code'] = 204
 
 # unit tests
 import unittest
@@ -300,3 +321,31 @@ class SecretsTests(unittest.TestCase):
             self.secrets.GET(req, rep)
         self.assertEqual(err.exception.code, 404)
 
+    def test_7_DELETEKey(self):
+        req = {'remote_user': 'test',
+               'trail': ['test', 'key1']}
+        rep = {}
+        self.secrets.DELETE(req, rep)
+
+    def test_7_DELETEKey_errors_403(self):
+        req = {'remote_user': 'case',
+               'trail': ['test', 'key1']}
+        rep = {}
+        with self.assertRaises(HTTPError) as err:
+            self.secrets.DELETE(req, rep)
+        self.assertEqual(err.exception.code, 403)
+
+    def test_7_DELETEKey_errors_404(self):
+        req = {'remote_user': 'test',
+               'trail': ['test', 'nokey']}
+        rep = {}
+        with self.assertRaises(HTTPError) as err:
+            self.secrets.DELETE(req, rep)
+        self.assertEqual(err.exception.code, 404)
+
+    def test_7_DELETEKey_errors_405(self):
+        req = {'remote_user': 'test'}
+        rep = {}
+        with self.assertRaises(HTTPError) as err:
+            self.secrets.DELETE(req, rep)
+        self.assertEqual(err.exception.code, 405)
