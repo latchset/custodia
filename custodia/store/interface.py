@@ -15,3 +15,6 @@ class CSStore(object):
 
     def list(self, keyfilter=None):
         raise NotImplementedError
+
+    def cut(self, key):
+        raise NotImplementedError

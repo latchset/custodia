@@ -76,8 +76,24 @@ class SqliteStore(CSStore):
         else:
             return None
 
+    def cut(self, key):
+        query = "DELETE from %s WHERE key=?" % self.table
+        try:
+            conn = sqlite3.connect(self.dburi)
+            with conn:
+                c = conn.cursor()
+                r = c.execute(query, (key,))
+        except sqlite3.Error as err:
+            log_error("Error removing key %s: [%r]" % (key, repr(err)))
+            raise CSStoreError('Error occurred while trying to cut key')
+        if r.rowcount > 0:
+            return True
+        return False
+
 
 import unittest
+
+
 class SqliteStoreTests(unittest.TestCase):
 
     @classmethod
@@ -173,3 +189,14 @@ class SqliteStoreTests(unittest.TestCase):
 
         value = self.store.get('key')
         self.assertEqual(value, 'replaced')
+
+    def test_6_cut_1(self):
+        self.store.set('keycut', 'value')
+        ret = self.store.cut('keycut')
+        self.assertEqual(ret, True)
+        value = self.store.get('keycut')
+        self.assertEqual(value, None)
+
+    def test_6_cut_2_empty(self):
+        ret = self.store.cut('keycut')
+        self.assertEqual(ret, False)
