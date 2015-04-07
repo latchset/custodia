@@ -233,14 +233,6 @@ class SecretsTests(unittest.TestCase):
         self.assertEqual(err.exception.code, 404)
 
     def test_6_LISTkeys_errors_404_1(self):
-        req = {'remote_user': 'case',
-               'trail': ['test', '']}
-        rep = {}
-        with self.assertRaises(HTTPError) as err:
-            self.secrets.GET(req, rep)
-        self.assertEqual(err.exception.code, 404)
-
-    def test_6_LISTkeys_errors_404_1(self):
         req = {'remote_user': 'test',
                'trail': ['test', 'case', '']}
         rep = {}
