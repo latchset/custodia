@@ -71,3 +71,92 @@ class SqliteStore(CSStore):
             return value
         else:
             return None
+
+
+import unittest
+class SqliteStoreTests(unittest.TestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        cls.store = SqliteStore({'dburi': 'testdbstore.sqlite'})
+
+    @classmethod
+    def tearDownClass(self):
+        try:
+            os.unlink('testdbstore.sqlite')
+        except OSError:
+            pass
+
+    def test_0_get_empty(self):
+        with self.assertRaises(CSStoreError) as err:
+            self.store.get('test')
+
+        self.assertEqual(str(err.exception),
+                         'Error occurred while trying to get key')
+
+    def test_1_list_empty(self):
+        with self.assertRaises(CSStoreError) as err:
+            self.store.list('test')
+
+        self.assertEqual(str(err.exception),
+                         'Error occurred while trying to list keys')
+
+    def test_2_set_key(self):
+        self.store.set('key', 'value')
+        value = self.store.get('key')
+        self.assertEqual(value, 'value')
+
+    def test_3_list_key(self):
+        value = self.store.list('key')
+        self.assertEqual(value, {'key': 'value'})
+
+        value = self.store.list('k')
+        self.assertEqual(value, {'key': 'value'})
+
+        value = self.store.list('none')
+        self.assertEqual(value, None)
+
+    def test_4_multiple_keys(self):
+        self.store.set('/sub1/key1', 'value11')
+        self.store.set('/sub1/key2', 'value12')
+        self.store.set('/sub1/key3', 'value13')
+        self.store.set('/sub2/key1', 'value21')
+        self.store.set('/sub2/key2', 'value22')
+        self.store.set('/oth3/key1', 'value31')
+
+        value = self.store.list()
+        self.assertEqual(value, {'/sub1/key1': 'value11',
+                                 '/sub1/key2': 'value12',
+                                 '/sub1/key3': 'value13',
+                                 '/sub2/key1': 'value21',
+                                 '/sub2/key2': 'value22',
+                                 '/oth3/key1': 'value31'})
+
+        value = self.store.list('/sub')
+        self.assertEqual(value, {'/sub1/key1': 'value11',
+                                 '/sub1/key2': 'value12',
+                                 '/sub1/key3': 'value13',
+                                 '/sub2/key1': 'value21',
+                                 '/sub2/key2': 'value22'})
+
+        value = self.store.list('/sub2')
+        self.assertEqual(value, {'/sub2/key1': 'value21',
+                                 '/sub2/key2': 'value22'})
+
+        value = self.store.list('/o')
+        self.assertEqual(value, {'/oth3/key1': 'value31'})
+
+        value = self.store.list('/x')
+        self.assertEqual(value, None)
+
+        value = self.store.list('/sub1/key1/')
+        self.assertEqual(value, None)
+
+        value = self.store.get('/sub1')
+        self.assertEqual(value, None)
+
+        value = self.store.get('/sub2/key1')
+        self.assertEqual(value, 'value21')
+
+        value = self.store.get('/sub%')
+        self.assertEqual(value, None)
