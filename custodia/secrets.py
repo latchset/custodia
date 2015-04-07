@@ -9,26 +9,26 @@ import os
 
 class Secrets(HTTPConsumer):
 
-    def _get_key(self, namespaces, trail):
+    def _db_key(self, namespaces, trail):
         # Check tht the keys is in one of the authorized namespaces
         if len(trail) < 1 or trail[0] not in namespaces:
             raise HTTPError(403)
         # pylint: disable=star-args
         return os.path.join('keys', *trail)
 
-    def _get_filter(self, namespaces, trail, userfilter):
+    def _db_filter(self, namespaces, trail, userfilter):
         f = None
         if len(trail) > 0:
             for ns in namespaces:
                 if ns == trail[0]:
-                    f = self._get_key(namespaces, trail)
+                    f = self._db_key(namespaces, trail)
                 break
             if f is None:
                 raise HTTPError(403)
         else:
             # Consider the first namespace as the default one
             t = [namespaces[0]] + trail
-            f = self._get_key(namespaces, t)
+            f = self._db_key(namespaces, t)
         return '%s/%s' % (f, userfilter)
 
     def _validate(self, value):
@@ -53,45 +53,55 @@ class Secrets(HTTPConsumer):
 
     def GET(self, request, response):
         trail = request.get('trail', [])
-        ns = self._namespaces(request)
         if len(trail) == 0 or trail[-1] == '':
-            try:
-                userfilter = request.get('query', dict()).get('filter', '')
-                keyfilter = self._get_filter(ns, trail[:-1], userfilter)
-                keydict = self.root.store.list(keyfilter)
-                if keydict is None:
-                    raise HTTPError(404)
-                output = dict()
-                for k in keydict:
-                    # strip away the internal prefix for storing keys
-                    name = k[len('keys/'):]
-                    value = keydict[k]
-                    # remove the containers themselves, we list only keys
-                    if name.endswith('/'):
-                        continue
-                    if value == '':
-                        output[name] = ''
-                    else:
-                        output[name] = json.loads(value)
-                response['output'] = json.dumps(output)
-            except CSStoreError:
-                raise HTTPError(404)
+            self._list(trail, request, response)
         else:
-            key = self._get_key(ns, trail)
-            try:
-                output = self.root.store.get(key)
-                if output is None:
-                    raise HTTPError(404)
-                response['output'] = output
-            except CSStoreError:
-                raise HTTPError(500)
+            self._get_key(trail, request, response)
 
     def PUT(self, request, response):
         trail = request.get('trail', [])
-        ns = self._namespaces(request)
         if len(trail) == 0 or trail[-1] == '':
             raise HTTPError(405)
+        else:
+            self._set_key(trail, request, response)
 
+    def _list(self, trail, request, response):
+        ns = self._namespaces(request)
+        try:
+            userfilter = request.get('query', dict()).get('filter', '')
+            keyfilter = self._db_filter(ns, trail[:-1], userfilter)
+            keydict = self.root.store.list(keyfilter)
+            if keydict is None:
+                raise HTTPError(404)
+            output = dict()
+            for k in keydict:
+                # strip away the internal prefix for storing keys
+                name = k[len('keys/'):]
+                value = keydict[k]
+                # remove the containers themselves, we list only keys
+                if name.endswith('/'):
+                    continue
+                if value == '':
+                    output[name] = ''
+                else:
+                    output[name] = json.loads(value)
+            response['output'] = json.dumps(output)
+        except CSStoreError:
+            raise HTTPError(404)
+
+    def _get_key(self, trail, request, response):
+        ns = self._namespaces(request)
+        key = self._db_key(ns, trail)
+        try:
+            output = self.root.store.get(key)
+            if output is None:
+                raise HTTPError(404)
+            response['output'] = output
+        except CSStoreError:
+            raise HTTPError(500)
+
+    def _set_key(self, trail, request, response):
+        ns = self._namespaces(request)
         content_type = request.get('headers',
                                    dict()).get('Content-Type', '')
         if content_type.split(';')[0].strip() != 'application/json':
@@ -105,16 +115,16 @@ class Secrets(HTTPConsumer):
         except ValueError as e:
             raise HTTPError(400, str(e))
 
-        # must _get_key first as access control is done here for now
+        # must _db_key first as access control is done here for now
         # otherwise users would e able to probe containers in namespaces
         # they do not have access to.
-        key = self._get_key(ns, trail)
+        key = self._db_key(ns, trail)
 
         try:
             # check that the containers exist
             n = 0
             for n in range(1, len(trail)):
-                probe = self._get_key(ns, trail[:n] + [''])
+                probe = self._db_key(ns, trail[:n] + [''])
                 try:
                     check = self.root.store.get(probe)
                     if check is None:
