@@ -3,6 +3,7 @@
 from custodia.httpd.consumer import HTTPConsumer
 from custodia.httpd.server import HTTPError
 from custodia.store.interface import CSStoreError
+from custodia.store.interface import CSStoreExists
 import json
 import os
 
@@ -136,6 +137,8 @@ class Secrets(HTTPConsumer):
                 raise HTTPError(404)
 
             self.root.store.set(basename, '')
+        except CSStoreExists:
+            raise HTTPError(409)
         except CSStoreError:
             raise HTTPError(500)
 
@@ -200,7 +203,9 @@ class Secrets(HTTPConsumer):
             if not ok:
                 raise HTTPError(404)
 
-            self.root.store.set(key, value)
+            ok = self.root.store.set(key, value)
+        except CSStoreExists:
+            raise HTTPError(409)
         except CSStoreError:
             raise HTTPError(500)
 
@@ -341,6 +346,17 @@ class SecretsTests(unittest.TestCase):
             self.secrets.PUT(req, rep)
         self.assertEqual(err.exception.code, 405)
 
+    def test_4_PUTKey_errors_409(self):
+        req = {'headers': {'Content-Type': 'application/json; charset=utf-8'},
+               'remote_user': 'test',
+               'trail': ['test', 'key3'],
+               'body': '{"type":"simple","value":"2345"}'}
+        rep = {}
+        self.secrets.PUT(req, rep)
+        with self.assertRaises(HTTPError) as err:
+            self.secrets.PUT(req, rep)
+        self.assertEqual(err.exception.code, 409)
+
     def test_5_GETKey_errors_403(self):
         req = {'remote_user': 'case',
                'trail': ['test', 'key1']}
@@ -434,6 +450,15 @@ class SecretsTests(unittest.TestCase):
         with self.assertRaises(HTTPError) as err:
             self.secrets.POST(req, rep)
         self.assertEqual(err.exception.code, 405)
+
+    def test_8_CREATEcont_erros_409(self):
+        req = {'remote_user': 'test',
+               'trail': ['test', 'exists', '']}
+        rep = {}
+        self.secrets.POST(req, rep)
+        with self.assertRaises(HTTPError) as err:
+            self.secrets.POST(req, rep)
+        self.assertEqual(err.exception.code, 409)
 
     def test_8_DESTROYcont(self):
         req = {'remote_user': 'test',
