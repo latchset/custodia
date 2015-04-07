@@ -16,20 +16,20 @@ class Secrets(HTTPConsumer):
         # pylint: disable=star-args
         return os.path.join('keys', *trail)
 
-    def _db_filter(self, namespaces, trail, userfilter):
+    def _db_container_key(self, namespaces, trail):
         f = None
         if len(trail) > 0:
             for ns in namespaces:
                 if ns == trail[0]:
-                    f = self._db_key(namespaces, trail)
+                    f = self._db_key(namespaces, trail + [''])
                 break
             if f is None:
                 raise HTTPError(403)
         else:
             # Consider the first namespace as the default one
-            t = [namespaces[0]] + trail
+            t = [namespaces[0]] + trail + ['']
             f = self._db_key(namespaces, t)
-        return '%s/%s' % (f, userfilter)
+        return f
 
     def _validate(self, value):
         try:
@@ -68,23 +68,23 @@ class Secrets(HTTPConsumer):
     def _list(self, trail, request, response):
         ns = self._namespaces(request)
         try:
+            basename = self._db_container_key(ns, trail[:-1])
             userfilter = request.get('query', dict()).get('filter', '')
-            keyfilter = self._db_filter(ns, trail[:-1], userfilter)
-            keydict = self.root.store.list(keyfilter)
+            keydict = self.root.store.list(basename + userfilter)
             if keydict is None:
                 raise HTTPError(404)
             output = dict()
             for k in keydict:
+                # remove the base container itself
+                if k == basename:
+                    continue
                 # strip away the internal prefix for storing keys
                 name = k[len('keys/'):]
-                value = keydict[k]
-                # remove the containers themselves, we list only keys
+                # return empty value for containers
                 if name.endswith('/'):
-                    continue
-                if value == '':
                     output[name] = ''
                 else:
-                    output[name] = json.loads(value)
+                    output[name] = json.loads(keydict[k])
             response['output'] = json.dumps(output)
         except CSStoreError:
             raise HTTPError(404)
