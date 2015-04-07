@@ -274,7 +274,7 @@ class SecretsTests(unittest.TestCase):
         rep = {}
         self.secrets.GET(req, rep)
         self.assertEqual(json.loads(rep['output']),
-                         json.loads('{"test/key1":'\
+                         json.loads('{"test/key1":'
                                     '{"type":"simple","value":"1234"}}'))
 
     def test_3_LISTKeys_2(self):
@@ -284,7 +284,7 @@ class SecretsTests(unittest.TestCase):
         rep = {}
         self.secrets.GET(req, rep)
         self.assertEqual(json.loads(rep['output']),
-                         json.loads('{"test/key1":'\
+                         json.loads('{"test/key1":'
                                     '{"type":"simple","value":"1234"}}'))
 
     def test_4_PUTKey_errors_400_1(self):
