@@ -82,25 +82,27 @@ class Secrets(HTTPConsumer):
         ns = self._namespaces(request)
         if len(trail) == 0 or trail[-1] == '':
             raise HTTPError(405)
-        else:
-            content_type = request.get('headers',
-                                       dict()).get('Content-Type', '')
-            if content_type.split(';')[0].strip() != 'application/json':
-                raise HTTPError(400, 'Invalid Content-Type')
-            body = request.get('body')
-            if body is None:
-                raise HTTPError(400)
-            value = bytes(body).decode('utf-8')
-            try:
-                self._validate(value)
-            except ValueError as e:
-                raise HTTPError(400, str(e))
 
-            key = self._get_key(ns, trail)
-            try:
-                self.root.store.set(key, value)
-            except CSStoreError:
-                raise HTTPError(500)
+        content_type = request.get('headers',
+                                   dict()).get('Content-Type', '')
+        if content_type.split(';')[0].strip() != 'application/json':
+            raise HTTPError(400, 'Invalid Content-Type')
+        body = request.get('body')
+        if body is None:
+            raise HTTPError(400)
+        value = bytes(body).decode('utf-8')
+        try:
+            self._validate(value)
+        except ValueError as e:
+            raise HTTPError(400, str(e))
+
+        key = self._get_key(ns, trail)
+        try:
+            self.root.store.set(key, value)
+        except CSStoreError:
+            raise HTTPError(500)
+
+        response['code'] = 201
 
 
 # unit tests
