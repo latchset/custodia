@@ -4,6 +4,7 @@ from custodia.httpd.server import HTTPError
 
 
 DEFAULT_CTYPE = 'text/html; charset=utf-8'
+SUPPORTED_COMMANDS = ['GET', 'PUT', 'POST', 'DELETE']
 
 
 class HTTPConsumer(object):
@@ -25,6 +26,8 @@ class HTTPConsumer(object):
     def _find_handler(self, request):
         base = self
         command = request.get('command', 'GET')
+        if command not in SUPPORTED_COMMANDS:
+            raise HTTPError(501)
         trail = request.get('trail', None)
         if trail is not None:
             for comp in trail:
