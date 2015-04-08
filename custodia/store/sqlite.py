@@ -22,6 +22,17 @@ class SqliteStore(CSStore):
         else:
             self.table = "CustodiaSecrets"
 
+        # Initialize the DB by trying to create the default table
+        try:
+            conn = sqlite3.connect(self.dburi)
+            with conn:
+                c = conn.cursor()
+                self._create(c)
+        except sqlite3.Error as err:
+            log_error("Error creating table %s: [%r]" % (self.table,
+                                                         repr(err)))
+            raise CSStoreError('Error occurred while trying to init db')
+
     def get(self, key):
         query = "SELECT value from %s WHERE key=?" % self.table
         try:
@@ -110,18 +121,12 @@ class SqliteStoreTests(unittest.TestCase):
             pass
 
     def test_0_get_empty(self):
-        with self.assertRaises(CSStoreError) as err:
-            self.store.get('test')
-
-        self.assertEqual(str(err.exception),
-                         'Error occurred while trying to get key')
+        value = self.store.get('test')
+        self.assertEqual(value, None)
 
     def test_1_list_empty(self):
-        with self.assertRaises(CSStoreError) as err:
-            self.store.list('test')
-
-        self.assertEqual(str(err.exception),
-                         'Error occurred while trying to list keys')
+        value = self.store.list('test')
+        self.assertEqual(value, None)
 
     def test_2_set_key(self):
         self.store.set('key', 'value')

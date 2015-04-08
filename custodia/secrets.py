@@ -86,8 +86,7 @@ class Secrets(HTTPConsumer):
                     exists = False
                     break
             except CSStoreError:
-                exists = False
-                break
+                raise HTTPError(500)
 
         # create if default namespace needs creating
         if not exists and l == 2 and n == 1 and default == trail[0]:
@@ -149,7 +148,7 @@ class Secrets(HTTPConsumer):
                     output[name] = json.loads(keydict[k])
             response['output'] = json.dumps(output)
         except CSStoreError:
-            raise HTTPError(404)
+            raise HTTPError(500)
 
     def _create(self, trail, request, response):
         default = request.get('default_namespace', None)
@@ -182,7 +181,7 @@ class Secrets(HTTPConsumer):
             print((basename, keys))
             ret = self.root.store.cut(basename)
         except CSStoreError:
-            ret = False
+            raise HTTPError(500)
 
         if ret is False:
             raise HTTPError(404)
@@ -237,7 +236,7 @@ class Secrets(HTTPConsumer):
         try:
             ret = self.root.store.cut(key)
         except CSStoreError:
-            ret = False
+            raise HTTPError(500)
 
         if ret is False:
             raise HTTPError(404)
