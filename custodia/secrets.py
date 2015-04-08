@@ -2,34 +2,61 @@
 
 from custodia.httpd.consumer import HTTPConsumer
 from custodia.httpd.server import HTTPError
+from custodia.httpd.authorizers import HTTPAuthorizer
 from custodia.store.interface import CSStoreError
 from custodia.store.interface import CSStoreExists
 import json
 import os
 
 
+class Namespaces(HTTPAuthorizer):
+
+    def __init__(self, *args, **kwargs):
+        super(Namespaces, self).__init__(*args, **kwargs)
+        self.path = self.config.get('path', '/')
+        # warn if self.path does not end with '/' ?
+
+    def handle(self, request):
+
+        # First of all check we are in the right path
+        path = request.get('path', '/')
+        if not path.startswith(self.path):
+            return None
+
+        if 'remote_user' not in request:
+            return False
+        # At the moment we just have one namespace, the user's name
+        namespaces = [request['remote_user']]
+
+        # Check the request is in a valid namespace
+        trail = request.get('trail', [])
+        if len(trail) > 0 and trail[0] != namespaces[0]:
+            return False
+
+        request['default_namespace'] = namespaces[0]
+        return True
+
+
 class Secrets(HTTPConsumer):
 
-    def _db_key(self, namespaces, trail):
-        # Check tht the keys is in one of the authorized namespaces
-        if len(trail) < 1 or trail[0] not in namespaces:
+    def _db_key(self, trail):
+        if len(trail) < 2:
             raise HTTPError(403)
         # pylint: disable=star-args
         return os.path.join('keys', *trail)
 
-    def _db_container_key(self, namespaces, trail):
+    def _db_container_key(self, default, trail):
         f = None
-        if len(trail) > 0:
-            for ns in namespaces:
-                if ns == trail[0]:
-                    f = self._db_key(namespaces, trail + [''])
-                break
-            if f is None:
-                raise HTTPError(403)
+        if len(trail) > 1:
+            f = self._db_key(trail)
+        elif len(trail) == 1 and trail[0] != '':
+            raise HTTPError(403)
+        elif default is None:
+            # No dfault namespace, fail
+            raise HTTPError(403)
         else:
-            # Consider the first namespace as the default one
-            t = [namespaces[0]] + trail + ['']
-            f = self._db_key(namespaces, t)
+            # Use the default namespace
+            f = self._db_key([default, ''])
         return f
 
     def _validate(self, value):
@@ -46,18 +73,13 @@ class Secrets(HTTPConsumer):
         if len(msg.keys()) != 2:
             raise ValueError('Unknown attributes in Message')
 
-    def _namespaces(self, request):
-        if 'remote_user' not in request:
-            raise HTTPError(403)
-        # At the moment we just have one namespace, the user's name
-        return [request['remote_user']]
-
-    def _parent_exists(self, ns, trail):
+    def _parent_exists(self, default, trail):
         # check that the containers exist
         exists = True
+        l = len(trail)
         n = 0
-        for n in range(1, len(trail)):
-            probe = self._db_key(ns, trail[:n] + [''])
+        for n in range(1, l):
+            probe = self._db_key(trail[:n] + [''])
             try:
                 check = self.root.store.get(probe)
                 if check is None:
@@ -67,9 +89,10 @@ class Secrets(HTTPConsumer):
                 exists = False
                 break
 
-        # create if default namespace
-        if not exists and len(trail) == 2 and n == 1 and ns[0] == trail[0]:
-            self.root.store.set(probe, '')
+        # create if default namespace needs creating
+        if not exists and l == 2 and n == 1 and default == trail[0]:
+            container = self._db_container_key(default, '')
+            self.root.store.set(container, '')
             exists = True
 
         return exists
@@ -105,10 +128,10 @@ class Secrets(HTTPConsumer):
             raise HTTPError(405)
 
     def _list(self, trail, request, response):
-        ns = self._namespaces(request)
+        default = request.get('default_namespace', None)
+        basename = self._db_container_key(default, trail)
+        userfilter = request.get('query', dict()).get('filter', '')
         try:
-            basename = self._db_container_key(ns, trail[:-1])
-            userfilter = request.get('query', dict()).get('filter', '')
             keydict = self.root.store.list(basename + userfilter)
             if keydict is None:
                 raise HTTPError(404)
@@ -129,10 +152,10 @@ class Secrets(HTTPConsumer):
             raise HTTPError(404)
 
     def _create(self, trail, request, response):
-        ns = self._namespaces(request)
-        basename = self._db_container_key(ns, trail[:-1])
+        default = request.get('default_namespace', None)
+        basename = self._db_container_key(None, trail)
         try:
-            ok = self._parent_exists(ns, trail[:-1])
+            ok = self._parent_exists(default, trail[:-1])
             if not ok:
                 raise HTTPError(404)
 
@@ -145,8 +168,7 @@ class Secrets(HTTPConsumer):
         response['code'] = 201
 
     def _destroy(self, trail, request, response):
-        ns = self._namespaces(request)
-        basename = self._db_container_key(ns, trail[:-1])
+        basename = self._db_container_key(None, trail)
         try:
             keydict = self.root.store.list(basename)
             if keydict is None:
@@ -168,8 +190,7 @@ class Secrets(HTTPConsumer):
         response['code'] = 204
 
     def _get_key(self, trail, request, response):
-        ns = self._namespaces(request)
-        key = self._db_key(ns, trail)
+        key = self._db_key(trail)
         try:
             output = self.root.store.get(key)
             if output is None:
@@ -179,7 +200,6 @@ class Secrets(HTTPConsumer):
             raise HTTPError(500)
 
     def _set_key(self, trail, request, response):
-        ns = self._namespaces(request)
         content_type = request.get('headers',
                                    dict()).get('Content-Type', '')
         if content_type.split(';')[0].strip() != 'application/json':
@@ -196,10 +216,11 @@ class Secrets(HTTPConsumer):
         # must _db_key first as access control is done here for now
         # otherwise users would e able to probe containers in namespaces
         # they do not have access to.
-        key = self._db_key(ns, trail)
+        key = self._db_key(trail)
 
         try:
-            ok = self._parent_exists(ns, trail)
+            default = request.get('default_namespace', None)
+            ok = self._parent_exists(default, trail)
             if not ok:
                 raise HTTPError(404)
 
@@ -212,8 +233,7 @@ class Secrets(HTTPConsumer):
         response['code'] = 201
 
     def _del_key(self, trail, request, response):
-        ns = self._namespaces(request)
-        key = self._db_key(ns, trail)
+        key = self._db_key(trail)
         try:
             ret = self.root.store.cut(key)
         except CSStoreError:
@@ -235,6 +255,7 @@ class SecretsTests(unittest.TestCase):
     def setUpClass(cls):
         cls.secrets = Secrets()
         cls.secrets.root.store = SqliteStore({'dburi': 'testdb.sqlite'})
+        cls.authz = Namespaces({})
 
     @classmethod
     def tearDownClass(self):
@@ -243,12 +264,32 @@ class SecretsTests(unittest.TestCase):
         except OSError:
             pass
 
+    def check_authz(self, req):
+        if self.authz.handle(req) is False:
+            raise HTTPError(403)
+
+    def DELETE(self, req, rep):
+        self.check_authz(req)
+        self.secrets.DELETE(req, rep)
+
+    def GET(self, req, rep):
+        self.check_authz(req)
+        self.secrets.GET(req, rep)
+
+    def POST(self, req, rep):
+        self.check_authz(req)
+        self.secrets.POST(req, rep)
+
+    def PUT(self, req, rep):
+        self.check_authz(req)
+        self.secrets.PUT(req, rep)
+
     def test_0_LISTkey_404(self):
         req = {'remote_user': 'test',
                'trail': ['test', '']}
         rep = {}
         with self.assertRaises(HTTPError) as err:
-            self.secrets.GET(req, rep)
+            self.GET(req, rep)
 
         self.assertEqual(err.exception.code, 404)
 
@@ -258,13 +299,13 @@ class SecretsTests(unittest.TestCase):
                'trail': ['test', 'key1'],
                'body': '{"type":"simple","value":"1234"}'.encode('utf-8')}
         rep = {}
-        self.secrets.PUT(req, rep)
+        self.PUT(req, rep)
 
     def test_2_GETKey(self):
         req = {'remote_user': 'test',
                'trail': ['test', 'key1']}
         rep = {}
-        self.secrets.GET(req, rep)
+        self.GET(req, rep)
         self.assertEqual(rep['output'],
                          '{"type":"simple","value":"1234"}')
 
@@ -272,7 +313,7 @@ class SecretsTests(unittest.TestCase):
         req = {'remote_user': 'test',
                'trail': ['test', '']}
         rep = {}
-        self.secrets.GET(req, rep)
+        self.GET(req, rep)
         self.assertEqual(json.loads(rep['output']),
                          json.loads('{"test/key1":'
                                     '{"type":"simple","value":"1234"}}'))
@@ -282,7 +323,7 @@ class SecretsTests(unittest.TestCase):
                'query': {'filter': 'key'},
                'trail': ['test', '']}
         rep = {}
-        self.secrets.GET(req, rep)
+        self.GET(req, rep)
         self.assertEqual(json.loads(rep['output']),
                          json.loads('{"test/key1":'
                                     '{"type":"simple","value":"1234"}}'))
@@ -294,7 +335,7 @@ class SecretsTests(unittest.TestCase):
                'body': '{"type":"simple","value":"2345"}'.encode('utf-8')}
         rep = {}
         with self.assertRaises(HTTPError) as err:
-            self.secrets.PUT(req, rep)
+            self.PUT(req, rep)
         self.assertEqual(err.exception.code, 400)
 
     def test_4_PUTKey_errors_400_2(self):
@@ -303,7 +344,7 @@ class SecretsTests(unittest.TestCase):
                'trail': ['test', 'key2']}
         rep = {}
         with self.assertRaises(HTTPError) as err:
-            self.secrets.PUT(req, rep)
+            self.PUT(req, rep)
         self.assertEqual(err.exception.code, 400)
 
     def test_4_PUTKey_errors_400_3(self):
@@ -313,7 +354,7 @@ class SecretsTests(unittest.TestCase):
                'body': '{"type":}"simple","value":"2345"}'.encode('utf-8')}
         rep = {}
         with self.assertRaises(HTTPError) as err:
-            self.secrets.PUT(req, rep)
+            self.PUT(req, rep)
         self.assertEqual(err.exception.code, 400)
 
     def test_4_PUTKey_errors_403(self):
@@ -323,7 +364,7 @@ class SecretsTests(unittest.TestCase):
                'body': '{"type":"simple","value":"2345"}'.encode('utf-8')}
         rep = {}
         with self.assertRaises(HTTPError) as err:
-            self.secrets.PUT(req, rep)
+            self.PUT(req, rep)
         self.assertEqual(err.exception.code, 403)
 
     def test_4_PUTKey_errors_404(self):
@@ -333,7 +374,7 @@ class SecretsTests(unittest.TestCase):
                'body': '{"type":"simple","value":"1234"}'.encode('utf-8')}
         rep = {}
         with self.assertRaises(HTTPError) as err:
-            self.secrets.PUT(req, rep)
+            self.PUT(req, rep)
         self.assertEqual(err.exception.code, 404)
 
     def test_4_PUTKey_errors_405(self):
@@ -343,7 +384,7 @@ class SecretsTests(unittest.TestCase):
                'body': '{"type":"simple","value":"2345"}'.encode('utf-8')}
         rep = {}
         with self.assertRaises(HTTPError) as err:
-            self.secrets.PUT(req, rep)
+            self.PUT(req, rep)
         self.assertEqual(err.exception.code, 405)
 
     def test_4_PUTKey_errors_409(self):
@@ -352,9 +393,9 @@ class SecretsTests(unittest.TestCase):
                'trail': ['test', 'key3'],
                'body': '{"type":"simple","value":"2345"}'.encode('utf-8')}
         rep = {}
-        self.secrets.PUT(req, rep)
+        self.PUT(req, rep)
         with self.assertRaises(HTTPError) as err:
-            self.secrets.PUT(req, rep)
+            self.PUT(req, rep)
         self.assertEqual(err.exception.code, 409)
 
     def test_5_GETKey_errors_403(self):
@@ -362,7 +403,7 @@ class SecretsTests(unittest.TestCase):
                'trail': ['test', 'key1']}
         rep = {}
         with self.assertRaises(HTTPError) as err:
-            self.secrets.GET(req, rep)
+            self.GET(req, rep)
         self.assertEqual(err.exception.code, 403)
 
     def test_5_GETkey_errors_404(self):
@@ -370,7 +411,7 @@ class SecretsTests(unittest.TestCase):
                'trail': ['test', 'key0']}
         rep = {}
         with self.assertRaises(HTTPError) as err:
-            self.secrets.GET(req, rep)
+            self.GET(req, rep)
 
         self.assertEqual(err.exception.code, 404)
 
@@ -379,7 +420,7 @@ class SecretsTests(unittest.TestCase):
                'trail': ['test', 'case', '']}
         rep = {}
         with self.assertRaises(HTTPError) as err:
-            self.secrets.GET(req, rep)
+            self.GET(req, rep)
         self.assertEqual(err.exception.code, 404)
 
     def test_6_LISTkeys_errors_404_2(self):
@@ -388,21 +429,21 @@ class SecretsTests(unittest.TestCase):
                'trail': ['test', '']}
         rep = {}
         with self.assertRaises(HTTPError) as err:
-            self.secrets.GET(req, rep)
+            self.GET(req, rep)
         self.assertEqual(err.exception.code, 404)
 
     def test_7_DELETEKey(self):
         req = {'remote_user': 'test',
                'trail': ['test', 'key1']}
         rep = {}
-        self.secrets.DELETE(req, rep)
+        self.DELETE(req, rep)
 
     def test_7_DELETEKey_errors_403(self):
         req = {'remote_user': 'case',
                'trail': ['test', 'key1']}
         rep = {}
         with self.assertRaises(HTTPError) as err:
-            self.secrets.DELETE(req, rep)
+            self.DELETE(req, rep)
         self.assertEqual(err.exception.code, 403)
 
     def test_7_DELETEKey_errors_404(self):
@@ -410,21 +451,21 @@ class SecretsTests(unittest.TestCase):
                'trail': ['test', 'nokey']}
         rep = {}
         with self.assertRaises(HTTPError) as err:
-            self.secrets.DELETE(req, rep)
+            self.DELETE(req, rep)
         self.assertEqual(err.exception.code, 404)
 
     def test_7_DELETEKey_errors_405(self):
         req = {'remote_user': 'test'}
         rep = {}
         with self.assertRaises(HTTPError) as err:
-            self.secrets.DELETE(req, rep)
+            self.DELETE(req, rep)
         self.assertEqual(err.exception.code, 405)
 
     def test_8_CREATEcont(self):
         req = {'remote_user': 'test',
                'trail': ['test', 'container', '']}
         rep = {}
-        self.secrets.POST(req, rep)
+        self.POST(req, rep)
         self.assertEqual(rep['code'], 201)
 
     def test_8_CREATEcont_erros_403(self):
@@ -432,7 +473,7 @@ class SecretsTests(unittest.TestCase):
                'trail': ['test', 'container', '']}
         rep = {}
         with self.assertRaises(HTTPError) as err:
-            self.secrets.POST(req, rep)
+            self.POST(req, rep)
         self.assertEqual(err.exception.code, 403)
 
     def test_8_CREATEcont_erros_404(self):
@@ -440,7 +481,7 @@ class SecretsTests(unittest.TestCase):
                'trail': ['test', 'mid', 'container', '']}
         rep = {}
         with self.assertRaises(HTTPError) as err:
-            self.secrets.POST(req, rep)
+            self.POST(req, rep)
         self.assertEqual(err.exception.code, 404)
 
     def test_8_CREATEcont_erros_405(self):
@@ -448,23 +489,23 @@ class SecretsTests(unittest.TestCase):
                'trail': ['test', 'container']}
         rep = {}
         with self.assertRaises(HTTPError) as err:
-            self.secrets.POST(req, rep)
+            self.POST(req, rep)
         self.assertEqual(err.exception.code, 405)
 
     def test_8_CREATEcont_erros_409(self):
         req = {'remote_user': 'test',
                'trail': ['test', 'exists', '']}
         rep = {}
-        self.secrets.POST(req, rep)
+        self.POST(req, rep)
         with self.assertRaises(HTTPError) as err:
-            self.secrets.POST(req, rep)
+            self.POST(req, rep)
         self.assertEqual(err.exception.code, 409)
 
     def test_8_DESTROYcont(self):
         req = {'remote_user': 'test',
                'trail': ['test', 'container', '']}
         rep = {}
-        self.secrets.DELETE(req, rep)
+        self.DELETE(req, rep)
         self.assertEqual(rep['code'], 204)
 
     def test_8_DESTROYcont_erros_403(self):
@@ -472,7 +513,7 @@ class SecretsTests(unittest.TestCase):
                'trail': ['test', 'container', '']}
         rep = {}
         with self.assertRaises(HTTPError) as err:
-            self.secrets.DELETE(req, rep)
+            self.DELETE(req, rep)
         self.assertEqual(err.exception.code, 403)
 
     def test_8_DESTROYcont_erros_404(self):
@@ -480,7 +521,7 @@ class SecretsTests(unittest.TestCase):
                'trail': ['test', 'mid', 'container', '']}
         rep = {}
         with self.assertRaises(HTTPError) as err:
-            self.secrets.DELETE(req, rep)
+            self.DELETE(req, rep)
         self.assertEqual(err.exception.code, 404)
 
     def test_8_DESTROYcont_erros_409(self):
@@ -489,5 +530,5 @@ class SecretsTests(unittest.TestCase):
                'trail': ['test', '']}
         rep = {}
         with self.assertRaises(HTTPError) as err:
-            self.secrets.DELETE(req, rep)
+            self.DELETE(req, rep)
         self.assertEqual(err.exception.code, 409)
