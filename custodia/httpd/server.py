@@ -55,9 +55,12 @@ class ForkingLocalHTTPServer(ForkingMixIn, UnixStreamServer):
     correct consumer based on the server configuration, that is provided
     at initialization time.
 
-    When authentication is performed the request dictionary will have
-    a 'valid_auth' boolean member set to True if authentication was
-    successful. Additional attributes may be set by authentication plugins.
+    When authentication is performed all the authenticators are executed.
+    If any returns False, authentication fails and a 403 error is raised.
+    If none of them positively succeeds and they all return None then also
+    authentication fails and a 403 error is raised. Authentication plugins
+    can add attributes to the request object for use of authorization or
+    other plugins.
 
     Once authentication is successful the pipeline will parse the path
     component and find the consumer plugin that handles the provided path
@@ -92,9 +95,14 @@ class ForkingLocalHTTPServer(ForkingMixIn, UnixStreamServer):
         authers = self.config.get('authenticators')
         if authers is None:
             raise HTTPError(403)
+        valid_once = False
         for auth in authers:
-            authers[auth].handle(request)
-        if 'valid_auth' not in request or request['valid_auth'] is not True:
+            valid = authers[auth].handle(request)
+            if valid is False:
+                raise HTTPError(403)
+            elif valid is True:
+                valid_once = True
+        if valid_once is not True:
             raise HTTPError(403)
 
         # Select consumer

@@ -28,7 +28,9 @@ class SimpleCredsAuth(HTTPAuthenticator):
         uid = int(request['creds']['gid'])
         gid = int(request['creds']['uid'])
         if self._gid == gid or self._uid == uid:
-            request['valid_auth'] = True
+            return True
+        else:
+            return False
 
 
 class SimpleHeaderAuth(HTTPAuthenticator):
@@ -44,22 +46,22 @@ class SimpleHeaderAuth(HTTPAuthenticator):
 
     def handle(self, request):
         if self.name not in request['headers']:
-            return
+            return False
         value = request['headers'][self.name]
         if self.value is None:
             # Any value is accepted
             pass
         elif isinstance(self.value, str):
             if value != self.value:
-                return
+                return False
         elif isinstance(self.value, list):
             if value not in self.value:
-                return
+                return False
         else:
-            return
+            return False
 
-        request['valid_auth'] = True
         request['remote_user'] = value
+        return True
 
 
 class SimpleNULLAuth(HTTPAuthenticator):
@@ -74,8 +76,9 @@ class SimpleNULLAuth(HTTPAuthenticator):
         path = request.get('path', '')
         while path != '':
             if path in self.paths:
-                request['valid_auth'] = True
+                return True
             if path == '/':
                 path = ''
             else:
                 path, _ = os.path.split(path)
+        return None
