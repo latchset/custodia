@@ -72,7 +72,7 @@ class SqliteStore(CSStore):
             raise CSStoreError('Error occurred while trying to store key')
 
     def list(self, keyfilter='/'):
-        search = "SELECT * FROM %s WHERE key LIKE ?" % self.table
+        search = "SELECT key FROM %s WHERE key LIKE ?" % self.table
         key = "%s%%" % (keyfilter,)
         try:
             conn = sqlite3.connect(self.dburi)
@@ -82,10 +82,10 @@ class SqliteStore(CSStore):
             log_error("Error listing (filter: %s): [%r]" % (key, repr(err)))
             raise CSStoreError('Error occurred while trying to list keys')
         if len(rows) > 0:
-            value = dict()
+            value = list()
             for row in rows:
-                value[row[0]] = row[1]
-            return value
+                value.append(row[0])
+            return sorted(value)
         else:
             return None
 
@@ -135,10 +135,10 @@ class SqliteStoreTests(unittest.TestCase):
 
     def test_3_list_key(self):
         value = self.store.list('key')
-        self.assertEqual(value, {'key': 'value'})
+        self.assertEqual(value, ['key'])
 
         value = self.store.list('k')
-        self.assertEqual(value, {'key': 'value'})
+        self.assertEqual(value, ['key'])
 
         value = self.store.list('none')
         self.assertEqual(value, None)
@@ -152,26 +152,22 @@ class SqliteStoreTests(unittest.TestCase):
         self.store.set('/oth3/key1', 'value31')
 
         value = self.store.list()
-        self.assertEqual(value, {'/sub1/key1': 'value11',
-                                 '/sub1/key2': 'value12',
-                                 '/sub1/key3': 'value13',
-                                 '/sub2/key1': 'value21',
-                                 '/sub2/key2': 'value22',
-                                 '/oth3/key1': 'value31'})
+        self.assertEqual(value,
+                         sorted(['/sub1/key1', '/sub1/key2',
+                                 '/sub1/key3', '/sub2/key1',
+                                 '/sub2/key2', '/oth3/key1']))
 
         value = self.store.list('/sub')
-        self.assertEqual(value, {'/sub1/key1': 'value11',
-                                 '/sub1/key2': 'value12',
-                                 '/sub1/key3': 'value13',
-                                 '/sub2/key1': 'value21',
-                                 '/sub2/key2': 'value22'})
+        self.assertEqual(value,
+                         sorted(['/sub1/key1', '/sub1/key2',
+                                 '/sub1/key3', '/sub2/key1',
+                                 '/sub2/key2']))
 
         value = self.store.list('/sub2')
-        self.assertEqual(value, {'/sub2/key1': 'value21',
-                                 '/sub2/key2': 'value22'})
+        self.assertEqual(value, sorted(['/sub2/key1', '/sub2/key2']))
 
         value = self.store.list('/o')
-        self.assertEqual(value, {'/oth3/key1': 'value31'})
+        self.assertEqual(value, ['/oth3/key1'])
 
         value = self.store.list('/x')
         self.assertEqual(value, None)

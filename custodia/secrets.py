@@ -75,26 +75,25 @@ class Secrets(HTTPConsumer):
 
     def _parent_exists(self, default, trail):
         # check that the containers exist
-        exists = True
-        l = len(trail)
-        n = 0
-        for n in range(1, l):
-            probe = self._db_key(trail[:n] + [''])
-            try:
-                check = self.root.store.get(probe)
-                if check is None:
-                    exists = False
-                    break
-            except CSStoreError:
-                raise HTTPError(500)
+        basename = self._db_container_key(trail[0], '')
+        try:
+            keylist = self.root.store.list(basename)
+        except CSStoreError:
+            raise HTTPError(500)
 
-        # create if default namespace needs creating
-        if not exists and l == 2 and n == 1 and default == trail[0]:
+        # create default namespace if it is the only missing piece
+        if keylist is None and len(trail) == 2 and default == trail[0]:
             container = self._db_container_key(default, '')
             self.root.store.set(container, '')
-            exists = True
+            return True
 
-        return exists
+        # check if any parent is missing
+        for n in range(1, len(trail)):
+            c = self._db_key(trail[:n] + [''])
+            if c not in keylist:
+                return False
+
+        return True
 
     def GET(self, request, response):
         trail = request.get('trail', [])
@@ -131,21 +130,17 @@ class Secrets(HTTPConsumer):
         basename = self._db_container_key(default, trail)
         userfilter = request.get('query', dict()).get('filter', '')
         try:
-            keydict = self.root.store.list(basename + userfilter)
-            if keydict is None:
+            keylist = self.root.store.list(basename + userfilter)
+            if keylist is None:
                 raise HTTPError(404)
-            output = dict()
-            for k in keydict:
-                # remove the base container itself
+            # remove the base container itself
+            output = list()
+            for k in keylist:
                 if k == basename:
                     continue
                 # strip away the internal prefix for storing keys
                 name = k[len('keys/'):]
-                # return empty value for containers
-                if name.endswith('/'):
-                    output[name] = ''
-                else:
-                    output[name] = json.loads(keydict[k])
+                output.append(name)
             response['output'] = json.dumps(output)
         except CSStoreError:
             raise HTTPError(500)
@@ -169,16 +164,14 @@ class Secrets(HTTPConsumer):
     def _destroy(self, trail, request, response):
         basename = self._db_container_key(None, trail)
         try:
-            keydict = self.root.store.list(basename)
-            if keydict is None:
+            keylist = self.root.store.list(basename)
+            if keylist is None:
                 raise HTTPError(404)
-            keys = list(keydict.keys())
-            if len(keys) != 1:
-                raise HTTPError(409)
-            if keys[0] != basename:
+            if basename not in keylist:
                 # uh ?
                 raise HTTPError(409)
-            print((basename, keys))
+            if len(keylist) != 1:
+                raise HTTPError(409)
             ret = self.root.store.cut(basename)
         except CSStoreError:
             raise HTTPError(500)
@@ -314,8 +307,7 @@ class SecretsTests(unittest.TestCase):
         rep = {}
         self.GET(req, rep)
         self.assertEqual(json.loads(rep['output']),
-                         json.loads('{"test/key1":'
-                                    '{"type":"simple","value":"1234"}}'))
+                         json.loads('["test/key1"]'))
 
     def test_3_LISTKeys_2(self):
         req = {'remote_user': 'test',
@@ -324,8 +316,7 @@ class SecretsTests(unittest.TestCase):
         rep = {}
         self.GET(req, rep)
         self.assertEqual(json.loads(rep['output']),
-                         json.loads('{"test/key1":'
-                                    '{"type":"simple","value":"1234"}}'))
+                         json.loads('["test/key1"]'))
 
     def test_4_PUTKey_errors_400_1(self):
         req = {'headers': {'Content-Type': 'text/plain'},

@@ -108,8 +108,6 @@ provided: GET /secrets/ may return only keys under /<user-default>/*
 Returns:
 - 200 in case of success and a dictionary containing a list of all keys
   in the container and all subcontainers.
-  The dictionary key is the key or container name, the value is the empty
-  string for containers.
 - 401 if authentication is necessary
 - 403 if access to the key is forbidden
 - 404 if no key was found
