@@ -53,11 +53,15 @@ Getting keys
 A GET operation with the name of the key:
 GET /secrets/name/of/key
 
+A query parameter named 'type' can be provided, in that case the key is
+returned only if it matches the requested type.
+
 Returns:
 - 200 and a JSON formatted key in case of success.
 - 401 if authentication is necessary
 - 403 if access to the key is forbidden
 - 404 if no key was found
+- 406 not acceptable, key exists but does not match type requested
 
 
 Storing keys

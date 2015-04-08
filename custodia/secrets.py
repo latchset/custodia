@@ -182,11 +182,17 @@ class Secrets(HTTPConsumer):
         response['code'] = 204
 
     def _get_key(self, trail, request, response):
+        reqtype = request.get('query', dict()).get('type')
         key = self._db_key(trail)
         try:
             output = self.root.store.get(key)
             if output is None:
                 raise HTTPError(404)
+            if reqtype is not None:
+                key = json.loads(output)
+                keytype = key.get('type')
+                if keytype != reqtype:
+                    raise HTTPError(406)
             response['output'] = output
         except CSStoreError:
             raise HTTPError(500)
@@ -404,6 +410,16 @@ class SecretsTests(unittest.TestCase):
             self.GET(req, rep)
 
         self.assertEqual(err.exception.code, 404)
+
+    def test_5_GETkey_errors_406(self):
+        req = {'remote_user': 'test',
+               'query': {'type': 'complex'},
+               'trail': ['test', 'key1']}
+        rep = {}
+        with self.assertRaises(HTTPError) as err:
+            self.GET(req, rep)
+
+        self.assertEqual(err.exception.code, 406)
 
     def test_6_LISTkeys_errors_404_1(self):
         req = {'remote_user': 'test',
