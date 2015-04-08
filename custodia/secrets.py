@@ -151,7 +151,7 @@ class Secrets(HTTPConsumer):
             keydict = self.root.store.list(basename)
             if keydict is None:
                 raise HTTPError(404)
-            keys = keydict.keys()
+            keys = list(keydict.keys())
             if len(keys) != 1:
                 raise HTTPError(409)
             if keys[0] != basename:
@@ -256,7 +256,7 @@ class SecretsTests(unittest.TestCase):
         req = {'headers': {'Content-Type': 'application/json'},
                'remote_user': 'test',
                'trail': ['test', 'key1'],
-               'body': '{"type":"simple","value":"1234"}'}
+               'body': '{"type":"simple","value":"1234"}'.encode('utf-8')}
         rep = {}
         self.secrets.PUT(req, rep)
 
@@ -291,7 +291,7 @@ class SecretsTests(unittest.TestCase):
         req = {'headers': {'Content-Type': 'text/plain'},
                'remote_user': 'test',
                'trail': ['test', 'key2'],
-               'body': '{"type":"simple","value":"2345"}'}
+               'body': '{"type":"simple","value":"2345"}'.encode('utf-8')}
         rep = {}
         with self.assertRaises(HTTPError) as err:
             self.secrets.PUT(req, rep)
@@ -310,7 +310,7 @@ class SecretsTests(unittest.TestCase):
         req = {'headers': {'Content-Type': 'text/plain'},
                'remote_user': 'test',
                'trail': ['test', 'key2'],
-               'body': '{"type":}"simple","value":"2345"}'}
+               'body': '{"type":}"simple","value":"2345"}'.encode('utf-8')}
         rep = {}
         with self.assertRaises(HTTPError) as err:
             self.secrets.PUT(req, rep)
@@ -320,7 +320,7 @@ class SecretsTests(unittest.TestCase):
         req = {'headers': {'Content-Type': 'application/json; charset=utf-8'},
                'remote_user': 'test',
                'trail': ['case', 'key2'],
-               'body': '{"type":"simple","value":"2345"}'}
+               'body': '{"type":"simple","value":"2345"}'.encode('utf-8')}
         rep = {}
         with self.assertRaises(HTTPError) as err:
             self.secrets.PUT(req, rep)
@@ -330,7 +330,7 @@ class SecretsTests(unittest.TestCase):
         req = {'headers': {'Content-Type': 'application/json; charset=utf-8'},
                'remote_user': 'test',
                'trail': ['test', 'more', 'key1'],
-               'body': '{"type":"simple","value":"1234"}'}
+               'body': '{"type":"simple","value":"1234"}'.encode('utf-8')}
         rep = {}
         with self.assertRaises(HTTPError) as err:
             self.secrets.PUT(req, rep)
@@ -340,7 +340,7 @@ class SecretsTests(unittest.TestCase):
         req = {'headers': {'Content-Type': 'application/json; charset=utf-8'},
                'remote_user': 'test',
                'trail': ['test', 'key2', ''],
-               'body': '{"type":"simple","value":"2345"}'}
+               'body': '{"type":"simple","value":"2345"}'.encode('utf-8')}
         rep = {}
         with self.assertRaises(HTTPError) as err:
             self.secrets.PUT(req, rep)
@@ -350,7 +350,7 @@ class SecretsTests(unittest.TestCase):
         req = {'headers': {'Content-Type': 'application/json; charset=utf-8'},
                'remote_user': 'test',
                'trail': ['test', 'key3'],
-               'body': '{"type":"simple","value":"2345"}'}
+               'body': '{"type":"simple","value":"2345"}'.encode('utf-8')}
         rep = {}
         self.secrets.PUT(req, rep)
         with self.assertRaises(HTTPError) as err:
