@@ -48,35 +48,7 @@ class ForkingLocalHTTPServer(ForkingMixIn, UnixStreamServer):
     influence one another.
 
     When a request is received it is parsed by the handler_class provided
-    at server initialization. The hanlder is suppoed to call the pipeline()
-    function provided by the server to handle requests after parsing.
-
-    The pipeline() function handles authentication and invocation of the
-    correct consumer based on the server configuration, that is provided
-    at initialization time.
-
-    When authentication is performed all the authenticators are executed.
-    If any returns False, authentication fails and a 403 error is raised.
-    If none of them positively succeeds and they all return None then also
-    authentication fails and a 403 error is raised. Authentication plugins
-    can add attributes to the request object for use of authorization or
-    other plugins.
-
-    When authorization is performed and positive result will cause the
-    operation to be accepted and any negative result will cause it to fail.
-    If no authorization plugin returns a positive result a 403 error is
-    returned.
-
-    Once authentication and authorization are successful the pipeline will
-    parse the path component and find the consumer plugin that handles the
-    provided path walking up the path component by component until a
-    consumer is found.
-
-    Paths are walked up from the leaf to the root, so if two consumers hang
-    on the same tree, the one closer to the leaf will be used. If there is
-    a trailing path when the conumer is selected then it will be stored in
-    the request dicstionary named 'trail'. The 'trail' is an ordered list
-    of the path components below the consumer entry point.
+    at server initialization.
     """
 
     server_string = "Custodia/0.1"
@@ -94,54 +66,6 @@ class ForkingLocalHTTPServer(ForkingMixIn, UnixStreamServer):
     def server_bind(self):
         UnixStreamServer.server_bind(self)
         self.socket_file = self.socket.getsockname()
-
-    def pipeline(self, request):
-
-        # auth framework here
-        authers = self.config.get('authenticators')
-        if authers is None:
-            raise HTTPError(403)
-        valid_once = False
-        for auth in authers:
-            valid = authers[auth].handle(request)
-            if valid is False:
-                raise HTTPError(403)
-            elif valid is True:
-                valid_once = True
-        if valid_once is not True:
-            raise HTTPError(403)
-
-        # auhz framework here
-        authzers = self.config.get('authorizers')
-        if authzers is None:
-            raise HTTPError(403)
-        for authz in authzers:
-            valid = authzers[authz].handle(request)
-            if valid is not None:
-                break
-        if valid is not True:
-            raise HTTPError(403)
-
-        # Select consumer
-        path = request.get('path', '')
-        if not os.path.isabs(path):
-            raise HTTPError(400)
-
-        trail = []
-        while path != '':
-            if path in self.config['consumers']:
-                con = self.config['consumers'][path]
-                if len(trail) != 0:
-                    request['trail'] = trail
-                return con.handle(request)
-            if path == '/':
-                path = ''
-            else:
-                head, tail = os.path.split(path)
-                trail.insert(0, tail)
-                path = head
-
-        raise HTTPError(404)
 
 
 class LocalHTTPRequestHandler(BaseHTTPRequestHandler):
@@ -231,7 +155,7 @@ class LocalHTTPRequestHandler(BaseHTTPRequestHandler):
         # Set a fake client address to make log functions happy
         self.client_address = ['127.0.0.1', 0]
         try:
-            if not self.server.pipeline:
+            if not self.server.config:
                 self.close_connection = 1
                 return
             self.raw_requestline = self.rfile.readline(65537)
@@ -263,7 +187,7 @@ class LocalHTTPRequestHandler(BaseHTTPRequestHandler):
                        'headers': self.headers,
                        'body': self.body}
             try:
-                response = self.server.pipeline(request)
+                response = self.pipeline(self.server.config, request)
                 if response is None:
                     raise HTTPError(500)
             except HTTPError as e:
@@ -301,6 +225,83 @@ class LocalHTTPRequestHandler(BaseHTTPRequestHandler):
 
     def log_traceback(self):
         self.log_error('Traceback:\n%s' % stacktrace())
+
+    def pipeline(self, config, request):
+        """
+        The pipeline() function handles authentication and invocation of
+        the correct consumer based on the server configuration, that is
+        provided at initialization time.
+
+        When authentication is performed all the authenticators are
+        executed. If any returns False, authentication fails and a 403
+        error is raised. If none of them positively succeeds and they all
+        return None then also authentication fails and a 403 error is
+        raised. Authentication plugins can add attributes to the request
+        object for use of authorization or other plugins.
+
+        When authorization is performed and positive result will cause the
+        operation to be accepted and any negative result will cause it to
+        fail. If no authorization plugin returns a positive result a 403
+        error is returned.
+
+        Once authentication and authorization are successful the pipeline
+        will parse the path component and find the consumer plugin that
+        handles the provided path walking up the path component by
+        component until a consumer is found.
+
+        Paths are walked up from the leaf to the root, so if two consumers
+        hang on the same tree, the one closer to the leaf will be used. If
+        there is a trailing path when the conumer is selected then it will
+        be stored in the request dicstionary named 'trail'. The 'trail' is
+        an ordered list of the path components below the consumer entry
+        point.
+        """
+
+        # auth framework here
+        authers = config.get('authenticators')
+        if authers is None:
+            raise HTTPError(403)
+        valid_once = False
+        for auth in authers:
+            valid = authers[auth].handle(request)
+            if valid is False:
+                raise HTTPError(403)
+            elif valid is True:
+                valid_once = True
+        if valid_once is not True:
+            raise HTTPError(403)
+
+        # auhz framework here
+        authzers = config.get('authorizers')
+        if authzers is None:
+            raise HTTPError(403)
+        for authz in authzers:
+            valid = authzers[authz].handle(request)
+            if valid is not None:
+                break
+        if valid is not True:
+            raise HTTPError(403)
+
+        # Select consumer
+        path = request.get('path', '')
+        if not os.path.isabs(path):
+            raise HTTPError(400)
+
+        trail = []
+        while path != '':
+            if path in config['consumers']:
+                con = config['consumers'][path]
+                if len(trail) != 0:
+                    request['trail'] = trail
+                return con.handle(request)
+            if path == '/':
+                path = ''
+            else:
+                head, tail = os.path.split(path)
+                trail.insert(0, tail)
+                path = head
+
+        raise HTTPError(404)
 
 
 class LocalHTTPServer(object):
