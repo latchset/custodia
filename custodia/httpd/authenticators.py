@@ -1,7 +1,6 @@
 # Copyright (C) 2015  Custodia Project Contributors - see LICENSE file
 
 from custodia.httpd.server import HTTPError
-import os
 
 
 class HTTPAuthenticator(object):
@@ -62,23 +61,3 @@ class SimpleHeaderAuth(HTTPAuthenticator):
 
         request['remote_user'] = value
         return True
-
-
-class SimpleNULLAuth(HTTPAuthenticator):
-
-    def __init__(self, config=None):
-        super(SimpleNULLAuth, self).__init__(config)
-        self.paths = []
-        if 'paths' in self.config:
-            self.paths = self.config['paths'].split()
-
-    def handle(self, request):
-        path = request.get('path', '')
-        while path != '':
-            if path in self.paths:
-                return True
-            if path == '/':
-                path = ''
-            else:
-                path, _ = os.path.split(path)
-        return None

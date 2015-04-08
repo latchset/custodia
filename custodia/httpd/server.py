@@ -62,9 +62,15 @@ class ForkingLocalHTTPServer(ForkingMixIn, UnixStreamServer):
     can add attributes to the request object for use of authorization or
     other plugins.
 
-    Once authentication is successful the pipeline will parse the path
-    component and find the consumer plugin that handles the provided path
-    walking up the path component by component until a consumer is found.
+    When authorization is performed and positive result will cause the
+    operation to be accepted and any negative result will cause it to fail.
+    If no authorization plugin returns a positive result a 403 error is
+    returned.
+
+    Once authentication and authorization are successful the pipeline will
+    parse the path component and find the consumer plugin that handles the
+    provided path walking up the path component by component until a
+    consumer is found.
 
     Paths are walked up from the leaf to the root, so if two consumers hang
     on the same tree, the one closer to the leaf will be used. If there is
@@ -103,6 +109,17 @@ class ForkingLocalHTTPServer(ForkingMixIn, UnixStreamServer):
             elif valid is True:
                 valid_once = True
         if valid_once is not True:
+            raise HTTPError(403)
+
+        # auhz framework here
+        authzers = self.config.get('authorizers')
+        if authzers is None:
+            raise HTTPError(403)
+        for authz in authzers:
+            valid = authzers[authz].handle(request)
+            if valid is not None:
+                break
+        if valid is not True:
             raise HTTPError(403)
 
         # Select consumer
