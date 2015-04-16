@@ -3,6 +3,9 @@
 from custodia.httpd.consumer import HTTPConsumer
 from custodia.httpd.server import HTTPError
 from custodia.httpd.authorizers import HTTPAuthorizer
+from custodia.message.formats import Validator
+from custodia.message.common import UnknownMessageType
+from custodia.message.common import UnallowedMessage
 from custodia.store.interface import CSStoreError
 from custodia.store.interface import CSStoreExists
 import json
@@ -39,6 +42,14 @@ class Namespaces(HTTPAuthorizer):
 
 class Secrets(HTTPConsumer):
 
+    def __init__(self, *args, **kwargs):
+        super(Secrets, self).__init__(*args, **kwargs)
+        self.allowed_keytypes = ['simple']
+        if self.config and 'allowed_keytypes' in self.config:
+            kt = self.config['allowed_keytypes'].split()
+            self.allowed_keytypes = kt
+        self._validator = Validator(self.allowed_keytypes)
+
     def _db_key(self, trail):
         if len(trail) < 2:
             raise HTTPError(403)
@@ -59,19 +70,8 @@ class Secrets(HTTPConsumer):
             f = self._db_key([default, ''])
         return f
 
-    def _validate(self, value):
-        try:
-            msg = json.loads(value)
-        except Exception:
-            raise ValueError('Invalid JSON in payload')
-        if 'type' not in msg:
-            raise ValueError('Message type missing')
-        if msg['type'] != 'simple':
-            raise ValueError('Message type unknown')
-        if 'value' not in msg:
-            raise ValueError('Message value missing')
-        if len(msg.keys()) != 2:
-            raise ValueError('Unknown attributes in Message')
+    def _parse(self, request, value):
+        return self._validator.parse(request, value)
 
     def _parent_exists(self, default, trail):
         # check that the containers exist
@@ -182,18 +182,18 @@ class Secrets(HTTPConsumer):
         response['code'] = 204
 
     def _get_key(self, trail, request, response):
-        reqtype = request.get('query', dict()).get('type')
+        # default to simple
+        query = request.get('query', {'type': 'simple', 'value': ''})
+        try:
+            msg = self._parse(request, query)
+        except Exception as e:
+            raise HTTPError(406, str(e))
         key = self._db_key(trail)
         try:
             output = self.root.store.get(key)
             if output is None:
                 raise HTTPError(404)
-            if reqtype is not None:
-                key = json.loads(output)
-                keytype = key.get('type')
-                if keytype != reqtype:
-                    raise HTTPError(406)
-            response['output'] = output
+            response['output'] = msg.reply(output)
         except CSStoreError:
             raise HTTPError(500)
 
@@ -207,8 +207,12 @@ class Secrets(HTTPConsumer):
             raise HTTPError(400)
         value = bytes(body).decode('utf-8')
         try:
-            self._validate(value)
-        except ValueError as e:
+            msg = self._parse(request, json.loads(value))
+        except UnknownMessageType as e:
+            raise HTTPError(406, str(e))
+        except UnallowedMessage as e:
+            raise HTTPError(406, str(e))
+        except Exception as e:
             raise HTTPError(400, str(e))
 
         # must _db_key first as access control is done here for now
@@ -222,7 +226,7 @@ class Secrets(HTTPConsumer):
             if not ok:
                 raise HTTPError(404)
 
-            ok = self.root.store.set(key, value)
+            ok = self.root.store.set(key, msg.payload)
         except CSStoreExists:
             raise HTTPError(409)
         except CSStoreError:
@@ -304,8 +308,8 @@ class SecretsTests(unittest.TestCase):
                'trail': ['test', 'key1']}
         rep = {}
         self.GET(req, rep)
-        self.assertEqual(rep['output'],
-                         '{"type":"simple","value":"1234"}')
+        self.assertEqual(json.loads(rep['output']),
+                         {"type": "simple", "value": "1234"})
 
     def test_3_LISTKeys(self):
         req = {'remote_user': 'test',

@@ -61,7 +61,7 @@ Returns:
 - 401 if authentication is necessary
 - 403 if access to the key is forbidden
 - 404 if no key was found
-- 406 not acceptable, key exists but does not match type requested
+- 406 not acceptable, key type unknown/not permitted
 
 
 Storing keys
@@ -81,6 +81,7 @@ Returns:
 - 403 if access to the key is forbidden
 - 404 one of the elements of the path is not a valid container
 - 405 if the target is a directory instead of a key (path ends in '/')
+- 406 not acceptable, key type unknown/not permitted
 - 409 if the key already exists
 
 
