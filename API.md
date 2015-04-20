@@ -10,8 +10,8 @@ is to mount th secrets api under the /secrets URI
 
 The Custodia API uses JSON to format requests and replies.
 
-Key format
-==========
+Key/Request formats
+===================
 
 A key is a dictionary that contains the 'type' and 'value' of a key.
 Currently only the Simple type is recognized
@@ -30,6 +30,61 @@ The value must be representable as a valid JSON string. Keys are
 validated before being stored, unknown key types or invalid JSON values
 are refused and an error is returned.
 
+
+Key Exchange Message
+--------------------
+
+the Key Exchange Message format builds on the JSON Web Signature and the
+JSON Web Encryption specification to build respectively the request and
+reply messages.
+The aim is to provide the Custodia server the means to encrypt the reply
+to a client that proves possession of private key.
+
+Format:
+- Query arguments for GET:
+    type=kem
+    value=Message
+- JSON Value for PUT/GET Reply:
+    {"type:"kem","value":"Message"}
+
+ The Message for a GET is a JWT (JWS):
+ (flattened/decoded here for clarity)
+  { "protected": { "kid": <public-key-dentifier>,
+                   "alg": "a valid alg name"},
+    "payload": { "name": <name-of-secret>,
+                 "time": <unix-timestamp>,
+                 ["value": <arbitrary> ]},
+    "signature": "XYZ...." }
+
+ Attributes:
+ - public-key-identifier: This is the kid of a key that must be known to the
+ Custodia service. If opportunistic encription is desired, and the requesting
+ client is authenticated in other ways a "jku"  header could be used instead,
+ and a key fetched on the fly. This is not recommended for the gneral case and
+ is not currently supported by the implementation.
+ - name-of-secret: this repeates the name of the secret embedded in the GET,
+ This is used to prevent substitution attacks where a client is intercepted
+ and its signed request is reused to request a different key.
+ - unix-timestamp: used to limit replay attacks
+ Additional payload attributes may be present, for example a 'value'.
+
+ The Message for a GET reply or a PUT is a JWS Encoded message (see above)
+ nested in a JWE Encoded message:
+ (flattened/decoded here for clarity):
+  { "protected": { "kid": <public-key-dentifier>,
+                   "alg": "a valid alg name",
+                   "enc": "a valid enc type"},
+    "encrypted_key": <JWE_Encrypted_Key>,
+    "iv": <Initialization Vector>,
+    "ciphertext": <Encrypted Content>,
+    "tag": <Authentication Tag> }
+
+ Attributes:
+ - public-key-identifier: Must be the server public key identifier.
+   reply (see above). Or the server public key for a PUT.
+ - The inner JWS payload will typically contain a 'value' that is
+   an arbitrary key.
+   example: { type: "simple", value: <arbitrary> }
 
 
 REST API

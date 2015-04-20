@@ -4,11 +4,13 @@ from custodia.message.common import InvalidMessage
 from custodia.message.common import UnknownMessageType
 from custodia.message.common import UnallowedMessage
 from custodia.message.simple import SimpleKey
+from custodia.message.kem import KEMHandler
 
 
-default_types = ['simple']
+default_types = ['simple', 'kem']
 
-key_types = {'simple': SimpleKey}
+key_types = {'simple': SimpleKey,
+             'kem': KEMHandler}
 
 
 class Validator(object):
