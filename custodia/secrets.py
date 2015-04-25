@@ -183,7 +183,9 @@ class Secrets(HTTPConsumer):
 
     def _get_key(self, trail, request, response):
         # default to simple
-        query = request.get('query', {'type': 'simple', 'value': ''})
+        query = request.get('query', '')
+        if len(query) == 0:
+            query = {'type': 'simple', 'value': ''}
         try:
             msg = self._parse(request, query)
         except Exception as e:
