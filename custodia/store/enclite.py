@@ -17,7 +17,7 @@ class EncryptedStore(SqliteStore):
         with open(config['master_key']) as f:
             data = f.read()
             key = json_decode(data)
-            self.mkey = jwk.JWK(**key)  # pylint: disable=star-args
+            self.mkey = jwk.JWK(**key)
 
         if 'master_enctype' in config:
             self.enc = config['master_enctype']

@@ -120,7 +120,7 @@ class KEMHandler(MessageHandler):
             token = jtok.token
             if isinstance(token, JWS):
                 key = self._get_key(token.jose_header)
-                self.client_key = JWK(**key)  # pylint: disable=star-args
+                self.client_key = JWK(**key)
                 token.verify(self.client_key)
                 payload = token.payload
             elif isinstance(token, JWE):
@@ -130,7 +130,7 @@ class KEMHandler(MessageHandler):
                 nested = JWS()
                 nested.deserialize(token.payload)
                 key = self._get_key(nested.jose_header)
-                self.client_key = JWK(**key)  # pylint: disable=star-args
+                self.client_key = JWK(**key)
                 nested.verify(self.client_key)
                 payload = nested.payload
             else:
@@ -250,7 +250,7 @@ class KEMTests(unittest.TestCase):
             pass
 
     def make_tok(self, key, alg, name):
-        pri_key = JWK(**key)  # pylint: disable=star-args
+        pri_key = JWK(**key)
         protected = {"typ": "JOSE+JSON",
                      "kid": key['kid'],
                      "alg": alg}
@@ -261,7 +261,7 @@ class KEMTests(unittest.TestCase):
         return S.serialize()
 
     def test_1_Parse_GET(self):
-        cli_key = JWK(**self.client_key)  # pylint: disable=star-args
+        cli_key = JWK(**self.client_key)
         jtok = make_sig_kem("mykey", None, cli_key, "RS256")
         kem = KEMHandler({'KEMKeysStore': self.kk})
         kem.parse(jtok)
@@ -270,6 +270,6 @@ class KEMTests(unittest.TestCase):
         jtok.token.decrypt(cli_key)
         nested = jtok.token.payload
         jtok = JWT(jwt=nested)
-        jtok.token.verify(JWK(**server_key))  # pylint: disable=star-args
+        jtok.token.verify(JWK(**server_key))
         payload = json_decode(jtok.token.payload)['value']
         self.assertEqual(payload, 'output')

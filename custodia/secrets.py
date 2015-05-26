@@ -53,7 +53,6 @@ class Secrets(HTTPConsumer):
     def _db_key(self, trail):
         if len(trail) < 2:
             raise HTTPError(403)
-        # pylint: disable=star-args
         return os.path.join('keys', *trail)
 
     def _db_container_key(self, default, trail):
