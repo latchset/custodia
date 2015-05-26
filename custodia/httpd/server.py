@@ -64,7 +64,9 @@ class ForkingLocalHTTPServer(ForkingMixIn, UnixStreamServer):
             self.server_string = self.config['server_string']
 
     def server_bind(self):
+        oldmask = os.umask(000)
         UnixStreamServer.server_bind(self)
+        os.umask(oldmask)
         self.socket_file = self.socket.getsockname()
 
 
