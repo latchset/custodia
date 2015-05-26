@@ -101,6 +101,9 @@ if __name__ == '__main__':
     cfgfile = source_config()
     config = parse_config(cfgfile)
 
-    address = os.path.join(os.getcwd(), 'server_socket')
+    if 'server_socket' in config:
+        address = config['server_socket']
+    else:
+        address = os.path.join(os.getcwd(), 'server_socket')
     httpd = LocalHTTPServer(address, config)
     httpd.serve()
