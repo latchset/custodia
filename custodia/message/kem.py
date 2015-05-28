@@ -114,7 +114,7 @@ class KEMHandler(MessageHandler):
         try:
             jtok = JWT(jwt=msg)
         except Exception as e:
-            raise InvalidMessage('Failed to parse message: %s' % repr(e))
+            raise InvalidMessage('Failed to parse message: %s' % str(e))
 
         try:
             token = jtok.token
@@ -136,7 +136,7 @@ class KEMHandler(MessageHandler):
             else:
                 raise TypeError("Invalid Token type: %s" % type(jtok))
         except Exception as e:
-            raise InvalidMessage('Failed to validate message: %s' % repr(e))
+            raise InvalidMessage('Failed to validate message: %s' % str(e))
 
         # FIXME: check name/time
 
