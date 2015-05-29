@@ -4,6 +4,7 @@ from __future__ import absolute_import
 from tests.client import LocalConnection
 import json
 import os
+import signal
 import subprocess
 import time
 import unittest
@@ -54,4 +55,3 @@ class CustodiaTests(unittest.TestCase):
     def test_simple_2_del_key(self):
         r = self._make_request('DELETE', '/secrets/test/key', self.dfl_headers)
         self.assertEqual(r.status, 204)
-

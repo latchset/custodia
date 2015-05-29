@@ -23,6 +23,11 @@ cscope:
 	git ls-files | xargs pycscope
 
 test:
+	pylint -d c,r,i,W0613 -r n -f colorized \
+		   --notes= \
+		   --disable=star-args \
+		   ./tests
+	pep8 tests
 	rm -f .coverage
 	nosetests -s
 
