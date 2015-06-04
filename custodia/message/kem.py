@@ -181,13 +181,31 @@ class KEMHandler(MessageHandler):
         return json_encode({'type': 'kem', 'value': value})
 
 
+class KEMClient(object):
+
+    def __init__(self, server_key, client_keys):
+        self.server_key = server_key
+        self.client_keys = client_keys
+
+    def make_request(self, name, value = None, alg = "RS256"):
+        cli_skey = JWK(**self.client_keys[KEY_USAGE_SIG])
+        return make_sig_kem(name, value, cli_skey, alg)
+
+    def parse_reply(self, message):
+        E = JWT(jwt=message,
+                key=JWK(**self.client_keys[KEY_USAGE_ENC]))
+        S = JWT(jwt=E.claims,
+                key=JWK(**self.server_key))
+        return S.claims
+
+
 def make_sig_kem(name, value, key, alg):
-    payload = {'sub': name, 'exp': int(time.time() + (5 * 60))}
+    header = {'kid': key.key_id, 'alg': alg}
+    claims = {'sub': name, 'exp': int(time.time() + (5 * 60))}
     if value is not None:
-        payload['value'] = value
-    S = JWS(json_encode(payload))
-    prot = {'kid': key.key_id, 'alg': alg}
-    S.add_signature(key, protected=json_encode(prot))
+        claims['value'] = value
+    S = JWT(header, claims)
+    S.make_signed_token(key)
     return S.serialize(compact=True)
 
 
@@ -340,3 +358,12 @@ class KEMTests(unittest.TestCase):
         jtok.token.verify(JWK(**server_keys[0]))
         payload = json_decode(jtok.token.payload)['value']
         self.assertEqual(payload, 'output')
+
+    def test_2_KEMClient(self):
+        cli = KEMClient(server_keys[KEY_USAGE_SIG], self.client_keys)
+        kem = KEMHandler({'KEMKeysStore': self.kk})
+        req = cli.make_request("key name")
+        kem.parse(req, "key name")
+        msg = json_decode(kem.reply('key value'))
+        rep = json_decode(cli.parse_reply(msg['value']))
+        self.assertEqual(rep['value'], 'key value')
