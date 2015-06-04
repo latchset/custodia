@@ -188,14 +188,13 @@ class KEMClient(object):
         self.client_keys = client_keys
 
     def make_request(self, name, value = None, alg = "RS256"):
-        cli_skey = JWK(**self.client_keys[KEY_USAGE_SIG])
-        return make_sig_kem(name, value, cli_skey, alg)
+        return make_sig_kem(name, value, self.client_keys[KEY_USAGE_SIG], alg)
 
     def parse_reply(self, message):
         E = JWT(jwt=message,
-                key=JWK(**self.client_keys[KEY_USAGE_ENC]))
+                key=self.client_keys[KEY_USAGE_ENC])
         S = JWT(jwt=E.claims,
-                key=JWK(**self.server_key))
+                key=self.server_key)
         return S.claims
 
 
@@ -360,7 +359,10 @@ class KEMTests(unittest.TestCase):
         self.assertEqual(payload, 'output')
 
     def test_2_KEMClient(self):
-        cli = KEMClient(server_keys[KEY_USAGE_SIG], self.client_keys)
+        server_key = JWK(**server_keys[KEY_USAGE_SIG])
+        client_keys = [JWK(**self.client_keys[KEY_USAGE_SIG]),
+                       JWK(**self.client_keys[KEY_USAGE_ENC])]
+        cli = KEMClient(server_key, client_keys)
         kem = KEMHandler({'KEMKeysStore': self.kk})
         req = cli.make_request("key name")
         kem.parse(req, "key name")
