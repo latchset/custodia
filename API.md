@@ -51,9 +51,9 @@ Format:
  (flattened/decoded here for clarity)
   { "protected": { "kid": <public-key-dentifier>,
                    "alg": "a valid alg name"},
-    "payload": { "name": <name-of-secret>,
-                 "time": <unix-timestamp>,
-                 ["value": <arbitrary> ]},
+    "claims": { "sub": <name-of-secret>,
+                "exp": <unix-timestamp indicating expiration time>,
+                ["value": <arbitrary> ]},
     "signature": "XYZ...." }
 
  Attributes:
@@ -65,8 +65,10 @@ Format:
  - name-of-secret: this repeates the name of the secret embedded in the GET,
  This is used to prevent substitution attacks where a client is intercepted
  and its signed request is reused to request a different key.
- - unix-timestamp: used to limit replay attacks
- Additional payload attributes may be present, for example a 'value'.
+ - unix-timestamp: used to limit replay attacks, indicated expiration time,
+ and should be no further than 5 minutes in the future, with leway up to 10
+ minutes to account for clock skews
+ Additional claims may be present, for example a 'value'.
 
  The Message for a GET reply or a PUT is a JWS Encoded message (see above)
  nested in a JWE Encoded message:

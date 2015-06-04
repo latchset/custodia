@@ -106,7 +106,7 @@ class KEMHandler(MessageHandler):
             raise UnknownPublicKey('Key found [kid:%s]' % header['kid'])
         return json_decode(key)
 
-    def parse(self, msg):
+    def parse(self, msg, name):
         """Parses the message.
 
         We check that the message is properly formatted.
@@ -130,7 +130,7 @@ class KEMHandler(MessageHandler):
                 ekey = self._get_key(token.jose_header, KEY_USAGE_ENC)
                 self.client_keys = (JWK(**skey), JWK(**ekey))
                 token.verify(self.client_keys[0])
-                payload = token.payload
+                claims = json_decode(token.payload)
             elif isinstance(token, JWE):
                 token.decrypt(self.kkstore.server_keys[1])
                 # If an ecnrypted payload is received then there must be
@@ -141,17 +141,27 @@ class KEMHandler(MessageHandler):
                 ekey = self._get_key(nested.jose_header, KEY_USAGE_ENC)
                 self.client_keys = (JWK(**skey), JWK(**ekey))
                 nested.verify(self.client_keys[0])
-                payload = nested.payload
+                claims = json_decode(nested.payload)
             else:
                 raise TypeError("Invalid Token type: %s" % type(jtok))
         except Exception as e:
             raise InvalidMessage('Failed to validate message: %s' % str(e))
 
         # FIXME: check name/time
+        if 'sub' not in claims:
+            raise InvalidMessage('Missing subject in payload')
+        if claims['sub'] != name:
+            raise InvalidMessage('Key name does not match payload subject')
+        if 'exp' not in claims:
+            raise InvalidMessage('Missing request time in payload')
+        if claims['exp'] - (10 * 60) > int(time.time()):
+            raise InvalidMessage('Message expiration too long')
+        if claims['exp'] < int(time.time()):
+            raise InvalidMessage('Message Expired')
 
         return {'type': 'kem',
                 'value': {'kid': self.client_keys[0].key_id,
-                          'payload': payload}}
+                          'claims': claims}}
 
     def reply(self, output):
         if self.client_keys is None:
@@ -172,7 +182,7 @@ class KEMHandler(MessageHandler):
 
 
 def make_sig_kem(name, value, key, alg):
-    payload = {'name': name, 'time': int(time.time())}
+    payload = {'sub': name, 'exp': int(time.time() + (5 * 60))}
     if value is not None:
         payload['value'] = value
     S = JWS(json_encode(payload))
@@ -310,8 +320,8 @@ class KEMTests(unittest.TestCase):
         protected = {"typ": "JOSE+JSON",
                      "kid": key['kid'],
                      "alg": alg}
-        plaintext = {"name": name,
-                     "time": int(time.time())}
+        plaintext = {"sub": name,
+                     "exp": int(time.time()) + (5 * 60)}
         S = JWS(payload=json_encode(plaintext))
         S.add_signature(pri_key, None, json_encode(protected))
         return S.serialize()
@@ -320,7 +330,7 @@ class KEMTests(unittest.TestCase):
         cli_skey = JWK(**self.client_keys[0])
         jtok = make_sig_kem("mykey", None, cli_skey, "RS256")
         kem = KEMHandler({'KEMKeysStore': self.kk})
-        kem.parse(jtok)
+        kem.parse(jtok, "mykey")
         out = kem.reply('output')
         jtok = JWT(jwt=json_decode(out)['value'])
         cli_ekey = JWK(**self.client_keys[1])

@@ -27,7 +27,7 @@ class Validator(object):
     def add_types(self, types):
         self.types.update(types)
 
-    def parse(self, request, msg):
+    def parse(self, request, msg, name):
         if not isinstance(msg, dict):
             raise InvalidMessage('The message must be a dict')
 
@@ -59,5 +59,5 @@ class Validator(object):
                                    msg_type,))
 
         handler = self.types[msg_type](request)
-        handler.parse(msg_value)
+        handler.parse(msg_value, name)
         return handler

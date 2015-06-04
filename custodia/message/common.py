@@ -34,7 +34,7 @@ class MessageHandler(object):
         self.req = request
         self.payload = None
 
-    def parse(self, msg):
+    def parse(self, msg, name):
         """Parses the message.
 
         :param req: the original request

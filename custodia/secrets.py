@@ -69,8 +69,8 @@ class Secrets(HTTPConsumer):
             f = self._db_key([default, ''])
         return f
 
-    def _parse(self, request, value):
-        return self._validator.parse(request, value)
+    def _parse(self, request, value, name):
+        return self._validator.parse(request, value, name)
 
     def _parent_exists(self, default, trail):
         # check that the containers exist
@@ -186,7 +186,7 @@ class Secrets(HTTPConsumer):
         if len(query) == 0:
             query = {'type': 'simple', 'value': ''}
         try:
-            msg = self._parse(request, query)
+            msg = self._parse(request, query, trail)
         except Exception as e:
             raise HTTPError(406, str(e))
         key = self._db_key(trail)
@@ -208,7 +208,7 @@ class Secrets(HTTPConsumer):
             raise HTTPError(400)
         value = bytes(body).decode('utf-8')
         try:
-            msg = self._parse(request, json.loads(value))
+            msg = self._parse(request, json.loads(value), trail)
         except UnknownMessageType as e:
             raise HTTPError(406, str(e))
         except UnallowedMessage as e:

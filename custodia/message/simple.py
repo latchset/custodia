@@ -9,7 +9,7 @@ import json
 class SimpleKey(MessageHandler):
     """Handles 'simple' messages"""
 
-    def parse(self, msg):
+    def parse(self, msg, name):
         """Parses a simple message
 
         :param req: ignored
