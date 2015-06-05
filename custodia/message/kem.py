@@ -155,11 +155,12 @@ class KEMHandler(MessageHandler):
         if 'sub' not in claims:
             raise InvalidMessage('Missing subject in payload')
         if claims['sub'] != name:
-            raise InvalidMessage('Key name does not match payload subject')
+            raise InvalidMessage('Key name %s does not match subject %s' % (
+                name, claims['sub']))
         if 'exp' not in claims:
             raise InvalidMessage('Missing request time in payload')
         if claims['exp'] - (10 * 60) > int(time.time()):
-            raise InvalidMessage('Message expiration too long')
+            raise InvalidMessage('Message expiration too far in the future')
         if claims['exp'] < int(time.time()):
             raise InvalidMessage('Message Expired')
 

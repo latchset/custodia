@@ -186,7 +186,8 @@ class Secrets(HTTPConsumer):
         if len(query) == 0:
             query = {'type': 'simple', 'value': ''}
         try:
-            msg = self._parse(request, query, trail)
+            name = '/'.join(trail)
+            msg = self._parse(request, query, name)
         except Exception as e:
             raise HTTPError(406, str(e))
         key = self._db_key(trail)
@@ -208,7 +209,8 @@ class Secrets(HTTPConsumer):
             raise HTTPError(400)
         value = bytes(body).decode('utf-8')
         try:
-            msg = self._parse(request, json.loads(value), trail)
+            name = '/'.join(trail)
+            msg = self._parse(request, json.loads(value), name)
         except UnknownMessageType as e:
             raise HTTPError(406, str(e))
         except UnallowedMessage as e:
