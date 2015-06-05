@@ -3,6 +3,7 @@
 from custodia.httpd.authorizers import SimplePathAuthz
 from custodia.message.common import InvalidMessage
 from custodia.message.common import MessageHandler
+from custodia import log
 from jwcrypto.common import json_decode
 from jwcrypto.common import json_encode
 from jwcrypto.jwe import JWE
@@ -19,7 +20,9 @@ KEY_USAGE_MAP = {KEY_USAGE_SIG: 'sig', KEY_USAGE_ENC: 'enc'}
 
 
 class UnknownPublicKey(Exception):
-    pass
+    def __init__(self, message=None):
+        log.debug(message)
+        super(UnknownPublicKey, self).__init__(message)
 
 
 class KEMKeysStore(SimplePathAuthz):

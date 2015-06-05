@@ -7,6 +7,7 @@ try:
 except ImportError:
     from configparser import RawConfigParser
 from custodia.httpd.server import LocalHTTPServer
+from custodia import log
 import importlib
 import os
 import six
@@ -103,6 +104,8 @@ def parse_config(cfgfile):
 if __name__ == '__main__':
     cfgfile = source_config()
     config = parse_config(cfgfile)
+    if config.get('debug') == 'True':
+        log.DEBUG = True
 
     if 'server_socket' in config:
         address = config['server_socket']

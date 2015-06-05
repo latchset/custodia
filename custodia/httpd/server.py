@@ -10,14 +10,13 @@ except ImportError:
     from http.server import BaseHTTPRequestHandler
     from socketserver import ForkingMixIn, UnixStreamServer
     from urllib.parse import urlparse, parse_qs
-import io
+from custodia.log import stacktrace
+from custodia.log import debug as log_debug
 import os
 import shutil
 import six
 import socket
 import struct
-import sys
-import traceback
 
 SO_PEERCRED = 17
 MAX_REQUEST_SIZE = 10*1024*1024  # For now limit body to 10MiB
@@ -28,15 +27,9 @@ class HTTPError(Exception):
     def __init__(self, code=None, message=None):
         self.code = code if code is not None else 500
         self.mesg = message
-        super(HTTPError, self).__init__('%d: %s' % (self.code, self.mesg))
-
-
-def stacktrace():
-    with io.BytesIO() as f:
-        _, _, tb = sys.exc_info()
-        traceback.print_tb(tb, None, file=f)
-        del tb
-        return f.getvalue()
+        errstring = '%d: %s' % (self.code, self.mesg)
+        log_debug(errstring)
+        super(HTTPError, self).__init__(errstring)
 
 
 class ForkingLocalHTTPServer(ForkingMixIn, UnixStreamServer):

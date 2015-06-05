@@ -1,12 +1,18 @@
 # Copyright (C) 2015  Custodia Project Contributors - see LICENSE file
 
+from custodia import log
+
 
 class CSStoreError(Exception):
-    pass
+    def __init__(self, message=None):
+        log.debug(message)
+        super(CSStoreError, self).__init__(message)
 
 
 class CSStoreExists(Exception):
-    pass
+    def __init__(self, message=None):
+        log.debug(message)
+        super(CSStoreExists, self).__init__(message)
 
 
 class CSStore(object):

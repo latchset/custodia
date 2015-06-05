@@ -1,5 +1,7 @@
 # Copyright (C) 2015  Custodia Project Contributors - see LICENSE file
 
+from custodia import log
+
 
 class InvalidMessage(Exception):
     """Invalid Message.
@@ -7,7 +9,9 @@ class InvalidMessage(Exception):
     This exception is raised when a message cannot be parsed
     or validated.
     """
-    pass
+    def __init__(self, message=None):
+        log.debug(message)
+        super(InvalidMessage, self).__init__(message)
 
 
 class UnknownMessageType(Exception):
@@ -16,7 +20,9 @@ class UnknownMessageType(Exception):
     This exception is raised when a message is of an unknown
     type.
     """
-    pass
+    def __init__(self, message=None):
+        log.debug(message)
+        super(UnknownMessageType, self).__init__(message)
 
 
 class UnallowedMessage(Exception):
@@ -25,7 +31,9 @@ class UnallowedMessage(Exception):
     This exception is raise when the message type is know but
     is not allowed.
     """
-    pass
+    def __init__(self, message=None):
+        log.debug(message)
+        super(UnallowedMessage, self).__init__(message)
 
 
 class MessageHandler(object):
