@@ -84,7 +84,13 @@ class KEMKeysStore(SimplePathAuthz):
         if self._alg is None:
             alg = self.config.get('signing_algorithm', None)
             if alg is None:
-                raise ValueError('Signing algorithm not configured')
+                ktype = self.server_keys[KEY_USAGE_SIG].key_type
+                if ktype == 'RSA':
+                    alg = 'RS256'
+                elif ktype == 'EC':
+                    alg = 'ES256'
+                else:
+                    raise ValueError('Key type unsupported for signing')
             self._alg = alg
         return self._alg
 
@@ -165,21 +171,21 @@ class KEMHandler(MessageHandler):
             raise InvalidMessage('Message Expired')
 
         return {'type': 'kem',
-                'value': {'kid': self.client_keys[0].key_id,
+                'value': {'kid': self.client_keys[KEY_USAGE_ENC].key_id,
                           'claims': claims}}
 
     def reply(self, output):
         if self.client_keys is None:
             raise UnknownPublicKey("Peer key not defined")
 
-        ktype = self.client_keys[1].key_type
+        ktype = self.client_keys[KEY_USAGE_ENC].key_type
         if ktype == 'RSA':
             enc = ('RSA1_5', 'A256CBC-HS512')
         else:
             raise ValueError("'%s' type not supported yet" % ktype)
 
         value = make_enc_kem(self.name, output,
-                             self.kkstore.server_keys[0],
+                             self.kkstore.server_keys[KEY_USAGE_SIG],
                              self.kkstore.alg,
                              self.client_keys[1], enc)
 
@@ -322,10 +328,7 @@ class KEMTests(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        config = {
-            'server_keys': test_keys[0]['kid'],
-            'signing_algorithm': 'RS256',
-            'encryption_algorithms': 'RSA1_5 A128CBC-HS256'}
+        config = {'server_keys': test_keys[0]['kid']}
         with open('examples/client_enc.key') as f:
             data = f.read()
             cls.client_keys = json_decode(data)
