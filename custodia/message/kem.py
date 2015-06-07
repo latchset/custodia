@@ -138,7 +138,7 @@ class KEMHandler(MessageHandler):
                 token.decrypt(self.kkstore.server_keys[KEY_USAGE_ENC])
                 # If an encrypted payload is received then there must be
                 # a nested signed payload to verify the provenance.
-                payload = token.payload
+                payload = token.payload.decode('utf-8')
                 token = JWS()
                 token.deserialize(payload)
             elif isinstance(token, JWS):
@@ -367,7 +367,7 @@ class KEMTests(unittest.TestCase):
         cli_ekey = JWK(**self.client_keys[1])
         jtok.token.decrypt(cli_ekey)
         nested = jtok.token.payload
-        jtok = JWT(jwt=nested)
+        jtok = JWT(jwt=nested.decode('utf-8'))
         jtok.token.verify(JWK(**test_keys[0]))
         payload = json_decode(jtok.token.payload)['value']
         self.assertEqual(payload, 'output')

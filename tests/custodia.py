@@ -48,7 +48,7 @@ class CustodiaTests(unittest.TestCase):
     def test_simple_1_get_key(self):
         r = self._make_request('GET', '/secrets/test/key', self.dfl_headers)
         self.assertEqual(r.status, 200)
-        body = r.read()
+        body = r.read().decode('utf-8')
         data = {'type': 'simple', 'value': 'VmVycnlTZWNyZXQK'}
         self.assertEqual(json.loads(body), data)
 
