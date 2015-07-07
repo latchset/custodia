@@ -26,8 +26,16 @@ class CustodiaTests(unittest.TestCase):
                            'Content-Type': 'application/json'}
 
     @classmethod
-    def AtearDownClass(self):
-        os.killpg(self.custodia_process.pid, signal.SIGTERM)
+    def tearDownClass(self):
+        try:
+            os.killpg(self.custodia_process.pid, signal.SIGTERM)
+        except OSError:
+            pass
+        for fname in ['server_socket', 'secrets.db']:
+            try:
+                os.unlink(fname)
+            except OSError:
+                pass
 
     def _make_request(self, cmd, path, headers=None, body=None):
         conn = LocalConnection('./server_socket')
