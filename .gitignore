@@ -3,4 +3,6 @@ dist/
 *.pyc
 *.pyo
 cscope.out
+.tox
+.coverage
 MANIFEST
