@@ -13,7 +13,7 @@ setup(
     url='https://github.com/simo5/custodia',
     packages = ['custodia', 'custodia.httpd', 'custodia.store'],
     data_files = [('share/man/man7', ["man/custodia.7"]),
-                  ('share/doc/custodia', ['COPYING', 'README']),
+                  ('share/doc/custodia', ['LICENSE', 'README']),
                   ('share/doc/custodia/examples', ['custodia.conf']),
                  ],
     scripts = ['custodia/custodia']
