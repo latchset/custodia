@@ -5,11 +5,12 @@ try:
     from BaseHTTPServer import BaseHTTPRequestHandler
     from SocketServer import ForkingMixIn, UnixStreamServer
     from urlparse import urlparse, parse_qs
+    from urllib import unquote
 except ImportError:
     # pylint: disable=import-error,no-name-in-module
     from http.server import BaseHTTPRequestHandler
     from socketserver import ForkingMixIn, UnixStreamServer
-    from urllib.parse import urlparse, parse_qs
+    from urllib.parse import urlparse, parse_qs, unquote
 from custodia.log import stacktrace
 from custodia.log import debug as log_debug
 import os
@@ -127,7 +128,7 @@ class LocalHTTPRequestHandler(BaseHTTPRequestHandler):
         url = urlparse(self.path)
 
         # Yes, override path with the path part only
-        self.path = url.path
+        self.path = unquote(url.path)
 
         # Create dict out of query
         self.query = parse_qs(url.query)
