@@ -3,3 +3,4 @@ dist/
 *.pyc
 *.pyo
 cscope.out
+MANIFEST
