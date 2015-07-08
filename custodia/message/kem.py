@@ -340,7 +340,7 @@ class KEMTests(unittest.TestCase):
         _store_keys(cls.kk.store, KEY_USAGE_ENC, cls.client_keys)
 
     @classmethod
-    def AtearDownClass(self):
+    def tearDownClass(self):
         try:
             os.unlink('kemtests.db')
         except OSError:
