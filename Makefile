@@ -29,7 +29,7 @@ test:
 		   ./tests
 	pep8 tests
 	rm -f .coverage
-	nosetests -s
+	tox
 
 DOCS_DIR = docs
 .PHONY: docs
