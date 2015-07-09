@@ -8,6 +8,7 @@ from custodia.message.common import UnknownMessageType
 from custodia.message.common import UnallowedMessage
 from custodia.store.interface import CSStoreError
 from custodia.store.interface import CSStoreExists
+from custodia import log
 import json
 import os
 
@@ -49,6 +50,7 @@ class Secrets(HTTPConsumer):
             kt = self.config['allowed_keytypes'].split()
             self.allowed_keytypes = kt
         self._validator = Validator(self.allowed_keytypes)
+        self._auditlog = log.audit_log(self.config)
 
     def _db_key(self, trail):
         if len(trail) < 2:
@@ -180,7 +182,30 @@ class Secrets(HTTPConsumer):
 
         response['code'] = 204
 
+    def _client_name(self, request):
+        if 'remote_user' in request:
+            return request['remote_user']
+        elif 'creds' in request:
+            creds = request['creds']
+            return '<pid={pid:d} uid={uid:d} gid={gid:d}>'.format(**creds)
+        else:
+            return 'Unknown'
+
+    def _audit(self, ok, fail, fn, trail, request, response):
+        action = fail
+        client = self._client_name(request)
+        key = '/'.join(trail)
+        try:
+            fn(trail, request, response)
+            action = ok
+        finally:
+            self._auditlog.key_access(action, client, key)
+
     def _get_key(self, trail, request, response):
+        self._audit(log.AUDIT_GET_ALLOWED, log.AUDIT_GET_DENIED,
+                    self._int_get_key, trail, request, response)
+
+    def _int_get_key(self, trail, request, response):
         # default to simple
         query = request.get('query', '')
         if len(query) == 0:
@@ -200,6 +225,10 @@ class Secrets(HTTPConsumer):
             raise HTTPError(500)
 
     def _set_key(self, trail, request, response):
+        self._audit(log.AUDIT_SET_ALLOWED, log.AUDIT_SET_DENIED,
+                    self._int_set_key, trail, request, response)
+
+    def _int_set_key(self, trail, request, response):
         content_type = request.get('headers',
                                    dict()).get('Content-Type', '')
         if content_type.split(';')[0].strip() != 'application/json':
@@ -238,6 +267,10 @@ class Secrets(HTTPConsumer):
         response['code'] = 201
 
     def _del_key(self, trail, request, response):
+        self._audit(log.AUDIT_DEL_ALLOWED, log.AUDIT_DEL_DENIED,
+                    self._int_del_key, trail, request, response)
+
+    def _int_del_key(self, trail, request, response):
         key = self._db_key(trail)
         try:
             ret = self.root.store.cut(key)
@@ -258,13 +291,14 @@ class SecretsTests(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.secrets = Secrets()
+        cls.secrets = Secrets({'auditlog': 'test.audit.log'})
         cls.secrets.root.store = SqliteStore({'dburi': 'testdb.sqlite'})
         cls.authz = Namespaces({})
 
     @classmethod
     def tearDownClass(self):
         try:
+            os.unlink('test.audit.log')
             os.unlink('testdb.sqlite')
         except OSError:
             pass
