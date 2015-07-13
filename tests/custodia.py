@@ -27,10 +27,8 @@ class CustodiaTests(unittest.TestCase):
 
     @classmethod
     def tearDownClass(self):
-        try:
-            os.killpg(self.custodia_process.pid, signal.SIGTERM)
-        except OSError:
-            pass
+        self.custodia_process.kill()
+        self.custodia_process.wait()
         for fname in ['server_socket', 'secrets.db']:
             try:
                 os.unlink(fname)
