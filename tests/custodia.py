@@ -4,7 +4,6 @@ from __future__ import absolute_import
 from tests.client import LocalConnection
 import json
 import os
-import signal
 import subprocess
 import time
 import unittest

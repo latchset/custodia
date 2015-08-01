@@ -1,0 +1,3 @@
+include *py *.md *.txt *.ini .coveragerc
+recursive-include examples *.key *.db
+recursive-include docs *.py *.rst
