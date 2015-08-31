@@ -18,6 +18,7 @@ import shutil
 import six
 import socket
 import struct
+import errno
 
 SO_PEERCRED = 17
 MAX_REQUEST_SIZE = 10*1024*1024  # For now limit body to 10MiB
@@ -107,13 +108,25 @@ class LocalHTTPRequestHandler(BaseHTTPRequestHandler):
         self.query = None
         self.url = None
         self.body = None
+        self.loginuid = None
 
     def version_string(self):
         return self.server.server_string
 
+    def _get_loginuid(self, pid):
+        loginuid = None
+        try:
+            with open("/proc/" + str(pid) + "/loginuid", "r") as f:
+                loginuid = int(f.read(), 10)
+        except IOError as e:
+            if e.errno != errno.ENOENT:
+                raise
+        if loginuid == -1:
+            loginuid = None
+        return loginuid
+
     @property
     def peer_creds(self):
-
         creds = self.request.getsockopt(socket.SOL_SOCKET, SO_PEERCRED,
                                         struct.calcsize('3i'))
         pid, uid, gid = struct.unpack('3i', creds)
@@ -122,6 +135,10 @@ class LocalHTTPRequestHandler(BaseHTTPRequestHandler):
     def parse_request(self, *args, **kwargs):
         if not BaseHTTPRequestHandler.parse_request(self, *args, **kwargs):
             return False
+
+        # grab the loginuid from `/proc` as soon as possible
+        creds = self.peer_creds
+        self.loginuid = self._get_loginuid(creds['pid'])
 
         # after basic parsing also use urlparse to retrieve individual
         # elements of a request.
