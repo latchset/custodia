@@ -23,7 +23,10 @@ except ImportError:
 from custodia.log import debug as log_debug
 from custodia.log import stacktrace
 
-SO_PEERCRED = 17
+
+SO_PEERCRED = getattr(socket, 'SO_PEERCRED', 17)
+SO_PEERSEC = getattr(socket, 'SO_PEERSEC', 31)
+SELINUX_CONTEXT_LEN = 256
 MAX_REQUEST_SIZE = 10 * 1024 * 1024  # For now limit body to 10MiB
 
 
@@ -83,6 +86,9 @@ class LocalHTTPRequestHandler(BaseHTTPRequestHandler):
     the uid,gid and pid of the process on the other side of the unix socket
     on which the request has been made. This can be used for authentication
     and/or authorization purposes.
+    The 'creds' structure is further augmented with a 'context' option
+    containing the Selinux Context string for the calling process, if
+    available.
 
     after the request is parsed the server's pipeline() function is invoked
     in order to handle it. The pipeline() should return a response object,
@@ -133,7 +139,15 @@ class LocalHTTPRequestHandler(BaseHTTPRequestHandler):
         creds = self.request.getsockopt(socket.SOL_SOCKET, SO_PEERCRED,
                                         struct.calcsize('3i'))
         pid, uid, gid = struct.unpack('3i', creds)
-        return {'pid': pid, 'uid': uid, 'gid': gid}
+        try:
+            creds = self.request.getsockopt(socket.SOL_SOCKET, SO_PEERSEC,
+                                            SELINUX_CONTEXT_LEN)
+            context = creds.decode('utf-8')
+        except Exception as e:
+            log_debug("Couldn't retrieve SELinux Context: (%s)" % str(e))
+            context = None
+
+        return {'pid': pid, 'uid': uid, 'gid': gid, 'context': context}
 
     def parse_request(self, *args, **kwargs):
         if not BaseHTTPRequestHandler.parse_request(self, *args, **kwargs):
