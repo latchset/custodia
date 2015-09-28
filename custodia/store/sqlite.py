@@ -57,6 +57,8 @@ class SqliteStore(CSStore):
         cur.execute(create)
 
     def set(self, key, value, replace=False):
+        if key.endswith('/'):
+            raise ValueError('Invalid Key name, cannot end in "/"')
         if replace:
             query = "INSERT OR REPLACE into %s VALUES (?, ?)"
         else:
@@ -73,6 +75,22 @@ class SqliteStore(CSStore):
         except sqlite3.Error as err:
             log_error("Error storing key %s: [%r]" % (key, repr(err)))
             raise CSStoreError('Error occurred while trying to store key')
+
+    def span(self, key):
+        name = key.rstrip('/')
+        query = "INSERT into %s VALUES (?, '')"
+        setdata = query % (self.table,)
+        try:
+            conn = sqlite3.connect(self.dburi)
+            with conn:
+                c = conn.cursor()
+                self._create(c)
+                c.execute(setdata, (name,))
+        except sqlite3.IntegrityError as err:
+            raise CSStoreExists(str(err))
+        except sqlite3.Error as err:
+            log_error("Error creating key %s: [%r]" % (name, repr(err)))
+            raise CSStoreError('Error occurred while trying to span container')
 
     def list(self, keyfilter=''):
         path = keyfilter.rstrip('/')
@@ -209,3 +227,22 @@ class SqliteStoreTests(unittest.TestCase):
     def test_6_cut_2_empty(self):
         ret = self.store.cut('keycut')
         self.assertEqual(ret, False)
+
+    def test_7_span_1(self):
+        self.store.span('/span')
+        value = self.store.list('/span')
+        self.assertEqual(value, [])
+
+    def test_7_span_2(self):
+        self.store.span('/span/2')
+        self.store.span('/span/2/span')
+        value = self.store.list('/span')
+        self.assertEqual(value, ['2', '2/span'])
+        value = self.store.list('/span/2')
+        self.assertEqual(value, ['span'])
+        value = self.store.list('/span/2/span')
+        self.assertEqual(value, [])
+
+    def test_8_cut_span(self):
+        ret = self.store.cut('/span/2')
+        self.assertEqual(ret, True)

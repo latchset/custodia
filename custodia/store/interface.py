@@ -23,6 +23,9 @@ class CSStore(object):
     def set(self, key, value, replace=False):
         raise NotImplementedError
 
+    def span(self, key):
+        raise NotImplementedError
+
     def list(self, keyfilter=None):
         raise NotImplementedError
 
