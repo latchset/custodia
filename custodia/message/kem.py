@@ -202,7 +202,7 @@ class KEMClient(object):
         self.server_keys = server_keys
         self.client_keys = client_keys
 
-    def make_request(self, name, value = None, alg = "RS256", encalg = None):
+    def make_request(self, name, value=None, alg="RS256", encalg=None):
         if encalg is None:
             return make_sig_kem(name, value,
                                 self.client_keys[KEY_USAGE_SIG], alg)
