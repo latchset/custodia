@@ -1,10 +1,10 @@
 # Copyright (C) 2015  Custodia Project Contributors - see LICENSE file
 
 from custodia.message.common import InvalidMessage
-from custodia.message.common import UnknownMessageType
 from custodia.message.common import UnallowedMessage
-from custodia.message.simple import SimpleKey
+from custodia.message.common import UnknownMessageType
 from custodia.message.kem import KEMHandler
+from custodia.message.simple import SimpleKey
 
 
 default_types = ['simple', 'kem']

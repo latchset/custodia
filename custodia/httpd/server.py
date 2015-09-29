@@ -1,5 +1,13 @@
 # Copyright (C) 2015  Custodia Project Contributors - see LICENSE file
 
+import errno
+import os
+import shutil
+import socket
+import struct
+
+import six
+
 try:
     # pylint: disable=import-error
     from BaseHTTPServer import BaseHTTPRequestHandler
@@ -11,17 +19,12 @@ except ImportError:
     from http.server import BaseHTTPRequestHandler
     from socketserver import ForkingMixIn, UnixStreamServer
     from urllib.parse import urlparse, parse_qs, unquote
-from custodia.log import stacktrace
+
 from custodia.log import debug as log_debug
-import os
-import shutil
-import six
-import socket
-import struct
-import errno
+from custodia.log import stacktrace
 
 SO_PEERCRED = 17
-MAX_REQUEST_SIZE = 10*1024*1024  # For now limit body to 10MiB
+MAX_REQUEST_SIZE = 10 * 1024 * 1024  # For now limit body to 10MiB
 
 
 class HTTPError(Exception):

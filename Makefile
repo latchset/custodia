@@ -11,10 +11,6 @@ lint:
 		   --disable=star-args \
 		   ./custodia
 
-pep8:
-	# Check style consistency
-	pep8 custodia
-
 clean:
 	rm -fr build dist *.egg-info
 	find ./ -name '*.pyc' -exec rm -f {} \;
@@ -27,8 +23,8 @@ test:
 		   --notes= \
 		   --disable=star-args \
 		   ./tests
-	pep8 tests
 	rm -f .coverage
+	tox -epep8
 	tox
 
 DOCS_DIR = docs

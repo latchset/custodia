@@ -1,17 +1,21 @@
 # Copyright (C) 2015  Custodia Project Contributors - see LICENSE file
 
-from custodia.httpd.authorizers import SimplePathAuthz
-from custodia.message.common import InvalidMessage
-from custodia.message.common import MessageHandler
-from custodia import log
+import os
+import time
+import unittest
+
 from jwcrypto.common import json_decode
 from jwcrypto.common import json_encode
 from jwcrypto.jwe import JWE
 from jwcrypto.jwk import JWK
 from jwcrypto.jws import JWS
 from jwcrypto.jwt import JWT
-import os
-import time
+
+from custodia import log
+from custodia.httpd.authorizers import SimplePathAuthz
+from custodia.message.common import InvalidMessage
+from custodia.message.common import MessageHandler
+from custodia.store.sqlite import SqliteStore
 
 
 KEY_USAGE_SIG = 0
@@ -212,11 +216,11 @@ class KEMClient(object):
                                 self.server_keys[KEY_USAGE_ENC], encalg)
 
     def parse_reply(self, name, message):
-        E = JWT(jwt=message,
-                key=self.client_keys[KEY_USAGE_ENC])
-        S = JWT(jwt=E.claims,
-                key=self.server_keys[KEY_USAGE_SIG])
-        claims = json_decode(S.claims)
+        jwe = JWT(jwt=message,
+                  key=self.client_keys[KEY_USAGE_ENC])
+        jws = JWT(jwt=jwe.claims,
+                  key=self.server_keys[KEY_USAGE_SIG])
+        claims = json_decode(jws.claims)
         check_kem_claims(claims, name)
         return claims['value']
 
@@ -226,24 +230,20 @@ def make_sig_kem(name, value, key, alg):
     claims = {'sub': name, 'exp': int(time.time() + (5 * 60))}
     if value is not None:
         claims['value'] = value
-    S = JWT(header, claims)
-    S.make_signed_token(key)
-    return S.serialize(compact=True)
+    jwt = JWT(header, claims)
+    jwt.make_signed_token(key)
+    return jwt.serialize(compact=True)
 
 
 def make_enc_kem(name, value, sig_key, alg, enc_key, enc):
     plaintext = make_sig_kem(name, value, sig_key, alg)
     eprot = {'kid': enc_key.key_id, 'alg': enc[0], 'enc': enc[1]}
-    E = JWE(plaintext, json_encode(eprot))
-    E.add_recipient(enc_key)
-    return E.serialize(compact=True)
+    jwe = JWE(plaintext, json_encode(eprot))
+    jwe.add_recipient(enc_key)
+    return jwe.serialize(compact=True)
 
 
 # unit tests
-import unittest
-from custodia.store.sqlite import SqliteStore
-
-
 test_keys = ({
     "kty": "RSA",
     "kid": "65d64463-7448-499e-8acc-55db2ce67039",
@@ -346,7 +346,7 @@ class KEMTests(unittest.TestCase):
         _store_keys(cls.kk.store, KEY_USAGE_ENC, cls.client_keys)
 
     @classmethod
-    def tearDownClass(self):
+    def tearDownClass(cls):
         try:
             os.unlink('kemtests.db')
         except OSError:
@@ -359,9 +359,9 @@ class KEMTests(unittest.TestCase):
                      "alg": alg}
         plaintext = {"sub": name,
                      "exp": int(time.time()) + (5 * 60)}
-        S = JWS(payload=json_encode(plaintext))
-        S.add_signature(pri_key, None, json_encode(protected))
-        return S.serialize()
+        jws = JWS(payload=json_encode(plaintext))
+        jws.add_signature(pri_key, None, json_encode(protected))
+        return jws.serialize()
 
     def test_1_Parse_GET(self):
         cli_skey = JWK(**self.client_keys[0])

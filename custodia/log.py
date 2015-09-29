@@ -2,8 +2,8 @@
 
 import io
 import sys
-import traceback
 import time
+import traceback
 
 
 DEBUG = False
@@ -54,7 +54,7 @@ AUDIT_MESSAGES = [
 ]
 
 
-class audit_log(object):
+class AuditLog(object):
 
     def __init__(self, config):
         if config is None:

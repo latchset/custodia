@@ -1,10 +1,13 @@
 # Copyright (C) 2015  Custodia Project Contributors - see LICENSE file
 
 from __future__ import print_function
-from custodia.store.interface import CSStore, CSStoreError, CSStoreExists
+
 import os
 import sqlite3
 import sys
+import unittest
+
+from custodia.store.interface import CSStore, CSStoreError, CSStoreExists
 
 
 def log_error(error):
@@ -104,9 +107,6 @@ class SqliteStore(CSStore):
         return False
 
 
-import unittest
-
-
 class SqliteStoreTests(unittest.TestCase):
 
     @classmethod
@@ -114,7 +114,7 @@ class SqliteStoreTests(unittest.TestCase):
         cls.store = SqliteStore({'dburi': 'testdbstore.sqlite'})
 
     @classmethod
-    def tearDownClass(self):
+    def tearDownClass(cls):
         try:
             os.unlink('testdbstore.sqlite')
         except OSError:

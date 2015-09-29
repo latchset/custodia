@@ -1,12 +1,14 @@
 # Copyright (C) 2015  Custodia Project Contributors - see LICENSE file
 
 from __future__ import absolute_import
-from tests.client import LocalConnection
+
 import json
 import os
 import subprocess
 import time
 import unittest
+
+from tests.client import LocalConnection
 
 
 class CustodiaTests(unittest.TestCase):
@@ -25,9 +27,9 @@ class CustodiaTests(unittest.TestCase):
                            'Content-Type': 'application/json'}
 
     @classmethod
-    def tearDownClass(self):
-        self.custodia_process.kill()
-        self.custodia_process.wait()
+    def tearDownClass(cls):
+        cls.custodia_process.kill()
+        cls.custodia_process.wait()
         for fname in ['server_socket', 'secrets.db']:
             try:
                 os.unlink(fname)

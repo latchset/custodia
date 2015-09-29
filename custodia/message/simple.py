@@ -1,9 +1,11 @@
 # Copyright (C) 2015  Custodia Project Contributors - see LICENSE file
 
+import json
+
+from six import string_types
+
 from custodia.message.common import InvalidMessage
 from custodia.message.common import MessageHandler
-from six import string_types
-import json
 
 
 class SimpleKey(MessageHandler):

@@ -1,16 +1,19 @@
 # Copyright (C) 2015  Custodia Project Contributors - see LICENSE file
 
-from custodia.httpd.consumer import HTTPConsumer
-from custodia.httpd.server import HTTPError
-from custodia.httpd.authorizers import HTTPAuthorizer
-from custodia.message.formats import Validator
-from custodia.message.common import UnknownMessageType
-from custodia.message.common import UnallowedMessage
-from custodia.store.interface import CSStoreError
-from custodia.store.interface import CSStoreExists
-from custodia import log
 import json
 import os
+import unittest
+
+from custodia import log
+from custodia.httpd.authorizers import HTTPAuthorizer
+from custodia.httpd.consumer import HTTPConsumer
+from custodia.httpd.server import HTTPError
+from custodia.message.common import UnallowedMessage
+from custodia.message.common import UnknownMessageType
+from custodia.message.formats import Validator
+from custodia.store.interface import CSStoreError
+from custodia.store.interface import CSStoreExists
+from custodia.store.sqlite import SqliteStore
 
 
 class Namespaces(HTTPAuthorizer):
@@ -50,7 +53,7 @@ class Secrets(HTTPConsumer):
             kt = self.config['allowed_keytypes'].split()
             self.allowed_keytypes = kt
         self._validator = Validator(self.allowed_keytypes)
-        self._auditlog = log.audit_log(self.config)
+        self._auditlog = log.AuditLog(self.config)
 
     def _db_key(self, trail):
         if len(trail) < 2:
@@ -282,11 +285,8 @@ class Secrets(HTTPConsumer):
 
         response['code'] = 204
 
+
 # unit tests
-import unittest
-from custodia.store.sqlite import SqliteStore
-
-
 class SecretsTests(unittest.TestCase):
 
     @classmethod
@@ -296,7 +296,7 @@ class SecretsTests(unittest.TestCase):
         cls.authz = Namespaces({})
 
     @classmethod
-    def tearDownClass(self):
+    def tearDownClass(cls):
         try:
             os.unlink('test.audit.log')
             os.unlink('testdb.sqlite')
