@@ -1,5 +1,10 @@
 # Copyright (C) 2015  Custodia Project Contributors - see LICENSE file
 
+import os
+
+from cryptography.hazmat.primitives import constant_time
+
+from custodia import log
 from custodia.httpd.server import HTTPError
 
 
@@ -45,7 +50,7 @@ class SimpleHeaderAuth(HTTPAuthenticator):
 
     def handle(self, request):
         if self.name not in request['headers']:
-            return False
+            return None
         value = request['headers'][self.name]
         if self.value is None:
             # Any value is accepted
@@ -61,3 +66,44 @@ class SimpleHeaderAuth(HTTPAuthenticator):
 
         request['remote_user'] = value
         return True
+
+
+class SimpleAuthKeys(HTTPAuthenticator):
+
+    def __init__(self, config=None):
+        super(SimpleAuthKeys, self).__init__(config)
+        self.id_header = self.config.get('header', 'CUSTODIA_AUTH_ID')
+        self.key_header = self.config.get('header', 'CUSTODIA_AUTH_KEY')
+        self.store_name = self.config['store']
+        self.store = None
+        self.namespace = self.config.get('store_namespace', 'custodiaSAK')
+        self._auditlog = log.AuditLog(self.config)
+
+    def _db_key(self, name):
+        return os.path.join(self.namespace, name)
+
+    def handle(self, request):
+        name = request['headers'].get(self.id_header, None)
+        key = request['headers'].get(self.key_header, None)
+        if name is None and key is None:
+            return None
+
+        validated = False
+        try:
+            val = self.store.get(self._db_key(name))
+            if val is None:
+                raise Exception("No such ID")
+            if constant_time.bytes_eq(val.encode('utf-8'),
+                                      key.encode('utf-8')):
+                validated = True
+        except Exception as err:
+            self._auditlog._log("AUTH ERROR: (%s) %s" % (name, err))
+            return False
+
+        if validated:
+            self._auditlog._log("AUTH SUCCESS: %s" % name)
+            request['remote_user'] = name
+            return True
+
+        self._auditlog._log("AUTH FAIL: %s" % name)
+        return False
