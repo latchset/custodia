@@ -1,20 +1,27 @@
 # Copyright (C) 2015  Custodia Project Contributors - see LICENSE file
 
-import io
 import sys
 import time
 import traceback
 
+try:
+    from StringIO import StringIO
+except ImportError:
+    from io import StringIO
 
 DEBUG = False
 
 
 def stacktrace():
-    with io.BytesIO() as f:
-        _, _, tb = sys.exc_info()
+    _, _, tb = sys.exc_info()
+    if tb is None:
+        return None
+    try:
+        f = StringIO()
         traceback.print_tb(tb, None, file=f)
-        del tb
         return f.getvalue()
+    finally:
+        del tb
 
 
 def get_time():
@@ -32,7 +39,9 @@ def error(msg, head=None):
 def debug(msg):
     if DEBUG:
         error(msg, 'DEBUG')
-        sys.stderr.write(stacktrace())
+        trace = stacktrace()
+        if trace is not None:
+            sys.stderr.write(trace + '\n')
 
 
 AUDIT_NONE = 0
