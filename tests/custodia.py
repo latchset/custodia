@@ -2,13 +2,14 @@
 
 from __future__ import absolute_import
 
-import json
 import os
 import subprocess
 import time
 import unittest
 
-from tests.client import LocalConnection
+from requests.exceptions import HTTPError
+
+from custodia.client import CustodiaClient
 
 
 class CustodiaTests(unittest.TestCase):
@@ -18,47 +19,58 @@ class CustodiaTests(unittest.TestCase):
         env = os.environ.copy()
         env['PYTHONPATH'] = './'
         pexec = env.get('CUSTODIAPYTHON', 'python')
-        devnull = open(os.devnull, "w")
-        p = subprocess.Popen([pexec, 'custodia/custodia'], env=env,
-                             stdout=devnull, stderr=devnull)
+        try:
+            os.unlink('secrets.db')
+        except OSError:
+            pass
+        with (open('testlog.txt', 'a')) as logfile:
+            p = subprocess.Popen([pexec, 'custodia/custodia'], env=env,
+                                 stdout=logfile, stderr=logfile)
         cls.custodia_process = p
         time.sleep(1)
-        cls.dfl_headers = {'REMOTE_USER': 'test',
-                           'Content-Type': 'application/json'}
+        cls.client = CustodiaClient('http+unix://%2E%2Fserver_socket/secrets')
+        cls.client.headers['REMOTE_USER'] = 'test'
 
     @classmethod
     def tearDownClass(cls):
         cls.custodia_process.kill()
         cls.custodia_process.wait()
-        for fname in ['server_socket', 'secrets.db']:
-            try:
-                os.unlink(fname)
-            except OSError:
-                pass
+        try:
+            os.unlink('server_socket')
+        except OSError:
+            pass
 
-    def _make_request(self, cmd, path, headers=None, body=None):
-        conn = LocalConnection('./server_socket')
-        conn.connect()
-        conn.request(cmd, path, body=body, headers=self.dfl_headers)
-        return conn.getresponse()
+    def test_0_create_container(self):
+        self.client.create_container('test/container')
 
-    def test_connect(self):
-        r = self._make_request('GET', '/', {'REMOTE_USER': 'tests'})
-        self.assertEqual(r.status, 200)
+    def test_0_delete_container(self):
+        self.client.delete_container('test/container')
 
-    def test_simple_0_set_key(self):
-        data = {'type': 'simple', 'value': 'VmVycnlTZWNyZXQK'}
-        r = self._make_request('PUT', '/secrets/test/key',
-                               self.dfl_headers, json.dumps(data))
-        self.assertEqual(r.status, 201)
+    def test_1_set_simple_key(self):
+        self.client.set_simple_key('test/key', 'VmVycnlTZWNyZXQK')
 
-    def test_simple_1_get_key(self):
-        r = self._make_request('GET', '/secrets/test/key', self.dfl_headers)
-        self.assertEqual(r.status, 200)
-        body = r.read().decode('utf-8')
-        data = {'type': 'simple', 'value': 'VmVycnlTZWNyZXQK'}
-        self.assertEqual(json.loads(body), data)
+    def test_2_get_simple_key(self):
+        key = self.client.get_simple_key('test/key')
+        self.assertEqual(key, 'VmVycnlTZWNyZXQK')
 
-    def test_simple_2_del_key(self):
-        r = self._make_request('DELETE', '/secrets/test/key', self.dfl_headers)
-        self.assertEqual(r.status, 204)
+    def test_3_list_container(self):
+        r = self.client.list_container('test')
+        self.assertEqual(r.json(), ["key"])
+
+    def test_4_del_simple_key(self):
+        self.client.del_key('test/key')
+        try:
+            self.client.get_key('test/key')
+        except HTTPError as e:
+            self.assertEqual(e.response.status_code, 404)
+
+    def test_5_list_empty(self):
+        r = self.client.list_container('test')
+        self.assertEqual(r.json(), [])
+
+    def test_6_delete_container(self):
+        self.client.delete_container('test')
+        try:
+            self.client.list_container('test')
+        except HTTPError as e:
+            self.assertEqual(e.response.status_code, 404)
