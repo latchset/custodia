@@ -30,6 +30,8 @@ class CustodiaTests(unittest.TestCase):
         time.sleep(1)
         cls.client = CustodiaClient('http+unix://%2E%2Fserver_socket/secrets')
         cls.client.headers['REMOTE_USER'] = 'test'
+        cls.fwd = CustodiaClient('http+unix://%2E%2Fserver_socket/forwarder')
+        cls.fwd.headers['REMOTE_USER'] = 'test'
 
     @classmethod
     def tearDownClass(cls):
@@ -68,9 +70,29 @@ class CustodiaTests(unittest.TestCase):
         r = self.client.list_container('test')
         self.assertEqual(r.json(), [])
 
-    def test_6_delete_container(self):
+    def test_6_create_forwarded_container(self):
+        self.fwd.create_container('dir')
+        r = self.client.list_container('test/dir')
+        self.assertEqual(r.json(), [])
+
+    def test_7_delete_forwarded_container(self):
+        self.fwd.delete_container('dir')
+        try:
+            self.client.list_container('test/dir')
+        except HTTPError as e:
+            self.assertEqual(e.response.status_code, 404)
+
+    def test_8_delete_container(self):
         self.client.delete_container('test')
         try:
             self.client.list_container('test')
         except HTTPError as e:
             self.assertEqual(e.response.status_code, 404)
+
+    def test_9_loop(self):
+        loop = CustodiaClient('http+unix://%2E%2Fserver_socket/forwarder_loop')
+        loop.headers['REMOTE_USER'] = 'test'
+        try:
+            loop.list_container('test')
+        except HTTPError as e:
+            self.assertEqual(e.response.status_code, 502)
