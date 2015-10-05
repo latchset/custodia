@@ -20,8 +20,7 @@ except ImportError:
     from socketserver import ForkingMixIn, UnixStreamServer
     from urllib.parse import urlparse, parse_qs, unquote
 
-from custodia.log import debug as log_debug
-from custodia.log import stacktrace
+from custodia import log
 
 
 SO_PEERCRED = getattr(socket, 'SO_PEERCRED', 17)
@@ -36,7 +35,7 @@ class HTTPError(Exception):
         self.code = code if code is not None else 500
         self.mesg = message
         errstring = '%d: %s' % (self.code, self.mesg)
-        log_debug(errstring)
+        log.debug(errstring)
         super(HTTPError, self).__init__(errstring)
 
 
@@ -63,6 +62,7 @@ class ForkingLocalHTTPServer(ForkingMixIn, UnixStreamServer):
         self.config = config
         if 'server_string' in self.config:
             self.server_string = self.config['server_string']
+        self._auditlog = log.AuditLog(self.config)
 
     def server_bind(self):
         oldmask = os.umask(000)
@@ -144,7 +144,7 @@ class LocalHTTPRequestHandler(BaseHTTPRequestHandler):
                                             SELINUX_CONTEXT_LEN)
             context = creds.decode('utf-8')
         except Exception as e:
-            log_debug("Couldn't retrieve SELinux Context: (%s)" % str(e))
+            log.debug("Couldn't retrieve SELinux Context: (%s)" % str(e))
             context = None
 
         return {'pid': pid, 'uid': uid, 'gid': gid, 'context': context}
@@ -254,7 +254,7 @@ class LocalHTTPRequestHandler(BaseHTTPRequestHandler):
             return
 
     def log_traceback(self):
-        self.log_error('Traceback:\n%s' % stacktrace())
+        self.log_error('Traceback:\n%s' % log.stacktrace())
 
     def pipeline(self, config, request):
         """
@@ -299,6 +299,9 @@ class LocalHTTPRequestHandler(BaseHTTPRequestHandler):
             elif valid is True:
                 valid_once = True
         if valid_once is not True:
+            self.server._auditlog.svc_access(log.AUDIT_SVC_AUTH_FAIL,
+                                             request['creds']['pid'], "MAIN",
+                                             'No auth')
             raise HTTPError(403)
 
         # auhz framework here
@@ -310,6 +313,9 @@ class LocalHTTPRequestHandler(BaseHTTPRequestHandler):
             if valid is not None:
                 break
         if valid is not True:
+            self.server._auditlog.svc_access(log.AUDIT_SVC_AUTHZ_FAIL,
+                                             request['creds']['pid'], "MAIN",
+                                             request.get('path', '/'))
             raise HTTPError(403)
 
         # Select consumer

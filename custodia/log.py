@@ -52,6 +52,12 @@ AUDIT_SET_DENIED = 4
 AUDIT_DEL_ALLOWED = 5
 AUDIT_DEL_DENIED = 6
 AUDIT_LAST = 7
+AUDIT_SVC_NONE = 8
+AUDIT_SVC_AUTH_PASS = 9
+AUDIT_SVC_AUTH_FAIL = 10
+AUDIT_SVC_AUTHZ_PASS = 11
+AUDIT_SVC_AUTHZ_FAIL = 12
+AUDIT_SVC_LAST = 13
 AUDIT_MESSAGES = [
     "AUDIT FAILURE",
     "ALLOWED: '{client:s}' requested key '{key:s}'",  # AUDIT_GET_ALLOWED
@@ -60,6 +66,13 @@ AUDIT_MESSAGES = [
     "DENIED: '{client:s}' stored key '{key:s}'",      # AUDIT_SET_DENIED
     "ALLOWED: '{client:s}' deleted key '{key:s}'",    # AUDIT_DEL_ALLOWED
     "DENIED: '{client:s}' deleted key '{key:s}'",     # AUDIT_DEL_DENIED
+    "AUDIT FAILURE 7",
+    "AUDIT FAILURE 8",
+    "PASS({tag:s}): '{cli:s}' authenticated as '{name:s}'",  # SVC_AUTH_PASS
+    "FAIL({tag:s}): '{cli:s}' authenticated as '{name:s}'",  # SVC_AUTH_FAIL
+    "PASS({tag:s}): '{cli:s}' authorized for '{name:s}'",    # SVC_AUTHZ_PASS
+    "FAIL({tag:s}): '{cli:s}' authorized for '{name:s}'",    # SVC_AUTHZ_FAIL
+    "AUDIT FAILURE 13",
 ]
 
 
@@ -79,3 +92,9 @@ class AuditLog(object):
         if action <= AUDIT_NONE or action >= AUDIT_LAST:
             action = AUDIT_NONE
         self._log(AUDIT_MESSAGES[action].format(client=client, key=keyname))
+
+    def svc_access(self, action, client, tag, name):
+        if action <= AUDIT_SVC_NONE or action >= AUDIT_SVC_LAST:
+            action = AUDIT_NONE
+        self._log(AUDIT_MESSAGES[action].format(cli=str(client), tag=tag,
+                                                name=name))

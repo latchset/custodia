@@ -12,6 +12,7 @@ class HTTPAuthenticator(object):
 
     def __init__(self, config=None):
         self.config = config
+        self._auditlog = log.AuditLog(self.config)
 
     def handle(self, request):
         raise HTTPError(403)
@@ -32,8 +33,14 @@ class SimpleCredsAuth(HTTPAuthenticator):
         uid = int(request['creds']['gid'])
         gid = int(request['creds']['uid'])
         if self._gid == gid or self._uid == uid:
+            self._auditlog.svc_access(log.AUDIT_SVC_AUTH_PASS,
+                                      request['creds']['pid'],
+                                      "SCA", "%d, %d" % (uid, gid))
             return True
         else:
+            self._auditlog.svc_access(log.AUDIT_SVC_AUTH_FAIL,
+                                      request['creds']['pid'],
+                                      "SCA", "%d, %d" % (uid, gid))
             return False
 
 
@@ -57,13 +64,25 @@ class SimpleHeaderAuth(HTTPAuthenticator):
             pass
         elif isinstance(self.value, str):
             if value != self.value:
+                self._auditlog.svc_access(log.AUDIT_SVC_AUTH_FAIL,
+                                          request['creds']['pid'],
+                                          "SHA", value)
                 return False
         elif isinstance(self.value, list):
             if value not in self.value:
+                self._auditlog.svc_access(log.AUDIT_SVC_AUTH_FAIL,
+                                          request['creds']['pid'],
+                                          "SHA", value)
                 return False
         else:
+            self._auditlog.svc_access(log.AUDIT_SVC_AUTH_FAIL,
+                                      request['creds']['pid'],
+                                      "SHA", value)
             return False
 
+        self._auditlog.svc_access(log.AUDIT_SVC_AUTH_PASS,
+                                  request['creds']['pid'],
+                                  "SHA", value)
         request['remote_user'] = value
         return True
 
@@ -77,7 +96,6 @@ class SimpleAuthKeys(HTTPAuthenticator):
         self.store_name = self.config['store']
         self.store = None
         self.namespace = self.config.get('store_namespace', 'custodiaSAK')
-        self._auditlog = log.AuditLog(self.config)
 
     def _db_key(self, name):
         return os.path.join(self.namespace, name)
@@ -96,14 +114,20 @@ class SimpleAuthKeys(HTTPAuthenticator):
             if constant_time.bytes_eq(val.encode('utf-8'),
                                       key.encode('utf-8')):
                 validated = True
-        except Exception as err:
-            self._auditlog._log("AUTH ERROR: (%s) %s" % (name, err))
+        except Exception:
+            self._auditlog.svc_access(log.AUDIT_SVC_AUTH_FAIL,
+                                      request['creds']['pid'],
+                                      "SAK", name)
             return False
 
         if validated:
-            self._auditlog._log("AUTH SUCCESS: %s" % name)
+            self._auditlog.svc_access(log.AUDIT_SVC_AUTH_PASS,
+                                      request['creds']['pid'],
+                                      "SAK", name)
             request['remote_user'] = name
             return True
 
-        self._auditlog._log("AUTH FAIL: %s" % name)
+        self._auditlog.svc_access(log.AUDIT_SVC_AUTH_FAIL,
+                                  request['creds']['pid'],
+                                  "SAK", name)
         return False
