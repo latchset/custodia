@@ -4,9 +4,11 @@
 
 try:
     from ConfigParser import RawConfigParser
+    from urllib import quote as url_escape
 except ImportError:
     from configparser import RawConfigParser
-from custodia.httpd.server import LocalHTTPServer
+    from urllib.parse import quote as url_escape
+from custodia.httpd.server import HTTPServer
 from custodia import log
 import importlib
 import os
@@ -107,9 +109,11 @@ if __name__ == '__main__':
     if config.get('debug') == 'True':
         log.DEBUG = True
 
-    if 'server_socket' in config:
-        address = config['server_socket']
-    else:
-        address = os.path.join(os.getcwd(), 'server_socket')
-    httpd = LocalHTTPServer(address, config)
+    url = config.get('server_url', None)
+    if url is None:
+        address = config.get('server_socket',
+                             os.path.join(os.getcwd(), 'server_socket'))
+        url = 'http+unix://%s/' % url_escape(address, '')
+
+    httpd = HTTPServer(url, config)
     httpd.serve()

@@ -26,8 +26,11 @@ class CustodiaTests(unittest.TestCase):
         with (open('testlog.txt', 'a')) as logfile:
             p = subprocess.Popen([pexec, 'custodia/custodia'], env=env,
                                  stdout=logfile, stderr=logfile)
-        cls.custodia_process = p
         time.sleep(1)
+        if p.poll() is not None:
+            raise AssertionError(
+                "Premature termination of Custodia server, see testlog.txt")
+        cls.custodia_process = p
         cls.client = CustodiaClient('http+unix://%2E%2Fserver_socket/secrets')
         cls.client.headers['REMOTE_USER'] = 'test'
         cls.fwd = CustodiaClient('http+unix://%2E%2Fserver_socket/forwarder')

@@ -261,6 +261,7 @@ class SecretsTests(unittest.TestCase):
             pass
 
     def check_authz(self, req):
+        req['client_id'] = 'test'
         req['path'] = '/'.join([''] + req.get('trail', []))
         if self.authz.handle(req) is False:
             raise HTTPError(403)

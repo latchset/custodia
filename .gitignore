@@ -6,3 +6,8 @@ cscope.out
 .tox
 .coverage
 MANIFEST
+
+/custodia.audit.log
+/secrets.db
+/testlog.txt
+

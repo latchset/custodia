@@ -40,14 +40,14 @@ class SimplePathAuthz(HTTPAuthorizer):
                 authz = authz[:-1]
             if authz == path:
                 self._auditlog.svc_access(log.AUDIT_SVC_AUTHZ_PASS,
-                                          request['creds']['pid'],
+                                          request['client_id'],
                                           "SPA", path)
                 return True
 
         while path != '':
             if path in self.paths:
                 self._auditlog.svc_access(log.AUDIT_SVC_AUTHZ_PASS,
-                                          request['creds']['pid'],
+                                          request['client_id'],
                                           "SPA", path)
                 return True
             if path == '/':
@@ -73,7 +73,7 @@ class UserNameSpace(HTTPAuthorizer):
         if name is None:
             # UserNameSpace requires a user ...
             self._auditlog.svc_access(log.AUDIT_SVC_AUTHZ_FAIL,
-                                      request.get('creds', {'pid': 0})['pid'],
+                                      request['client_id'],
                                       "UNS(%s)" % self.path, path)
             return False
 
@@ -81,12 +81,12 @@ class UserNameSpace(HTTPAuthorizer):
         if not path.startswith(namespace):
             # Not in the namespace
             self._auditlog.svc_access(log.AUDIT_SVC_AUTHZ_FAIL,
-                                      request.get('creds', {'pid': 0})['pid'],
+                                      request['client_id'],
                                       "UNS(%s)" % self.path, path)
             return False
 
         request['default_namespace'] = name
         self._auditlog.svc_access(log.AUDIT_SVC_AUTHZ_PASS,
-                                  request.get('creds', {'pid': 0})['pid'],
+                                  request['client_id'],
                                   "UNS(%s)" % self.path, path)
         return True
