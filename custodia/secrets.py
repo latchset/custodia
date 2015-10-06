@@ -5,7 +5,7 @@ import os
 import unittest
 
 from custodia import log
-from custodia.httpd.authorizers import HTTPAuthorizer
+from custodia.httpd.authorizers import UserNameSpace
 from custodia.httpd.consumer import HTTPConsumer
 from custodia.httpd.server import HTTPError
 from custodia.message.common import UnallowedMessage
@@ -14,34 +14,6 @@ from custodia.message.formats import Validator
 from custodia.store.interface import CSStoreError
 from custodia.store.interface import CSStoreExists
 from custodia.store.sqlite import SqliteStore
-
-
-class Namespaces(HTTPAuthorizer):
-
-    def __init__(self, *args, **kwargs):
-        super(Namespaces, self).__init__(*args, **kwargs)
-        self.path = self.config.get('path', '/')
-        # warn if self.path does not end with '/' ?
-
-    def handle(self, request):
-
-        # First of all check we are in the right path
-        path = request.get('path', '/')
-        if not path.startswith(self.path):
-            return None
-
-        if 'remote_user' not in request:
-            return False
-        # At the moment we just have one namespace, the user's name
-        namespaces = [request['remote_user']]
-
-        # Check the request is in a valid namespace
-        trail = request.get('trail', [])
-        if len(trail) > 0 and trail[0] != namespaces[0]:
-            return False
-
-        request['default_namespace'] = namespaces[0]
-        return True
 
 
 class Secrets(HTTPConsumer):
@@ -278,7 +250,7 @@ class SecretsTests(unittest.TestCase):
     def setUpClass(cls):
         cls.secrets = Secrets({'auditlog': 'test.audit.log'})
         cls.secrets.root.store = SqliteStore({'dburi': 'testdb.sqlite'})
-        cls.authz = Namespaces({})
+        cls.authz = UserNameSpace({})
 
     @classmethod
     def tearDownClass(cls):
@@ -289,6 +261,7 @@ class SecretsTests(unittest.TestCase):
             pass
 
     def check_authz(self, req):
+        req['path'] = '/'.join([''] + req.get('trail', []))
         if self.authz.handle(req) is False:
             raise HTTPError(403)
 

@@ -46,3 +46,29 @@ class SimplePathAuthz(HTTPAuthorizer):
             else:
                 path, _ = os.path.split(path)
         return None
+
+
+class UserNameSpace(HTTPAuthorizer):
+
+    def __init__(self, *args, **kwargs):
+        super(UserNameSpace, self).__init__(*args, **kwargs)
+        self.path = self.config.get('path', '/')
+
+    def handle(self, request):
+        # Only check if we are in the right (sub)path
+        path = request.get('path', '/')
+        if not path.startswith(self.path):
+            return None
+
+        name = request.get('remote_user', None)
+        if name is None:
+            # UserNameSpace requires a user ...
+            return False
+
+        namespace = self.path.rstrip('/') + '/' + name + '/'
+        if not path.startswith(namespace):
+            # Not in the namespace
+            return False
+
+        request['default_namespace'] = name
+        return True
