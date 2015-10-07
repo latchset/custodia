@@ -74,23 +74,36 @@ class SqliteStore(CSStore):
             log_error("Error storing key %s: [%r]" % (key, repr(err)))
             raise CSStoreError('Error occurred while trying to store key')
 
-    def list(self, keyfilter='/'):
+    def list(self, keyfilter=''):
+        path = keyfilter.rstrip('/')
+        child_prefix = path if path == '' else path + '/'
         search = "SELECT key FROM %s WHERE key LIKE ?" % self.table
-        key = "%s%%" % (keyfilter,)
+        key = "%s%%" % (path,)
         try:
             conn = sqlite3.connect(self.dburi)
             r = conn.execute(search, (key,))
             rows = r.fetchall()
         except sqlite3.Error as err:
-            log_error("Error listing (filter: %s): [%r]" % (key, repr(err)))
+            log_error("Error listing %s: [%r]" % (keyfilter, repr(err)))
             raise CSStoreError('Error occurred while trying to list keys')
         if len(rows) > 0:
+            parent_exists = False
             value = list()
             for row in rows:
-                value.append(row[0])
-            return sorted(value)
-        else:
-            return None
+                if row[0] == path or row[0] == child_prefix:
+                    parent_exists = True
+                    continue
+                if not row[0].startswith(child_prefix):
+                    continue
+                value.append(row[0][len(child_prefix):].lstrip('/'))
+
+            if value:
+                return sorted(value)
+            elif parent_exists:
+                return []
+        elif keyfilter == '':
+            return []
+        return None
 
     def cut(self, key):
         query = "DELETE from %s WHERE key=?" % self.table
@@ -124,7 +137,7 @@ class SqliteStoreTests(unittest.TestCase):
         value = self.store.get('test')
         self.assertEqual(value, None)
 
-    def test_1_list_empty(self):
+    def test_1_list_none(self):
         value = self.store.list('test')
         self.assertEqual(value, None)
 
@@ -134,13 +147,10 @@ class SqliteStoreTests(unittest.TestCase):
         self.assertEqual(value, 'value')
 
     def test_3_list_key(self):
-        value = self.store.list('key')
+        value = self.store.list()
         self.assertEqual(value, ['key'])
 
         value = self.store.list('k')
-        self.assertEqual(value, ['key'])
-
-        value = self.store.list('none')
         self.assertEqual(value, None)
 
     def test_4_multiple_keys(self):
@@ -153,27 +163,23 @@ class SqliteStoreTests(unittest.TestCase):
 
         value = self.store.list()
         self.assertEqual(value,
-                         sorted(['/sub1/key1', '/sub1/key2',
-                                 '/sub1/key3', '/sub2/key1',
-                                 '/sub2/key2', '/oth3/key1']))
+                         sorted(['key',
+                                 'sub1/key1', 'sub1/key2',
+                                 'sub1/key3', 'sub2/key1',
+                                 'sub2/key2', 'oth3/key1']))
 
         value = self.store.list('/sub')
-        self.assertEqual(value,
-                         sorted(['/sub1/key1', '/sub1/key2',
-                                 '/sub1/key3', '/sub2/key1',
-                                 '/sub2/key2']))
+        self.assertEqual(value, None)
 
         value = self.store.list('/sub2')
-        self.assertEqual(value, sorted(['/sub2/key1', '/sub2/key2']))
+        self.assertEqual(value, sorted(['key1', 'key2']))
 
-        value = self.store.list('/o')
-        self.assertEqual(value, ['/oth3/key1'])
-
+        self.store.set('/x', '')
         value = self.store.list('/x')
-        self.assertEqual(value, None)
+        self.assertEqual(value, [])
 
         value = self.store.list('/sub1/key1/')
-        self.assertEqual(value, None)
+        self.assertEqual(value, [])
 
         value = self.store.get('/sub1')
         self.assertEqual(value, None)

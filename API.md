@@ -160,9 +160,7 @@ Listing containers
 
 A GET operation on a path that ends in a '/' translates into
 a listing for a container.
-A 'filter' query argument may be provided to filter on key/container
-names within the container being listed.
-GET /secrets/container/?filter=red
+GET /secrets/container/
 
 Implementations may assume a default container if none is excplicitly
 provided: GET /secrets/ may return only keys under /<user-default>/*

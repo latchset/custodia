@@ -79,25 +79,22 @@ class Secrets(HTTPConsumer):
 
     def _parent_exists(self, default, trail):
         # check that the containers exist
-        basename = self._db_container_key(trail[0], '')
+        basename = self._db_container_key(trail[0], trail[:-1] + [''])
         try:
             keylist = self.root.store.list(basename)
         except CSStoreError:
             raise HTTPError(500)
 
+        if keylist is not None:
+            return True
+
         # create default namespace if it is the only missing piece
-        if keylist is None and len(trail) == 2 and default == trail[0]:
+        if len(trail) == 2 and default == trail[0]:
             container = self._db_container_key(default, '')
             self.root.store.set(container, '')
             return True
 
-        # check if any parent is missing
-        for n in range(1, len(trail)):
-            c = self._db_key(trail[:n] + [''])
-            if c not in keylist:
-                return False
-
-        return True
+        return False
 
     def GET(self, request, response):
         trail = request.get('trail', [])
@@ -132,20 +129,11 @@ class Secrets(HTTPConsumer):
     def _list(self, trail, request, response):
         default = request.get('default_namespace', None)
         basename = self._db_container_key(default, trail)
-        userfilter = request.get('query', dict()).get('filter', '')
         try:
-            keylist = self.root.store.list(basename + userfilter)
+            keylist = self.root.store.list(basename)
             if keylist is None:
                 raise HTTPError(404)
-            # remove the base container itself
-            output = list()
-            for k in keylist:
-                if k == basename:
-                    continue
-                # strip away the internal prefix for storing keys
-                name = k[len('keys/'):]
-                output.append(name)
-            response['output'] = json.dumps(output)
+            response['output'] = json.dumps(keylist)
         except CSStoreError:
             raise HTTPError(500)
 
@@ -171,10 +159,7 @@ class Secrets(HTTPConsumer):
             keylist = self.root.store.list(basename)
             if keylist is None:
                 raise HTTPError(404)
-            if basename not in keylist:
-                # uh ?
-                raise HTTPError(409)
-            if len(keylist) != 1:
+            if len(keylist) != 0:
                 raise HTTPError(409)
             ret = self.root.store.cut(basename)
         except CSStoreError:
@@ -354,16 +339,7 @@ class SecretsTests(unittest.TestCase):
         rep = {}
         self.GET(req, rep)
         self.assertEqual(json.loads(rep['output']),
-                         json.loads('["test/key1"]'))
-
-    def test_3_LISTKeys_2(self):
-        req = {'remote_user': 'test',
-               'query': {'filter': 'key'},
-               'trail': ['test', '']}
-        rep = {}
-        self.GET(req, rep)
-        self.assertEqual(json.loads(rep['output']),
-                         json.loads('["test/key1"]'))
+                         json.loads('["key1"]'))
 
     def test_4_PUTKey_errors_400_1(self):
         req = {'headers': {'Content-Type': 'text/plain'},
@@ -465,15 +441,6 @@ class SecretsTests(unittest.TestCase):
     def test_6_LISTkeys_errors_404_1(self):
         req = {'remote_user': 'test',
                'trail': ['test', 'case', '']}
-        rep = {}
-        with self.assertRaises(HTTPError) as err:
-            self.GET(req, rep)
-        self.assertEqual(err.exception.code, 404)
-
-    def test_6_LISTkeys_errors_404_2(self):
-        req = {'remote_user': 'test',
-               'query': {'filter': 'foo'},
-               'trail': ['test', '']}
         rep = {}
         with self.assertRaises(HTTPError) as err:
             self.GET(req, rep)
