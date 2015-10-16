@@ -102,6 +102,7 @@ def parse_config(cfgfile):
     attach_store('auth:', config['authenticators'], config['stores'])
     attach_store('authz:', config['authorizers'], config['stores'])
     attach_store('', config['consumers'], config['stores'])
+    attach_store('store:', config['stores'], config['stores'])
 
     return config
 

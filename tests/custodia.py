@@ -10,6 +10,8 @@ import unittest
 
 from string import Template
 
+from jwcrypto import jwk
+
 from requests.exceptions import HTTPError
 
 from custodia.client import CustodiaClient
@@ -69,6 +71,21 @@ forward_headers = {"CUSTODIA_AUTH_ID": "${TEST_AUTH_ID}", \
 handler = custodia.forwarder.Forwarder
 forward_uri = ${SOCKET_URL}/forwarder_loop
 forward_headers = {"REMOTE_USER": "test"}
+
+# Encgen
+[store:encgen]
+handler = custodia.store.encgen.EncryptedOverlay
+backing_store = simple
+master_key = test_mkey.conf
+master_enctype = A128CBC-HS256
+
+[authz:enc]
+handler = custodia.httpd.authorizers.SimplePathAuthz
+paths = /enc
+
+[/enc]
+handler = custodia.secrets.Secrets
+store = encgen
 """
 
 
@@ -83,6 +100,12 @@ def unlink_if_exists(filename):
             raise
 
 
+def generate_key(filename):
+    key = jwk.JWK(generate='oct', size=256)
+    with (open(filename, 'w+')) as keyfile:
+        keyfile.write(key.export())
+
+
 class CustodiaTests(unittest.TestCase):
 
     @classmethod
@@ -92,12 +115,14 @@ class CustodiaTests(unittest.TestCase):
         pexec = env.get('CUSTODIAPYTHON', 'python')
         unlink_if_exists('test_socket')
         unlink_if_exists('test_secrets.db')
+        unlink_if_exists('test_mkey.conf')
         unlink_if_exists('test_custodia.conf')
         unlink_if_exists('test_log.txt')
         unlink_if_exists('test_audit.log')
         cls.socket_url = TEST_SOCKET_URL
         cls.test_auth_id = "test_user"
         cls.test_auth_key = "cd54b735-e756-4f12-aa18-d85509baef36"
+        generate_key('test_mkey.conf')
         with (open('test_custodia.conf', 'w+')) as conffile:
             t = Template(TEST_CUSTODIA_CONF)
             conf = t.substitute({'SOCKET_URL': cls.socket_url,
@@ -121,6 +146,8 @@ class CustodiaTests(unittest.TestCase):
         cls.fwd.headers['REMOTE_USER'] = 'test'
         cls.loop = CustodiaClient(cls.socket_url + '/forwarder_loop')
         cls.loop.headers['REMOTE_USER'] = 'test'
+        cls.enc = CustodiaClient(cls.socket_url + '/enc')
+        cls.enc.headers['REMOTE_USER'] = 'enc'
 
     @classmethod
     def tearDownClass(cls):
@@ -179,3 +206,21 @@ class CustodiaTests(unittest.TestCase):
             self.loop.list_container('test')
         except HTTPError as e:
             self.assertEqual(e.response.status_code, 502)
+
+    def test_A_enc_1_create_container(self):
+        self.enc.create_container('container')
+        r = self.enc.list_container('container')
+        self.assertEqual(r.json(), [])
+        self.enc.delete_container('container')
+        try:
+            self.enc.list_container('container')
+        except HTTPError as e:
+            self.assertEqual(e.response.status_code, 404)
+
+    def test_A_enc_2_set_simple_key(self):
+        self.enc.create_container('enc')
+        self.enc.set_simple_key('enc/key', 'simple')
+        key = self.admin.get_simple_key('enc/key')
+        self.assertNotEqual(key, 'simple')
+        key = self.enc.get_simple_key('enc/key')
+        self.assertEqual(key, 'simple')
