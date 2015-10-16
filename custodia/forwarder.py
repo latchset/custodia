@@ -16,13 +16,17 @@ class Forwarder(HTTPConsumer):
         self._auditlog = log.AuditLog(self.config)
         self.client = CustodiaHTTPClient(self.config['forward_uri'])
         self.headers = json.loads(self.config.get('forward_headers', '{}'))
+        self.use_prefix = self.config.get('prefix_remote_user', True)
         self.uuid = str(uuid.uuid4())
         self.headers['X-LOOP-CUSTODIA'] = self.uuid
 
     def _path(self, request):
         trail = request.get('trail', [])
-        prefix = request.get('remote_user', 'guest')
-        return '/'.join([prefix.rstrip('/')] + trail)
+        if self.use_prefix:
+            prefix = [request.get('remote_user', 'guest').rstrip('/')]
+        else:
+            prefix = []
+        return '/'.join(prefix + trail)
 
     def _headers(self, request):
         headers = {}
