@@ -1,3 +1,4 @@
 jwcrypto
 six
 python-etcd
+requests
