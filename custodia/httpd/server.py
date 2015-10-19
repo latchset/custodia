@@ -377,8 +377,6 @@ class HTTPServer(object):
         if url.scheme == 'http+unix':
             # Unix socket
             serverclass = ForkingUnixHTTPServer
-            if address[0] != '/':
-                raise ValueError('Must use absolute unix socket name')
             if os.path.exists(address):
                 os.remove(address)
         elif url.scheme == 'http':
