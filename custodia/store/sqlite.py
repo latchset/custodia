@@ -35,6 +35,7 @@ class SqliteStore(CSStore):
             raise CSStoreError('Error occurred while trying to init db')
 
     def get(self, key):
+        logger.debug("Fetching key %s", key)
         query = "SELECT value from %s WHERE key=?" % self.table
         try:
             conn = sqlite3.connect(self.dburi)
@@ -44,6 +45,7 @@ class SqliteStore(CSStore):
         except sqlite3.Error:
             logger.exception("Error fetching key %s", key)
             raise CSStoreError('Error occurred while trying to get key')
+        logger.debug("Fetched key %s got result: %r", key, value)
         if len(value) > 0:
             return value[0][0]
         else:
@@ -55,6 +57,8 @@ class SqliteStore(CSStore):
         cur.execute(create)
 
     def set(self, key, value, replace=False):
+        logger.debug("Setting key %s to value %s (replace=%s)", key, value,
+                     replace)
         if key.endswith('/'):
             raise ValueError('Invalid Key name, cannot end in "/"')
         if replace:
@@ -71,11 +75,12 @@ class SqliteStore(CSStore):
         except sqlite3.IntegrityError as err:
             raise CSStoreExists(str(err))
         except sqlite3.Error as err:
-            logger.exception("Error storing key %s" % key)
+            logger.exception("Error storing key %s", key)
             raise CSStoreError('Error occurred while trying to store key')
 
     def span(self, key):
         name = key.rstrip('/')
+        logger.debug("Creating container %s", name)
         query = "INSERT into %s VALUES (?, '')"
         setdata = query % (self.table,)
         try:
@@ -92,6 +97,7 @@ class SqliteStore(CSStore):
 
     def list(self, keyfilter=''):
         path = keyfilter.rstrip('/')
+        logger.debug("Listing keys matching %s", path)
         child_prefix = path if path == '' else path + '/'
         search = "SELECT key FROM %s WHERE key LIKE ?" % self.table
         key = "%s%%" % (path,)
@@ -102,6 +108,7 @@ class SqliteStore(CSStore):
         except sqlite3.Error:
             logger.exception("Error listing %s: [%r]", keyfilter)
             raise CSStoreError('Error occurred while trying to list keys')
+        logger.debug("Searched for %s got result: %r", path, rows)
         if len(rows) > 0:
             parent_exists = False
             value = list()
@@ -114,14 +121,19 @@ class SqliteStore(CSStore):
                 value.append(row[0][len(child_prefix):].lstrip('/'))
 
             if value:
+                logger.debug("Returning sorted values %r", value)
                 return sorted(value)
             elif parent_exists:
+                logger.debug("Returning empty list")
                 return []
         elif keyfilter == '':
+            logger.debug("Returning empty list")
             return []
+        logger.debug("Returning 'Not Found'")
         return None
 
     def cut(self, key):
+        logger.debug("Removing key %s", key)
         query = "DELETE from %s WHERE key=?" % self.table
         try:
             conn = sqlite3.connect(self.dburi)
@@ -131,6 +143,8 @@ class SqliteStore(CSStore):
         except sqlite3.Error:
             logger.error("Error removing key %s", key)
             raise CSStoreError('Error occurred while trying to cut key')
+        logger.debug("Key %s %s", key,
+                     "removed" if r.rowcount > 0 else "not found")
         if r.rowcount > 0:
             return True
         return False

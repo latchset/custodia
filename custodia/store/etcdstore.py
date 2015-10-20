@@ -40,14 +40,18 @@ class EtcdStore(CSStore):
         return '/'.join([self.namespace] + parts).replace('//', '/')
 
     def get(self, key):
+        logger.debug("Fetching key %s", key)
         try:
             result = self.etcd.get(self._absolute_key(key))
         except etcd.EtcdException:
             logger.exception("Error fetching key %s", key)
             raise CSStoreError('Error occurred while trying to get key')
+        logger.debug("Fetched key %s got result: %r", key, result)
         return result.value
 
     def set(self, key, value, replace=False):
+        logger.debug("Setting key %s to value %s (replace=%s)", key, value,
+                     replace)
         path = self._absolute_key(key)
         try:
             self.etcd.write(path, value, prevExist=replace)
@@ -59,6 +63,7 @@ class EtcdStore(CSStore):
 
     def span(self, key):
         path = self._absolute_key(key)
+        logger.debug("Creating directory %s", path)
         try:
             self.etcd.write(path, None, dir=True, prevExist=False)
         except etcd.EtcdAlreadyExist as err:
@@ -71,6 +76,7 @@ class EtcdStore(CSStore):
         path = self._absolute_key(keyfilter)
         if path != '/':
             path = path.rstrip('/')
+        logger.debug("Listing keys matching %s", path)
         try:
             result = self.etcd.read(path, recursive=True)
         except etcd.EtcdKeyNotFound:
@@ -78,7 +84,7 @@ class EtcdStore(CSStore):
         except etcd.EtcdException:
             logger.exception("Error listing %s", keyfilter)
             raise CSStoreError('Error occurred while trying to list keys')
-
+        logger.debug("Searched for %s got result: %r", path, result)
         value = set()
         for entry in result.get_subtree():
             if entry.key == path:
@@ -90,11 +96,14 @@ class EtcdStore(CSStore):
         return sorted(value)
 
     def cut(self, key):
+        logger.debug("Removing key %s", key)
         try:
             self.etcd.delete(self._absolute_key(key))
         except etcd.EtcdKeyNotFound:
+            logger.debug("Key %s not found", key)
             return False
         except etcd.EtcdException:
             logger.exception("Error removing key %s", key)
             raise CSStoreError('Error occurred while trying to cut key')
+        logger.debug("Key %s removed", key)
         return True
