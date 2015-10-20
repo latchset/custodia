@@ -17,6 +17,9 @@ from custodia.store.interface import CSStoreExists
 from custodia.store.sqlite import SqliteStore
 
 
+logger = logging.getLogger(__name__)
+
+
 class Secrets(HTTPConsumer):
 
     def __init__(self, *args, **kwargs):
@@ -57,6 +60,9 @@ class Secrets(HTTPConsumer):
             keylist = self.root.store.list(basename)
         except CSStoreError:
             raise HTTPError(500)
+
+        logger.debug('parent_exists: %s (%s, %r) -> %r',
+                     basename, default, trail, keylist)
 
         if keylist is not None:
             return True
@@ -104,6 +110,7 @@ class Secrets(HTTPConsumer):
         basename = self._db_container_key(default, trail)
         try:
             keylist = self.root.store.list(basename)
+            logger.debug('list %s returned %r', basename, keylist)
             if keylist is None:
                 raise HTTPError(404)
             response['output'] = json.dumps(keylist)
