@@ -37,7 +37,7 @@ class HTTPError(Exception):
         self.code = code if code is not None else 500
         self.mesg = message
         errstring = '%d: %s' % (self.code, self.mesg)
-        logger.exception(errstring)
+        logger.debug(errstring)
         super(HTTPError, self).__init__(errstring)
 
 
