@@ -1,47 +1,42 @@
 # Copyright (C) 2015  Custodia Project Contributors - see LICENSE file
 
+import logging
 import sys
-import time
-import traceback
 
-try:
-    from StringIO import StringIO
-except ImportError:
-    from io import StringIO
-
-DEBUG = False
+custodia_logger = logging.getLogger('custodia')
+custodia_logger.addHandler(logging.NullHandler())
 
 
-def stacktrace():
-    _, _, tb = sys.exc_info()
-    if tb is None:
-        return None
-    try:
-        f = StringIO()
-        traceback.print_tb(tb, None, file=f)
-        return f.getvalue()
-    finally:
-        del tb
+LOGGING_FORMAT = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+LOGGING_AUDITFORMAT = "%(asctime)s %(message)s"
+LOGGING_DATEFORMAT = "%Y-%m-%h %H:%M:%S"
 
 
-def get_time():
-    t = time.gmtime(time.time())
-    return '%04d/%02d/%02d %02d:%02d:%02d' % (
-        t[0], t[1], t[2], t[3], t[4], t[5])
+def setup_logging(debug=False, auditlog='custodia.audit.log'):
+    # prevent multiple stream handlers
+    root_logger = logging.getLogger()
+    if not any(isinstance(hdlr, logging.StreamHandler)
+               for hdlr in root_logger.handlers):
+        default_fmt = logging.Formatter(LOGGING_FORMAT, LOGGING_DATEFORMAT)
+        stream_hdlr = logging.StreamHandler(sys.stderr)
+        stream_hdlr.setFormatter(default_fmt)
+        root_logger.addHandler(stream_hdlr)
 
+    custodia_logger = logging.getLogger('custodia')
+    if debug:
+        custodia_logger.setLevel(logging.DEBUG)
+        custodia_logger.debug('Custodia debug logger enabled')
+    else:
+        custodia_logger.setLevel(logging.INFO)
 
-def error(msg, head=None):
-    if head is not None:
-        head = get_time()
-    sys.stderr.write('[%s] %s\n' % (head, msg))
+    audit_logger = logging.getLogger('custodia.audit')
+    if len(audit_logger.handlers) == 0:
+        audit_fmt = logging.Formatter(LOGGING_AUDITFORMAT, LOGGING_DATEFORMAT)
+        audit_hdrl = logging.FileHandler(auditlog)
+        audit_hdrl.setFormatter(audit_fmt)
+        audit_logger.addHandler(audit_hdrl)
 
-
-def debug(msg):
-    if DEBUG:
-        error(msg, 'DEBUG')
-        trace = stacktrace()
-        if trace is not None:
-            sys.stderr.write(trace + '\n')
+        custodia_logger.debug('Custodia audit log: %s', auditlog)
 
 
 AUDIT_NONE = 0
@@ -60,41 +55,38 @@ AUDIT_SVC_AUTHZ_FAIL = 12
 AUDIT_SVC_LAST = 13
 AUDIT_MESSAGES = [
     "AUDIT FAILURE",
-    "ALLOWED: '{client:s}' requested key '{key:s}'",  # AUDIT_GET_ALLOWED
-    "DENIED: '{client:s}' requested key '{key:s}'",   # AUDIT_GET_DENIED
-    "ALLOWED: '{client:s}' stored key '{key:s}'",     # AUDIT_SET_ALLOWED
-    "DENIED: '{client:s}' stored key '{key:s}'",      # AUDIT_SET_DENIED
-    "ALLOWED: '{client:s}' deleted key '{key:s}'",    # AUDIT_DEL_ALLOWED
-    "DENIED: '{client:s}' deleted key '{key:s}'",     # AUDIT_DEL_DENIED
+    "ALLOWED: '%(client)s' requested key '%(key)s'",  # AUDIT_GET_ALLOWED
+    "DENIED: '%(client)s' requested key '%(key)s'",   # AUDIT_GET_DENIED
+    "ALLOWED: '%(client)s' stored key '%(key)s'",     # AUDIT_SET_ALLOWED
+    "DENIED: '%(client)s' stored key '%(key)s'",      # AUDIT_SET_DENIED
+    "ALLOWED: '%(client)s' deleted key '%(key)s'",    # AUDIT_DEL_ALLOWED
+    "DENIED: '%(client)s' deleted key '%(key)s'",     # AUDIT_DEL_DENIED
     "AUDIT FAILURE 7",
     "AUDIT FAILURE 8",
-    "PASS({tag:s}): '{cli:s}' authenticated as '{name:s}'",  # SVC_AUTH_PASS
-    "FAIL({tag:s}): '{cli:s}' authenticated as '{name:s}'",  # SVC_AUTH_FAIL
-    "PASS({tag:s}): '{cli:s}' authorized for '{name:s}'",    # SVC_AUTHZ_PASS
-    "FAIL({tag:s}): '{cli:s}' authorized for '{name:s}'",    # SVC_AUTHZ_FAIL
+    "PASS(%(tag)s): '%(cli)s' authenticated as '%(name)s'",  # SVC_AUTH_PASS
+    "FAIL(%(tag)s): '%(cli)s' authenticated as '%(name)s'",  # SVC_AUTH_FAIL
+    "PASS(%(tag)s): '%(cli)s' authorized for '%(name)s'",    # SVC_AUTHZ_PASS
+    "FAIL(%(tag)s): '%(cli)s' authorized for '%(name)s'",    # SVC_AUTHZ_FAIL
     "AUDIT FAILURE 13",
 ]
 
 
 class AuditLog(object):
-
-    def __init__(self, config):
-        if config is None:
-            config = {}
-        self.logfile = config.get('auditlog', 'custodia.audit.log')
-
-    def _log(self, message):
-        with open(self.logfile, 'a+') as f:
-            f.write('%s: %s\n' % (get_time(), message))
-            f.flush()
+    def __init__(self, logger):
+        self.logger = logger
 
     def key_access(self, action, client, keyname):
         if action <= AUDIT_NONE or action >= AUDIT_LAST:
             action = AUDIT_NONE
-        self._log(AUDIT_MESSAGES[action].format(client=client, key=keyname))
+        msg = AUDIT_MESSAGES[action]
+        args = {'client': client, 'key': keyname}
+        self.logger.info(msg, args)
 
     def svc_access(self, action, client, tag, name):
         if action <= AUDIT_SVC_NONE or action >= AUDIT_SVC_LAST:
             action = AUDIT_NONE
-        self._log(AUDIT_MESSAGES[action].format(cli=str(client), tag=tag,
-                                                name=name))
+        msg = AUDIT_MESSAGES[action]
+        args = {'cli': client, 'tag': tag, 'name': name}
+        self.logger.info(msg, args)
+
+auditlog = AuditLog(logging.getLogger('custodia.audit'))

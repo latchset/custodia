@@ -12,7 +12,7 @@ class HTTPAuthenticator(object):
 
     def __init__(self, config=None):
         self.config = config
-        self._auditlog = log.AuditLog(self.config)
+        self._auditlog = log.auditlog
 
     def handle(self, request):
         raise HTTPError(403)

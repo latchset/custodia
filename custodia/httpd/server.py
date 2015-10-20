@@ -1,6 +1,7 @@
 # Copyright (C) 2015  Custodia Project Contributors - see LICENSE file
 
 import errno
+import logging
 import os
 import shutil
 import socket
@@ -22,6 +23,7 @@ except ImportError:
 
 from custodia import log
 
+logger = logging.getLogger(__name__)
 
 SO_PEERCRED = getattr(socket, 'SO_PEERCRED', 17)
 SO_PEERSEC = getattr(socket, 'SO_PEERSEC', 31)
@@ -35,7 +37,7 @@ class HTTPError(Exception):
         self.code = code if code is not None else 500
         self.mesg = message
         errstring = '%d: %s' % (self.code, self.mesg)
-        log.debug(errstring)
+        logger.exception(errstring)
         super(HTTPError, self).__init__(errstring)
 
 
@@ -60,7 +62,7 @@ class ForkingHTTPServer(ForkingTCPServer):
         self.config = config
         if 'server_string' in self.config:
             self.server_string = self.config['server_string']
-        self._auditlog = log.AuditLog(self.config)
+        self._auditlog = log.auditlog
 
 
 class ForkingUnixHTTPServer(ForkingHTTPServer):
@@ -158,8 +160,8 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
             creds = self.request.getsockopt(socket.SOL_SOCKET, SO_PEERSEC,
                                             SELINUX_CONTEXT_LEN)
             context = creds.decode('utf-8')
-        except Exception as e:
-            log.debug("Couldn't retrieve SELinux Context: (%s)" % str(e))
+        except Exception:
+            log.debug("Couldn't retrieve SELinux Context", exc_info=True)
             context = None
 
         self._creds = {'pid': pid, 'uid': uid, 'gid': gid, 'context': context}
@@ -256,8 +258,7 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
                 self.close_connection = 1
                 return
             except Exception as e:  # pylint: disable=broad-except
-                self.log_error("Handler failed: %r", e)
-                self.log_traceback()
+                self.log_error("Handler failed: %r", e, exc_info=True)
                 self.send_error(500)
                 self.wfile.flush()
                 return
@@ -280,8 +281,8 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
             self.close_connection = 1
             return
 
-    def log_traceback(self):
-        self.log_error('Traceback:\n%s' % log.stacktrace())
+    def log_error(self, format, *args, **kwargs):
+        logger.error(format, *args, **kwargs)
 
     def pipeline(self, config, request):
         """
@@ -387,6 +388,8 @@ class HTTPServer(object):
             raise NotImplementedError
         else:
             raise ValueError('Unknown URL Scheme: %s' % url.scheme)
+
+        logger.debug('Serving on %s', address)
 
         self.httpd = serverclass(address,
                                  HTTPRequestHandler,

@@ -1,5 +1,6 @@
 # Copyright (C) 2015  Custodia Project Contributors - see LICENSE file
 
+import logging
 import os
 import time
 import unittest
@@ -11,12 +12,12 @@ from jwcrypto.jwk import JWK
 from jwcrypto.jws import JWS
 from jwcrypto.jwt import JWT
 
-from custodia import log
 from custodia.httpd.authorizers import SimplePathAuthz
 from custodia.message.common import InvalidMessage
 from custodia.message.common import MessageHandler
 from custodia.store.sqlite import SqliteStore
 
+logger = logging.getLogger(__name__)
 
 KEY_USAGE_SIG = 0
 KEY_USAGE_ENC = 1
@@ -25,7 +26,7 @@ KEY_USAGE_MAP = {KEY_USAGE_SIG: 'sig', KEY_USAGE_ENC: 'enc'}
 
 class UnknownPublicKey(Exception):
     def __init__(self, message=None):
-        log.debug(message)
+        logger.debug(message)
         super(UnknownPublicKey, self).__init__(message)
 
 

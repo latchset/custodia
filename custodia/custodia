@@ -11,9 +11,12 @@ except ImportError:
 from custodia.httpd.server import HTTPServer
 from custodia import log
 import importlib
+import logging
 import os
 import six
 import sys
+
+logger = logging.getLogger('custodia')
 
 
 def source_config():
@@ -26,7 +29,7 @@ def source_config():
         cfgfile = '/etc/custodia/custodia.conf'
     else:
         raise IOError("Configuration file not found")
-    return cfgfile
+    return os.path.abspath(cfgfile)
 
 def attach_store(typename, plugins, stores):
     for name, c in six.iteritems(plugins):
@@ -88,7 +91,7 @@ def parse_config(cfgfile):
                     handler = getattr(m, classname)
                 except Exception as e:  # pylint: disable=broad-except
                     raise ValueError('Invalid format for "handler" option '
-                                     '[%r]' % e)
+                                     '[%r]: %s' % (e, val))
 
             else:
                 if hconf is None:
@@ -106,8 +109,10 @@ def parse_config(cfgfile):
 if __name__ == '__main__':
     cfgfile = source_config()
     config = parse_config(cfgfile)
-    if config.get('debug') == 'True':
-        log.DEBUG = True
+    debug = config.get('debug', 'false').lower() == 'true'
+    auditlog = os.path.abspath(config.get('auditlog', 'custodia.audit.log'))
+    log.setup_logging(debug, auditlog)
+    logger.debug('Config file %s loaded', cfgfile)
 
     url = config.get('server_url', None)
     if url is None:

@@ -1,6 +1,7 @@
 # Copyright (C) 2015  Custodia Project Contributors - see LICENSE file
 
 import json
+import logging
 import os
 import unittest
 
@@ -25,7 +26,7 @@ class Secrets(HTTPConsumer):
             kt = self.config['allowed_keytypes'].split()
             self.allowed_keytypes = kt
         self._validator = Validator(self.allowed_keytypes)
-        self._auditlog = log.AuditLog(self.config)
+        self._auditlog = log.auditlog
 
     def _db_key(self, trail):
         if len(trail) < 2:
@@ -248,14 +249,16 @@ class SecretsTests(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.secrets = Secrets({'auditlog': 'test.audit.log'})
+        cls.log_handlers = log.auditlog.logger.handlers[:]
+        log.auditlog.logger.handlers = [logging.NullHandler()]
+        cls.secrets = Secrets()
         cls.secrets.root.store = SqliteStore({'dburi': 'testdb.sqlite'})
         cls.authz = UserNameSpace({})
 
     @classmethod
     def tearDownClass(cls):
+        log.auditlog.logger.handlers = cls.log_handlers
         try:
-            os.unlink('test.audit.log')
             os.unlink('testdb.sqlite')
         except OSError:
             pass

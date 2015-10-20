@@ -9,7 +9,7 @@ class HTTPAuthorizer(object):
 
     def __init__(self, config=None):
         self.config = config
-        self._auditlog = log.AuditLog(self.config)
+        self._auditlog = log.auditlog
         self.store_name = None
         if self.config and 'store' in self.config:
             self.store_name = self.config['store']

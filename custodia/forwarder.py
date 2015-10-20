@@ -3,7 +3,6 @@
 import json
 import uuid
 
-from custodia import log
 from custodia.client import CustodiaHTTPClient
 from custodia.httpd.consumer import HTTPConsumer
 from custodia.httpd.server import HTTPError
@@ -13,7 +12,6 @@ class Forwarder(HTTPConsumer):
 
     def __init__(self, *args, **kwargs):
         super(Forwarder, self).__init__(*args, **kwargs)
-        self._auditlog = log.AuditLog(self.config)
         self.client = CustodiaHTTPClient(self.config['forward_uri'])
         self.headers = json.loads(self.config.get('forward_headers', '{}'))
         self.use_prefix = self.config.get('prefix_remote_user', True)

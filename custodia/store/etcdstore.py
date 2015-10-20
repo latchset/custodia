@@ -2,15 +2,14 @@
 
 from __future__ import print_function
 
-import sys
+import logging
 
 import etcd
 
 from custodia.store.interface import CSStore, CSStoreError, CSStoreExists
 
 
-def log_error(error):
-    print(error, file=sys.stderr)
+logger = logging.getLogger(__name__)
 
 
 class EtcdStore(CSStore):
@@ -27,9 +26,8 @@ class EtcdStore(CSStore):
         except etcd.EtcdNotFile:
             # Already exists
             pass
-        except etcd.EtcdException as err:
-            log_error("Error creating namespace %s: [%r]" % (self.namespace,
-                                                             repr(err)))
+        except etcd.EtcdException:
+            logger.exception("Error creating namespace %s", self.namespace)
             raise CSStoreError('Error occurred while trying to init db')
 
     def _absolute_key(self, key):
@@ -44,8 +42,8 @@ class EtcdStore(CSStore):
     def get(self, key):
         try:
             result = self.etcd.get(self._absolute_key(key))
-        except etcd.EtcdException as err:
-            log_error("Error fetching key %s: [%r]" % (key, repr(err)))
+        except etcd.EtcdException:
+            logger.exception("Error fetching key %s", key)
             raise CSStoreError('Error occurred while trying to get key')
         return result.value
 
@@ -55,8 +53,8 @@ class EtcdStore(CSStore):
             self.etcd.write(path, value, prevExist=replace)
         except etcd.EtcdAlreadyExist as err:
             raise CSStoreExists(str(err))
-        except etcd.EtcdException as err:
-            log_error("Error storing key %s: [%r]" % (key, repr(err)))
+        except etcd.EtcdException:
+            logger.exception("Error storing key %s", key)
             raise CSStoreError('Error occurred while trying to store key')
 
     def span(self, key):
@@ -65,8 +63,8 @@ class EtcdStore(CSStore):
             self.etcd.write(path, None, dir=True, prevExist=False)
         except etcd.EtcdAlreadyExist as err:
             raise CSStoreExists(str(err))
-        except etcd.EtcdException as err:
-            log_error("Error storing key %s: [%r]" % (key, repr(err)))
+        except etcd.EtcdException:
+            logger.exception("Error storing key %s", key)
             raise CSStoreError('Error occurred while trying to store key')
 
     def list(self, keyfilter='/'):
@@ -77,8 +75,8 @@ class EtcdStore(CSStore):
             result = self.etcd.read(path, recursive=True)
         except etcd.EtcdKeyNotFound:
             return None
-        except etcd.EtcdException as err:
-            log_error("Error listing %s: [%r]" % (keyfilter, repr(err)))
+        except etcd.EtcdException:
+            logger.exception("Error listing %s", keyfilter)
             raise CSStoreError('Error occurred while trying to list keys')
 
         value = set()
@@ -96,7 +94,7 @@ class EtcdStore(CSStore):
             self.etcd.delete(self._absolute_key(key))
         except etcd.EtcdKeyNotFound:
             return False
-        except etcd.EtcdException as err:
-            log_error("Error removing key %s: [%r]" % (key, repr(err)))
+        except etcd.EtcdException:
+            logger.exception("Error removing key %s", key)
             raise CSStoreError('Error occurred while trying to cut key')
         return True
