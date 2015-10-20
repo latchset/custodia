@@ -114,9 +114,10 @@ class Secrets(HTTPConsumer):
         default = request.get('default_namespace', None)
         basename = self._db_container_key(None, trail)
         try:
-            ok = self._parent_exists(default, trail[:-1])
-            if not ok:
-                raise HTTPError(404)
+            if len(trail) > 2:
+                ok = self._parent_exists(default, trail[:-1])
+                if not ok:
+                    raise HTTPError(404)
 
             self.root.store.span(basename)
         except CSStoreExists:
