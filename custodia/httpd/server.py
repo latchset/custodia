@@ -245,6 +245,7 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
                        'version': self.request_version,
                        'headers': self.headers,
                        'body': self.body}
+            logger.debug("REQUEST: %r", request)
             try:
                 response = self.pipeline(self.server.config, request)
                 if response is None:
