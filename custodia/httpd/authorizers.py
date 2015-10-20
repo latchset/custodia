@@ -1,8 +1,11 @@
 # Copyright (C) 2015  Custodia Project Contributors - see LICENSE file
 
+import logging
 import os
 
 from custodia import log
+
+logger = logging.getLogger(__name__)
 
 
 class HTTPAuthorizer(object):
@@ -28,7 +31,7 @@ class SimplePathAuthz(HTTPAuthorizer):
             self.paths = self.config['paths'].split()
 
     def handle(self, request):
-        path = request.get('path', '')
+        reqpath = path = request.get('path', '')
 
         # if an authorized path does not end in /
         # check if it matches fullpath for strict match
@@ -54,6 +57,8 @@ class SimplePathAuthz(HTTPAuthorizer):
                 path = ''
             else:
                 path, _ = os.path.split(path)
+
+        logger.debug('SPA: No path in %s matched %s', self.paths, reqpath)
         return None
 
 
@@ -67,6 +72,7 @@ class UserNameSpace(HTTPAuthorizer):
         # Only check if we are in the right (sub)path
         path = request.get('path', '/')
         if not path.startswith(self.path):
+            logger.debug('UNS: %s is not contained in %s', path, self.path)
             return None
 
         name = request.get('remote_user', None)

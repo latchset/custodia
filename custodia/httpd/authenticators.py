@@ -1,11 +1,14 @@
 # Copyright (C) 2015  Custodia Project Contributors - see LICENSE file
 
+import logging
 import os
 
 from cryptography.hazmat.primitives import constant_time
 
 from custodia import log
 from custodia.httpd.server import HTTPError
+
+logger = logging.getLogger(__name__)
 
 
 class HTTPAuthenticator(object):
@@ -32,6 +35,7 @@ class SimpleCredsAuth(HTTPAuthenticator):
     def handle(self, request):
         creds = request.get('creds')
         if creds is None:
+            logger.debug('SCA: Missing "creds" from request')
             return False
         uid = int(creds['gid'])
         gid = int(creds['uid'])
@@ -60,6 +64,7 @@ class SimpleHeaderAuth(HTTPAuthenticator):
 
     def handle(self, request):
         if self.name not in request['headers']:
+            logger.debug('SHA: No "headers" in request')
             return None
         value = request['headers'][self.name]
         if self.value is None:
@@ -107,6 +112,7 @@ class SimpleAuthKeys(HTTPAuthenticator):
         name = request['headers'].get(self.id_header, None)
         key = request['headers'].get(self.key_header, None)
         if name is None and key is None:
+            logger.debug('SAK: Ignoring request no relevant headers provided')
             return None
 
         validated = False
