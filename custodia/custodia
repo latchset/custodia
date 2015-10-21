@@ -82,20 +82,19 @@ def parse_config(cfgfile):
             raise ValueError('Invalid section, missing "handler"')
 
         handler = None
-        hconf = None
+        hconf = {'facility_name': s}
         for opt, val in parser.items(s):
             if opt == 'handler':
                 try:
                     module, classname = val.rsplit('.', 1)
                     m = importlib.import_module(module)
                     handler = getattr(m, classname)
+                    hconf['facility_name'] = '%s-[%s]' % (classname, s)
                 except Exception as e:  # pylint: disable=broad-except
                     raise ValueError('Invalid format for "handler" option '
                                      '[%r]: %s' % (e, val))
 
             else:
-                if hconf is None:
-                    hconf = dict()
                 hconf[opt] = val
         config[menu][name] = handler(hconf)
 

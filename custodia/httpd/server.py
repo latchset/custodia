@@ -328,9 +328,9 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
             elif valid is True:
                 valid_once = True
         if valid_once is not True:
-            self.server._auditlog.svc_access(log.AUDIT_SVC_AUTH_FAIL,
-                                             request['client_id'], "MAIN",
-                                             'No auth')
+            self.server._auditlog.svc_access(self.__class__.__name__,
+                                             log.AUDIT_SVC_AUTH_FAIL,
+                                             request['client_id'], 'No auth')
             raise HTTPError(403)
 
         # auhz framework here
@@ -342,8 +342,9 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
             if valid is not None:
                 break
         if valid is not True:
-            self.server._auditlog.svc_access(log.AUDIT_SVC_AUTHZ_FAIL,
-                                             request['client_id'], "MAIN",
+            self.server._auditlog.svc_access(self.__class__.__name__,
+                                             log.AUDIT_SVC_AUTHZ_FAIL,
+                                             request['client_id'],
                                              request.get('path', '/'))
             raise HTTPError(403)
 

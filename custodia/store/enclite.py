@@ -1,15 +1,11 @@
 # Copyright (C) 2015  Custodia Project Contributors - see LICENSE file
 
-import logging
-
 from jwcrypto.common import json_decode, json_encode
 from jwcrypto.jwe import JWE
 from jwcrypto.jwk import JWK
 
 from custodia.store.interface import CSStoreError
 from custodia.store.sqlite import SqliteStore
-
-logger = logging.getLogger(__name__)
 
 
 class EncryptedStore(SqliteStore):
@@ -40,7 +36,7 @@ class EncryptedStore(SqliteStore):
             jwe.deserialize(value, self.mkey)
             return jwe.payload.decode('utf-8')
         except Exception:
-            logger.exception("Error parsing key %s", key)
+            self.logger.exception("Error parsing key %s", key)
             raise CSStoreError('Error occurred while trying to parse key')
 
     def set(self, key, value, replace=False):

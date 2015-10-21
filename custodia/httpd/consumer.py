@@ -1,15 +1,17 @@
 # Copyright (C) 2015  Custodia Project Contributors - see LICENSE file
 
 from custodia.httpd.server import HTTPError
+from custodia.log import CustodiaPlugin
 
 
 DEFAULT_CTYPE = 'text/html; charset=utf-8'
 SUPPORTED_COMMANDS = ['GET', 'PUT', 'POST', 'DELETE']
 
 
-class HTTPConsumer(object):
+class HTTPConsumer(CustodiaPlugin):
 
     def __init__(self, config=None):
+        super(HTTPConsumer, self).__init__(config)
         self.config = config
         self.store_name = None
         if config and 'store' in config:

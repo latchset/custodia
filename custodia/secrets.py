@@ -17,9 +17,6 @@ from custodia.store.interface import CSStoreExists
 from custodia.store.sqlite import SqliteStore
 
 
-logger = logging.getLogger(__name__)
-
-
 class Secrets(HTTPConsumer):
 
     def __init__(self, *args, **kwargs):
@@ -29,7 +26,6 @@ class Secrets(HTTPConsumer):
             kt = self.config['allowed_keytypes'].split()
             self.allowed_keytypes = kt
         self._validator = Validator(self.allowed_keytypes)
-        self._auditlog = log.auditlog
 
     def _db_key(self, trail):
         if len(trail) < 2:
@@ -61,8 +57,8 @@ class Secrets(HTTPConsumer):
         except CSStoreError:
             raise HTTPError(500)
 
-        logger.debug('parent_exists: %s (%s, %r) -> %r',
-                     basename, default, trail, keylist)
+        self.logger.debug('parent_exists: %s (%s, %r) -> %r',
+                          basename, default, trail, keylist)
 
         if keylist is not None:
             return True
@@ -110,7 +106,7 @@ class Secrets(HTTPConsumer):
         basename = self._db_container_key(default, trail)
         try:
             keylist = self.root.store.list(basename)
-            logger.debug('list %s returned %r', basename, keylist)
+            self.logger.debug('list %s returned %r', basename, keylist)
             if keylist is None:
                 raise HTTPError(404)
             response['output'] = json.dumps(keylist)
@@ -168,7 +164,7 @@ class Secrets(HTTPConsumer):
             fn(trail, request, response)
             action = ok
         finally:
-            self._auditlog.key_access(action, client, key)
+            self.audit_key_access(action, client, key)
 
     def _get_key(self, trail, request, response):
         self._audit(log.AUDIT_GET_ALLOWED, log.AUDIT_GET_DENIED,

@@ -1,6 +1,5 @@
 # Copyright (C) 2015  Custodia Project Contributors - see LICENSE file
 
-import logging
 import os
 
 from cryptography.hazmat.primitives import constant_time
@@ -8,14 +7,8 @@ from cryptography.hazmat.primitives import constant_time
 from custodia import log
 from custodia.httpd.server import HTTPError
 
-logger = logging.getLogger(__name__)
 
-
-class HTTPAuthenticator(object):
-
-    def __init__(self, config=None):
-        self.config = config
-        self._auditlog = log.auditlog
+class HTTPAuthenticator(log.CustodiaPlugin):
 
     def handle(self, request):
         raise HTTPError(403)
@@ -35,19 +28,19 @@ class SimpleCredsAuth(HTTPAuthenticator):
     def handle(self, request):
         creds = request.get('creds')
         if creds is None:
-            logger.debug('SCA: Missing "creds" from request')
+            self.logger.debug('SCA: Missing "creds" from request')
             return False
         uid = int(creds['gid'])
         gid = int(creds['uid'])
         if self._gid == gid or self._uid == uid:
-            self._auditlog.svc_access(log.AUDIT_SVC_AUTH_PASS,
-                                      request['client_id'],
-                                      "SCA", "%d, %d" % (uid, gid))
+            self.audit_svc_access(log.AUDIT_SVC_AUTH_PASS,
+                                  request['client_id'],
+                                  "%d, %d" % (uid, gid))
             return True
         else:
-            self._auditlog.svc_access(log.AUDIT_SVC_AUTH_FAIL,
-                                      request['client_id'],
-                                      "SCA", "%d, %d" % (uid, gid))
+            self.audit_svc_access(log.AUDIT_SVC_AUTH_FAIL,
+                                  request['client_id'],
+                                  "%d, %d" % (uid, gid))
             return False
 
 
@@ -64,7 +57,7 @@ class SimpleHeaderAuth(HTTPAuthenticator):
 
     def handle(self, request):
         if self.name not in request['headers']:
-            logger.debug('SHA: No "headers" in request')
+            self.logger.debug('SHA: No "headers" in request')
             return None
         value = request['headers'][self.name]
         if self.value is None:
@@ -72,25 +65,21 @@ class SimpleHeaderAuth(HTTPAuthenticator):
             pass
         elif isinstance(self.value, str):
             if value != self.value:
-                self._auditlog.svc_access(log.AUDIT_SVC_AUTH_FAIL,
-                                          request['client_id'],
-                                          "SHA", value)
+                self.audit_svc_access(log.AUDIT_SVC_AUTH_FAIL,
+                                      request['client_id'], value)
                 return False
         elif isinstance(self.value, list):
             if value not in self.value:
-                self._auditlog.svc_access(log.AUDIT_SVC_AUTH_FAIL,
-                                          request['client_id'],
-                                          "SHA", value)
+                self.audit_svc_access(log.AUDIT_SVC_AUTH_FAIL,
+                                      request['client_id'], value)
                 return False
         else:
-            self._auditlog.svc_access(log.AUDIT_SVC_AUTH_FAIL,
-                                      request['client_id'],
-                                      "SHA", value)
+            self.audit_svc_access(log.AUDIT_SVC_AUTH_FAIL,
+                                  request['client_id'], value)
             return False
 
-        self._auditlog.svc_access(log.AUDIT_SVC_AUTH_PASS,
-                                  request['client_id'],
-                                  "SHA", value)
+        self.audit_svc_access(log.AUDIT_SVC_AUTH_PASS,
+                              request['client_id'], value)
         request['remote_user'] = value
         return True
 
@@ -112,7 +101,7 @@ class SimpleAuthKeys(HTTPAuthenticator):
         name = request['headers'].get(self.id_header, None)
         key = request['headers'].get(self.key_header, None)
         if name is None and key is None:
-            logger.debug('SAK: Ignoring request no relevant headers provided')
+            self.logger.debug('Ignoring request no relevant headers provided')
             return None
 
         validated = False
@@ -124,19 +113,16 @@ class SimpleAuthKeys(HTTPAuthenticator):
                                       key.encode('utf-8')):
                 validated = True
         except Exception:
-            self._auditlog.svc_access(log.AUDIT_SVC_AUTH_FAIL,
-                                      request['client_id'],
-                                      "SAK", name)
+            self.audit_svc_access(log.AUDIT_SVC_AUTH_FAIL,
+                                  request['client_id'], name)
             return False
 
         if validated:
-            self._auditlog.svc_access(log.AUDIT_SVC_AUTH_PASS,
-                                      request['client_id'],
-                                      "SAK", name)
+            self.audit_svc_access(log.AUDIT_SVC_AUTH_PASS,
+                                  request['client_id'], name)
             request['remote_user'] = name
             return True
 
-        self._auditlog.svc_access(log.AUDIT_SVC_AUTH_FAIL,
-                                  request['client_id'],
-                                  "SAK", name)
+        self.audit_svc_access(log.AUDIT_SVC_AUTH_FAIL,
+                              request['client_id'], name)
         return False

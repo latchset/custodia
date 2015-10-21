@@ -2,6 +2,8 @@
 
 import logging
 
+from custodia.log import CustodiaPlugin
+
 logger = logging.getLogger(__name__)
 
 
@@ -17,7 +19,7 @@ class CSStoreExists(Exception):
         super(CSStoreExists, self).__init__(message)
 
 
-class CSStore(object):
+class CSStore(CustodiaPlugin):
 
     def get(self, key):
         raise NotImplementedError
