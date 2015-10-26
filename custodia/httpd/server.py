@@ -337,11 +337,15 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
         authzers = config.get('authorizers')
         if authzers is None:
             raise HTTPError(403)
+        authz_ok = None
         for authz in authzers:
             valid = authzers[authz].handle(request)
-            if valid is not None:
+            if valid is True:
+                authz_ok = True
+            elif valid is False:
+                authz_ok = False
                 break
-        if valid is not True:
+        if authz_ok is not True:
             self.server._auditlog.svc_access(self.__class__.__name__,
                                              log.AUDIT_SVC_AUTHZ_FAIL,
                                              request['client_id'],
