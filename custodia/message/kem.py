@@ -50,9 +50,6 @@ class KEMKeysStore(SimplePathAuthz):
 
     def __init__(self, config=None):
         super(KEMKeysStore, self).__init__(config)
-        self.paths = []
-        if 'paths' in self.config:
-            self.paths = self.config['paths'].split()
         self._server_keys = None
         self._alg = None
         self._enc = None
@@ -178,6 +175,7 @@ class KEMHandler(MessageHandler):
 
         check_kem_claims(claims, name)
         self.name = name
+        self.payload = claims.get('value')
 
         return {'type': 'kem',
                 'value': {'kid': self.client_keys[KEY_USAGE_ENC].key_id,
@@ -403,3 +401,13 @@ class KEMTests(unittest.TestCase):
         msg = json_decode(kem.reply('key value'))
         rep = cli.parse_reply("key name", msg['value'])
         self.assertEqual(rep, 'key value')
+
+    def test_4_KEMClient_SET(self):
+        server_keys = [JWK(**test_keys[KEY_USAGE_SIG]), None]
+        client_keys = [JWK(**self.client_keys[KEY_USAGE_SIG]),
+                       JWK(**self.client_keys[KEY_USAGE_ENC])]
+        cli = KEMClient(server_keys, client_keys)
+        kem = KEMHandler({'KEMKeysStore': self.kk})
+        req = cli.make_request("key name", "key value")
+        kem.parse(req, "key name")
+        self.assertEqual(kem.payload, "key value")
