@@ -28,8 +28,13 @@ class SimpleKey(MessageHandler):
         if not isinstance(msg, string_types):
             raise InvalidMessage("The 'value' attribute is not a string")
 
+        self.name = name
         self.payload = msg
 
     def reply(self, output):
+        if self.name.endswith('/'):
+            # directory listings are pass-through with simple messages
+            return output
+
         return json.dumps({'type': 'simple', 'value': output},
                           separators=(',', ':'))

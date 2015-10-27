@@ -46,8 +46,30 @@ class Secrets(HTTPConsumer):
             f = self._db_key([default, ''])
         return f
 
-    def _parse(self, request, value, name):
-        return self._validator.parse(request, value, name)
+    def _parse(self, request, query, name):
+        return self._validator.parse(request, query, name)
+
+    def _parse_query(self, request, name):
+        # default to simple
+        query = request.get('query', '')
+        if len(query) == 0:
+            query = {'type': 'simple', 'value': ''}
+        return self._parse(request, query, name)
+
+    def _parse_body(self, request, name):
+        body = request.get('body')
+        if body is None:
+            raise HTTPError(400)
+        value = json.loads(bytes(body).decode('utf-8'))
+        return self._parse(request, value, name)
+
+    def _parse_maybe_body(self, request, name):
+        body = request.get('body')
+        if body is None:
+            value = {'type': 'simple', 'value': ''}
+        else:
+            value = json.loads(bytes(body).decode('utf-8'))
+        return self._parse(request, value, name)
 
     def _parent_exists(self, default, trail):
         # check that the containers exist
@@ -102,6 +124,11 @@ class Secrets(HTTPConsumer):
             raise HTTPError(405)
 
     def _list(self, trail, request, response):
+        try:
+            name = '/'.join(trail)
+            msg = self._parse_query(request, name)
+        except Exception as e:
+            raise HTTPError(406, str(e))
         default = request.get('default_namespace', None)
         basename = self._db_container_key(default, trail)
         try:
@@ -109,11 +136,16 @@ class Secrets(HTTPConsumer):
             self.logger.debug('list %s returned %r', basename, keylist)
             if keylist is None:
                 raise HTTPError(404)
-            response['output'] = json.dumps(keylist)
+            response['output'] = msg.reply(json.dumps(keylist))
         except CSStoreError:
             raise HTTPError(500)
 
     def _create(self, trail, request, response):
+        try:
+            name = '/'.join(trail)
+            msg = self._parse_maybe_body(request, name)
+        except Exception as e:
+            raise HTTPError(406, str(e))
         default = request.get('default_namespace', None)
         basename = self._db_container_key(None, trail)
         try:
@@ -128,9 +160,17 @@ class Secrets(HTTPConsumer):
         except CSStoreError:
             raise HTTPError(500)
 
+        output = msg.reply(None)
+        if output is not None:
+            response['output'] = output
         response['code'] = 201
 
     def _destroy(self, trail, request, response):
+        try:
+            name = '/'.join(trail)
+            msg = self._parse_maybe_body(request, name)
+        except Exception as e:
+            raise HTTPError(406, str(e))
         basename = self._db_container_key(None, trail)
         try:
             keylist = self.root.store.list(basename)
@@ -145,7 +185,12 @@ class Secrets(HTTPConsumer):
         if ret is False:
             raise HTTPError(404)
 
-        response['code'] = 204
+        output = msg.reply(None)
+        if output is None:
+            response['code'] = 204
+        else:
+            response['output'] = output
+            response['code'] = 200
 
     def _client_name(self, request):
         if 'remote_user' in request:
@@ -171,13 +216,9 @@ class Secrets(HTTPConsumer):
                     self._int_get_key, trail, request, response)
 
     def _int_get_key(self, trail, request, response):
-        # default to simple
-        query = request.get('query', '')
-        if len(query) == 0:
-            query = {'type': 'simple', 'value': ''}
         try:
             name = '/'.join(trail)
-            msg = self._parse(request, query, name)
+            msg = self._parse_query(request, name)
         except Exception as e:
             raise HTTPError(406, str(e))
         key = self._db_key(trail)
@@ -198,13 +239,9 @@ class Secrets(HTTPConsumer):
                                    dict()).get('Content-Type', '')
         if content_type.split(';')[0].strip() != 'application/json':
             raise HTTPError(400, 'Invalid Content-Type')
-        body = request.get('body')
-        if body is None:
-            raise HTTPError(400)
-        value = bytes(body).decode('utf-8')
         try:
             name = '/'.join(trail)
-            msg = self._parse(request, json.loads(value), name)
+            msg = self._parse_body(request, name)
         except UnknownMessageType as e:
             raise HTTPError(406, str(e))
         except UnallowedMessage as e:
@@ -229,6 +266,9 @@ class Secrets(HTTPConsumer):
         except CSStoreError:
             raise HTTPError(500)
 
+        output = msg.reply(None)
+        if output is not None:
+            response['output'] = output
         response['code'] = 201
 
     def _del_key(self, trail, request, response):
@@ -236,6 +276,11 @@ class Secrets(HTTPConsumer):
                     self._int_del_key, trail, request, response)
 
     def _int_del_key(self, trail, request, response):
+        try:
+            name = '/'.join(trail)
+            msg = self._parse_maybe_body(request, name)
+        except Exception as e:
+            raise HTTPError(406, str(e))
         key = self._db_key(trail)
         try:
             ret = self.root.store.cut(key)
@@ -245,7 +290,12 @@ class Secrets(HTTPConsumer):
         if ret is False:
             raise HTTPError(404)
 
-        response['code'] = 204
+        output = msg.reply(None)
+        if output is None:
+            response['code'] = 204
+        else:
+            response['output'] = output
+            response['code'] = 200
 
 
 # unit tests
@@ -426,6 +476,15 @@ class SecretsTests(unittest.TestCase):
         with self.assertRaises(HTTPError) as err:
             self.GET(req, rep)
         self.assertEqual(err.exception.code, 404)
+
+    def test_6_LISTkeys_errors_406_1(self):
+        req = {'remote_user': 'test',
+               'query': {'type': 'invalid'},
+               'trail': ['test', '']}
+        rep = {}
+        with self.assertRaises(HTTPError) as err:
+            self.GET(req, rep)
+        self.assertEqual(err.exception.code, 406)
 
     def test_7_DELETEKey(self):
         req = {'remote_user': 'test',

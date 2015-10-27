@@ -215,11 +215,9 @@ class KEMClient(object):
                                 self.server_keys[KEY_USAGE_ENC], encalg)
 
     def parse_reply(self, name, message):
-        jwe = JWT(jwt=message,
-                  key=self.client_keys[KEY_USAGE_ENC])
-        jws = JWT(jwt=jwe.claims,
-                  key=self.server_keys[KEY_USAGE_SIG])
-        claims = json_decode(jws.claims)
+        claims = decode_enc_kem(message,
+                                self.client_keys[KEY_USAGE_ENC],
+                                self.server_keys[KEY_USAGE_SIG])
         check_kem_claims(claims, name)
         return claims['value']
 
@@ -240,6 +238,12 @@ def make_enc_kem(name, value, sig_key, alg, enc_key, enc):
     jwe = JWE(plaintext, json_encode(eprot))
     jwe.add_recipient(enc_key)
     return jwe.serialize(compact=True)
+
+
+def decode_enc_kem(message, enc_key, sig_key):
+    jwe = JWT(jwt=message, key=enc_key)
+    jws = JWT(jwt=jwe.claims, key=sig_key)
+    return json_decode(jws.claims)
 
 
 # unit tests

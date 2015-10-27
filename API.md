@@ -153,6 +153,7 @@ Returns:
 - 401 if authentication is necessary
 - 403 if access to the key is forbidden
 - 404 if no key was found
+- 406 not acceptable, type unknown/not permitted
 
 
 Listing containers
@@ -171,6 +172,7 @@ Returns:
 - 401 if authentication is necessary
 - 403 if access to the key is forbidden
 - 404 if no key was found
+- 406 not acceptable, type unknown/not permitted
 
 
 Creating containers
@@ -188,6 +190,7 @@ Returns:
 - 401 if authentication is necessary
 - 403 if access to the key is forbidden
 - 404 one of the elements of the path is not a valid container
+- 406 not acceptable, type unknown/not permitted
 - 409 if the container already exsts
 
 
@@ -202,4 +205,5 @@ Returns:
 - 401 if authentication is necessary
 - 403 if access to the container is forbidden
 - 404 if no container was found
+- 406 not acceptable, type unknown/not permitted
 - 409 if the container is not empty
