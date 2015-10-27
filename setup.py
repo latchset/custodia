@@ -12,7 +12,7 @@ setup(
     maintainer_email='simo@redhat.com',
     url='https://github.com/simo5/custodia',
     packages=['custodia', 'custodia.httpd', 'custodia.store',
-              'custodia.message', 'tests'],
+              'custodia.message'],
     data_files=[('share/man/man7', ["man/custodia.7"]),
                 ('share/doc/custodia', ['LICENSE', 'README', 'API.md']),
                 ('share/doc/custodia/examples', ['custodia.conf']),

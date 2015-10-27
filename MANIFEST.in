@@ -1,3 +1,5 @@
 include *py *.md *.txt *.ini .coveragerc
+include Makefile
 recursive-include examples *.key *.db
 recursive-include docs *.py *.rst
+recursive-include tests *.py
