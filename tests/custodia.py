@@ -14,7 +14,7 @@ from jwcrypto import jwk
 
 from requests.exceptions import HTTPError
 
-from custodia.client import CustodiaClient
+from custodia.client import CustodiaSimpleClient
 
 
 TEST_CUSTODIA_CONF = """
@@ -138,15 +138,15 @@ class CustodiaTests(unittest.TestCase):
             raise AssertionError(
                 "Premature termination of Custodia server, see test_log.txt")
         cls.custodia_process = p
-        cls.client = CustodiaClient(cls.socket_url + '/secrets/uns')
+        cls.client = CustodiaSimpleClient(cls.socket_url + '/secrets/uns')
         cls.client.headers['REMOTE_USER'] = 'test'
-        cls.admin = CustodiaClient(cls.socket_url + '/secrets')
+        cls.admin = CustodiaSimpleClient(cls.socket_url + '/secrets')
         cls.admin.headers['REMOTE_USER'] = 'admin'
-        cls.fwd = CustodiaClient(cls.socket_url + '/forwarder')
+        cls.fwd = CustodiaSimpleClient(cls.socket_url + '/forwarder')
         cls.fwd.headers['REMOTE_USER'] = 'test'
-        cls.loop = CustodiaClient(cls.socket_url + '/forwarder_loop')
+        cls.loop = CustodiaSimpleClient(cls.socket_url + '/forwarder_loop')
         cls.loop.headers['REMOTE_USER'] = 'test'
-        cls.enc = CustodiaClient(cls.socket_url + '/enc')
+        cls.enc = CustodiaSimpleClient(cls.socket_url + '/enc')
         cls.enc.headers['REMOTE_USER'] = 'enc'
 
     @classmethod
@@ -157,8 +157,7 @@ class CustodiaTests(unittest.TestCase):
     def test_0_0_setup(self):
         self.admin.create_container('fwd')
         self.admin.create_container('sak')
-        self.admin.set_simple_key('sak/' + self.test_auth_id,
-                                  self.test_auth_key)
+        self.admin.set_secret('sak/' + self.test_auth_id, self.test_auth_key)
         self.admin.create_container('test')
 
     def test_0_create_container(self):
@@ -168,59 +167,59 @@ class CustodiaTests(unittest.TestCase):
         self.client.delete_container('test/container')
 
     def test_1_set_simple_key(self):
-        self.client.set_simple_key('test/key', 'VmVycnlTZWNyZXQK')
+        self.client.set_secret('test/key', 'VmVycnlTZWNyZXQK')
 
     def test_2_get_simple_key(self):
-        key = self.client.get_simple_key('test/key')
+        key = self.client.get_secret('test/key')
         self.assertEqual(key, 'VmVycnlTZWNyZXQK')
 
     def test_3_list_container(self):
-        r = self.client.list_container('test')
-        self.assertEqual(r.json(), ["key"])
+        cl = self.client.list_container('test')
+        self.assertEqual(cl, ["key"])
 
     def test_4_del_simple_key(self):
-        self.client.del_key('test/key')
+        self.client.del_secret('test/key')
         try:
-            self.client.get_key('test/key')
-        except HTTPError as e:
-            self.assertEqual(e.response.status_code, 404)
+            self.client.get_secret('test/key')
+        except HTTPError:
+            self.assertEqual(self.client.last_response.status_code, 404)
 
     def test_5_list_empty(self):
-        r = self.client.list_container('test')
-        self.assertEqual(r.json(), [])
+        cl = self.client.list_container('test')
+        self.assertEqual(cl, [])
 
     def test_6_create_forwarded_container(self):
         self.fwd.create_container('dir')
-        r = self.admin.list_container('fwd/dir')
-        self.assertEqual(r.json(), [])
+        cl = self.admin.list_container('fwd/dir')
+        self.assertEqual(cl, [])
 
     def test_7_delete_forwarded_container(self):
         self.fwd.delete_container('dir')
         try:
             self.admin.list_container('fwd/dir')
-        except HTTPError as e:
-            self.assertEqual(e.response.status_code, 404)
+        except HTTPError:
+            self.assertEqual(self.admin.last_response.status_code, 404)
 
     def test_9_loop(self):
         try:
             self.loop.list_container('test')
-        except HTTPError as e:
-            self.assertEqual(e.response.status_code, 502)
+        except HTTPError:
+            self.assertEqual(self.loop.last_response.status_code, 502)
 
     def test_A_enc_1_create_container(self):
         self.enc.create_container('container')
-        r = self.enc.list_container('container')
-        self.assertEqual(r.json(), [])
+        cl = self.enc.list_container('container')
+        self.assertEqual(cl, [])
         self.enc.delete_container('container')
         try:
             self.enc.list_container('container')
-        except HTTPError as e:
-            self.assertEqual(e.response.status_code, 404)
+        except HTTPError:
+            self.assertEqual(self.enc.last_response.status_code, 404)
 
     def test_A_enc_2_set_simple_key(self):
         self.enc.create_container('enc')
-        self.enc.set_simple_key('enc/key', 'simple')
-        key = self.admin.get_simple_key('enc/key')
+        self.enc.set_secret('enc/key', 'simple')
+        key = self.admin.get_secret('enc/key')
         self.assertNotEqual(key, 'simple')
-        key = self.enc.get_simple_key('enc/key')
+        key = self.enc.get_secret('enc/key')
         self.assertEqual(key, 'simple')

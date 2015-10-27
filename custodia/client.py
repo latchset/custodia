@@ -49,6 +49,7 @@ class CustodiaHTTPClient(object):
         self.session.mount('http+unix://', HTTPUnixAdapter())
         self.headers = dict(DEFAULT_HEADERS)
         self.url = url
+        self._last_response = None
 
     def set_simple_auth_keys(self, name, key,
                              name_header='CUSTODIA_AUTH_ID',
@@ -67,9 +68,15 @@ class CustodiaHTTPClient(object):
         return headers
 
     def _request(self, cmd, path, **kwargs):
+        self._last_response = None
         url = self._join_url(path)
         kwargs['headers'] = self._add_headers(**kwargs)
-        return cmd(url, **kwargs)
+        self._last_response = cmd(url, **kwargs)
+        return self._last_response
+
+    @property
+    def last_response(self):
+        return self._last_response
 
     def delete(self, path, **kwargs):
         return self._request(self.session.delete, path, **kwargs)
@@ -89,45 +96,56 @@ class CustodiaHTTPClient(object):
     def put(self, path, **kwargs):
         return self._request(self.session.put, path, **kwargs)
 
-
-class CustodiaClient(CustodiaHTTPClient):
+    def container_name(self, name):
+        return name if name.endswith('/') else name + '/'
 
     def create_container(self, name):
-        r = self.post(name if name.endswith('/') else name + '/')
-        r.raise_for_status()
-        return r
-
-    def delete_container(self, name):
-        r = self.delete(name if name.endswith('/') else name + '/')
-        r.raise_for_status()
-        return r
+        raise NotImplementedError
 
     def list_container(self, name):
-        r = self.get(name if name.endswith('/') else name + '/')
-        r.raise_for_status()
-        return r
+        raise NotImplementedError
 
-    def get_key(self, name):
+    def delete_container(self, name):
+        raise NotImplementedError
+
+    def get_secret(self, name):
+        raise NotImplementedError
+
+    def set_secret(self, name, value):
+        raise NotImplementedError
+
+    def del_secret(self, name):
+        raise NotImplementedError
+
+
+class CustodiaSimpleClient(CustodiaHTTPClient):
+
+    def create_container(self, name):
+        r = self.post(self.container_name(name))
+        r.raise_for_status()
+
+    def delete_container(self, name):
+        r = self.delete(self.container_name(name))
+        r.raise_for_status()
+
+    def list_container(self, name):
+        r = self.get(self.container_name(name))
+        r.raise_for_status()
+        return r.json()
+
+    def get_secret(self, name):
         r = self.get(name)
         r.raise_for_status()
-        return r
-
-    def set_key(self, name, data_to_json):
-        r = self.put(name, json=data_to_json)
-        r.raise_for_status()
-        return r
-
-    def del_key(self, name):
-        r = self.delete(name)
-        r.raise_for_status()
-        return r
-
-    def get_simple_key(self, name):
-        simple = self.get_key(name).json()
+        simple = r.json()
         ktype = simple.get("type", None)
         if ktype != "simple":
             raise TypeError("Invalid key type: %s" % ktype)
         return simple["value"]
 
-    def set_simple_key(self, name, value):
-        self.set_key(name, {"type": "simple", "value": value})
+    def set_secret(self, name, value):
+        r = self.put(name, json={"type": "simple", "value": value})
+        r.raise_for_status()
+
+    def del_secret(self, name):
+        r = self.delete(name)
+        r.raise_for_status()
