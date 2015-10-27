@@ -42,6 +42,7 @@ class MessageHandler(object):
 
     def __init__(self, request):
         self.req = request
+        self.name = None
         self.payload = None
 
     def parse(self, msg, name):

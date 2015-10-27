@@ -164,7 +164,7 @@ class CustodiaKEMClient(CustodiaHTTPClient):
         super(CustodiaKEMClient, self).__init__(*args, **kwargs)
         self._cli_signing_key = None
         self._cli_decryption_key = None
-        self._srv_verfying_key = None
+        self._srv_verifying_key = None
         self._srv_encryption_key = None
         self._sig_alg = None
         self._enc_alg = None
