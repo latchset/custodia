@@ -36,7 +36,7 @@ class KubeAuthz(HTTPAuthorizer):
         trail = path[len(prefix) + 1:]
 
         (namespace, podname, secret) = trail.split('/', 2)
-        self.logger.debug("Checking if pod %s,%s has access to secret %s",
+        self.logger.debug("Checking if pod %s/%s has access to secret %s",
                           namespace, podname, secret)
 
         try:
@@ -51,6 +51,10 @@ class KubeAuthz(HTTPAuthorizer):
             self.audit_svc_access(log.AUDIT_SVC_AUTHZ_FAIL,
                                   request['client_id'], path)
             return False
+
+        self.logger.debug(
+            "Pod %s/%s runs on node %s with secret namespace %s.",
+            namespace, podname, node_id, secrets_namespace)
 
         if node_id != request.get("remote_user"):
             self.logger.debug("Node authenticated as %s, but pod is believed "

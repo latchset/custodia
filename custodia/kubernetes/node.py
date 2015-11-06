@@ -38,7 +38,7 @@ class NodeAuth(HTTPAuthenticator):
             return None
         dockerid = self._pid2dockerid(int(creds['pid']))
         if dockerid is None:
-            self.logger.debug("Didn't find docker ID for pid %s", creds['pid'])
+            self.logger.debug("Didn't find Docker ID for pid %s", creds['pid'])
             return None
 
         try:
@@ -50,24 +50,29 @@ class NodeAuth(HTTPAuthenticator):
             self.logger.debug("Failed to query docker for [%s:%s]: %s",
                               creds['pid'], dockerid, err)
             self.audit_svc_access(log.AUDIT_SVC_AUTH_FAIL,
-                                      request['client_id'], dockerid)
+                                  request['client_id'], dockerid)
             return False
 
         if data_id != dockerid:
-            self.logger.debug("Docker ID %s not found!", dockerid)
+            self.logger.debug("Docker ID %s not found for pid %s!",
+                              dockerid, creds['pid'])
             self.audit_svc_access(log.AUDIT_SVC_AUTH_FAIL,
-                                      request['client_id'], dockerid)
+                                  request['client_id'], dockerid)
             return False
 
         podname = data_labels.get('io.kubernetes.pod.name')
         if podname is None:
-            self.logger.debug("Pod Name not found for Docker ID %s", dockerid)
+            self.logger.debug("Pod Name not found for Docker ID %s, pid %s",
+                              dockerid, creds['pid'])
             self.audit_svc_access(log.AUDIT_SVC_AUTH_FAIL,
-                                      request['client_id'], dockerid)
+                                  request['client_id'], dockerid)
             return False
 
+        self.logger.debug("PID %s runs in Docker container %s of pod '%s'",
+                          creds['pid'], dockerid, podname)
+
         self.audit_svc_access(log.AUDIT_SVC_AUTH_PASS,
-                                  request['client_id'], dockerid)
+                              request['client_id'], dockerid)
         request['client_id'] = dockerid
         request['remote_user'] = podname
         return True

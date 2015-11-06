@@ -159,7 +159,7 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
         try:
             creds = self.request.getsockopt(socket.SOL_SOCKET, SO_PEERSEC,
                                             SELINUX_CONTEXT_LEN)
-            context = creds.decode('utf-8')
+            context = creds.rstrip(b'\x00').decode('utf-8')
         except Exception:  # pylint: disable=broad-except
             logger.debug("Couldn't retrieve SELinux Context", exc_info=True)
             context = None
@@ -245,7 +245,13 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
                        'version': self.request_version,
                        'headers': self.headers,
                        'body': self.body}
-            logger.debug("REQUEST: %r", request)
+            logger.debug(
+                "REQUEST: %s %s, query: %r, cred: %r, client_id: %s, "
+                "headers: %r, body: %r",
+                request['command'], request['path'], request['query'],
+                request['creds'], request['client_id'],
+                dict(request['headers']), request['body']
+            )
             try:
                 response = self.pipeline(self.server.config, request)
                 if response is None:
