@@ -21,6 +21,7 @@ from custodia.message.kem import (
 class HTTPUnixConnection(HTTPConnection):
 
     def __init__(self, host, timeout=60, **kwargs):
+        # pylint: disable=bad-super-call
         super(HTTPConnection, self).__init__('localhost')
         self.unix_socket = host
         self.timeout = timeout

@@ -161,7 +161,7 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
                                             SELINUX_CONTEXT_LEN)
             context = creds.decode('utf-8')
         except Exception:
-            log.debug("Couldn't retrieve SELinux Context", exc_info=True)
+            logger.debug("Couldn't retrieve SELinux Context", exc_info=True)
             context = None
 
         self._creds = {'pid': pid, 'uid': uid, 'gid': gid, 'context': context}
