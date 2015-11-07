@@ -160,7 +160,7 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
             creds = self.request.getsockopt(socket.SOL_SOCKET, SO_PEERSEC,
                                             SELINUX_CONTEXT_LEN)
             context = creds.decode('utf-8')
-        except Exception:
+        except Exception:  # pylint: disable=broad-except
             logger.debug("Couldn't retrieve SELinux Context", exc_info=True)
             context = None
 

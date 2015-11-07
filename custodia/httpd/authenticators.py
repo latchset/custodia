@@ -112,7 +112,7 @@ class SimpleAuthKeys(HTTPAuthenticator):
             if constant_time.bytes_eq(val.encode('utf-8'),
                                       key.encode('utf-8')):
                 validated = True
-        except Exception:
+        except Exception:  # pylint: disable=broad-except
             self.audit_svc_access(log.AUDIT_SVC_AUTH_FAIL,
                                   request['client_id'], name)
             return False
