@@ -282,8 +282,8 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
             self.close_connection = 1
             return
 
-    def log_error(self, format, *args, **kwargs):
-        logger.error(format, *args, **kwargs)
+    def log_error(self, fmtstr, *args, **kwargs):
+        logger.error(fmtstr, *args, **kwargs)
 
     def pipeline(self, config, request):
         """
