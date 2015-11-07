@@ -62,7 +62,7 @@ class ForkingHTTPServer(ForkingTCPServer):
         self.config = config
         if 'server_string' in self.config:
             self.server_string = self.config['server_string']
-        self._auditlog = log.auditlog
+        self.auditlog = log.auditlog
 
 
 class ForkingUnixHTTPServer(ForkingHTTPServer):
@@ -328,9 +328,9 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
             elif valid is True:
                 valid_once = True
         if valid_once is not True:
-            self.server._auditlog.svc_access(self.__class__.__name__,
-                                             log.AUDIT_SVC_AUTH_FAIL,
-                                             request['client_id'], 'No auth')
+            self.server.auditlog.svc_access(self.__class__.__name__,
+                                            log.AUDIT_SVC_AUTH_FAIL,
+                                            request['client_id'], 'No auth')
             raise HTTPError(403)
 
         # auhz framework here
@@ -346,10 +346,10 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
                 authz_ok = False
                 break
         if authz_ok is not True:
-            self.server._auditlog.svc_access(self.__class__.__name__,
-                                             log.AUDIT_SVC_AUTHZ_FAIL,
-                                             request['client_id'],
-                                             request.get('path', '/'))
+            self.server.auditlog.svc_access(self.__class__.__name__,
+                                            log.AUDIT_SVC_AUTHZ_FAIL,
+                                            request['client_id'],
+                                            request.get('path', '/'))
             raise HTTPError(403)
 
         # Select consumer
