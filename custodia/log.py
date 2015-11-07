@@ -19,7 +19,7 @@ class OriginContextFilter(logging.Filter):
         return True
 
 
-def setup_logging(debug=False, auditlog='custodia.audit.log'):
+def setup_logging(debug=False, auditfile='custodia.audit.log'):
     # prevent multiple stream handlers
     root_logger = logging.getLogger()
     if not any(isinstance(hdlr, logging.StreamHandler)
@@ -30,7 +30,6 @@ def setup_logging(debug=False, auditlog='custodia.audit.log'):
         stream_hdlr.addFilter(OriginContextFilter())
         root_logger.addHandler(stream_hdlr)
 
-    custodia_logger = logging.getLogger('custodia')
     if debug:
         custodia_logger.setLevel(logging.DEBUG)
         custodia_logger.debug('Custodia debug logger enabled')
@@ -48,11 +47,11 @@ def setup_logging(debug=False, auditlog='custodia.audit.log'):
     audit_logger = logging.getLogger('custodia.audit')
     if len(audit_logger.handlers) == 0:
         audit_fmt = logging.Formatter(LOGGING_FORMAT, LOGGING_DATEFORMAT)
-        audit_hdrl = logging.FileHandler(auditlog)
+        audit_hdrl = logging.FileHandler(auditfile)
         audit_hdrl.setFormatter(audit_fmt)
         audit_logger.addHandler(audit_hdrl)
 
-        custodia_logger.debug('Custodia audit log: %s', auditlog)
+        custodia_logger.debug('Custodia audit log: %s', auditfile)
 
 
 AUDIT_NONE = 0
