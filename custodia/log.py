@@ -45,7 +45,7 @@ def setup_logging(debug=False, auditfile='custodia.audit.log'):
         custodia_logger.setLevel(logging.INFO)
 
     audit_logger = logging.getLogger('custodia.audit')
-    if len(audit_logger.handlers) == 0:
+    if auditfile is not None and len(audit_logger.handlers) == 0:
         audit_fmt = logging.Formatter(LOGGING_FORMAT, LOGGING_DATEFORMAT)
         audit_hdrl = logging.FileHandler(auditfile)
         audit_hdrl.setFormatter(audit_fmt)

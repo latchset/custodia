@@ -1,5 +1,6 @@
 # Copyright (C) 2015  Custodia Project Contributors - see LICENSE file
 
+import logging
 import socket
 
 from jwcrypto.common import json_decode
@@ -16,6 +17,8 @@ from requests.packages.urllib3.connectionpool import HTTPConnectionPool
 from custodia.message.kem import (
     check_kem_claims, decode_enc_kem, make_enc_kem
 )
+
+logger = logging.getLogger(__name__)
 
 
 class HTTPUnixConnection(HTTPConnection):
@@ -79,7 +82,9 @@ class CustodiaHTTPClient(object):
         self._last_response = None
         url = self._join_url(path)
         kwargs['headers'] = self._add_headers(**kwargs)
+        logger.debug("%s %s", cmd.__name__.upper(), url)
         self._last_response = cmd(url, **kwargs)
+        logger.debug("Response: %s", self._last_response)
         return self._last_response
 
     @property

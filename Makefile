@@ -12,8 +12,10 @@ lint:
 		   ./custodia
 
 clean:
-	rm -fr build dist *.egg-info
-	find ./ -name '*.pyc' -exec rm -f {} \;
+	rm -fr build dist *.egg-info .tox
+	rm -f server_socket
+	find ./ -name '*.py[co]' -exec rm -f {} \;
+	find ./ -name __pycache__ -exec rm -rf {} \;
 
 cscope:
 	git ls-files | xargs pycscope
