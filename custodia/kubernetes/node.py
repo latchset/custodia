@@ -2,7 +2,12 @@
 
 import re
 
-from docker import Client
+try:
+    from docker import Client
+except ImportError:
+    def Client(*args, **kwargs):
+        raise RuntimeError("Docker client is unavailable")
+
 
 from custodia import log
 from custodia.httpd.authenticators import HTTPAuthenticator
