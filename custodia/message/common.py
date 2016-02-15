@@ -44,6 +44,7 @@ class MessageHandler(object):
         self.req = request
         self.name = None
         self.payload = None
+        self.msg_type = None
 
     def parse(self, msg, name):
         """Parses the message.

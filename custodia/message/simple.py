@@ -14,8 +14,8 @@ class SimpleKey(MessageHandler):
     def parse(self, msg, name):
         """Parses a simple message
 
-        :param req: ignored
         :param msg: the json-decoded value
+        :param name: the requested name
 
         :raises UnknownMessageType: if the type is not 'simple'
         :raises InvalidMessage: if the message cannot be parsed or validated
@@ -30,11 +30,12 @@ class SimpleKey(MessageHandler):
 
         self.name = name
         self.payload = msg
+        self.msg_type = 'simple'
 
     def reply(self, output):
         if self.name.endswith('/'):
             # directory listings are pass-through with simple messages
             return output
 
-        return json.dumps({'type': 'simple', 'value': output},
+        return json.dumps({'type': self.msg_type, 'value': output},
                           separators=(',', ':'))

@@ -278,7 +278,12 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
                 shutil.copyfileobj(output, self.wfile)
                 output.close()
             elif output is not None:
-                self.wfile.write(str(output).encode('utf-8'))
+                ctype = response.get('headers', {}).get('Content-type',
+                                                        'application/json')
+                if ctype == 'application/octet-stream':
+                    self.wfile.write(bytes(output))
+                else:
+                    self.wfile.write(str(output).encode('utf-8'))
             else:
                 self.close_connection = 1
             self.wfile.flush()
