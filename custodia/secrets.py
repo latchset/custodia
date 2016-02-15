@@ -5,6 +5,8 @@ import logging
 import os
 import unittest
 
+from base64 import b64decode, b64encode
+
 from custodia import log
 from custodia.httpd.authorizers import UserNameSpace
 from custodia.httpd.consumer import HTTPConsumer
@@ -56,6 +58,14 @@ class Secrets(HTTPConsumer):
             query = {'type': 'simple', 'value': ''}
         return self._parse(request, query, name)
 
+    def _parse_bin_body(self, request, name):
+        body = request.get('body')
+        if body is None:
+            raise HTTPError(400)
+        value = b64encode(bytes(body)).decode('utf-8')
+        payload = {'type': 'simple', 'value': value}
+        return self._parse(request, payload, name)
+
     def _parse_body(self, request, name):
         body = request.get('body')
         if body is None:
@@ -92,6 +102,29 @@ class Secrets(HTTPConsumer):
             return True
 
         return False
+
+    def _format_reply(self, request, response, handler, output):
+        reply = handler.reply(output)
+        # special case to allow *very* simple clients
+        if handler.msg_type == 'simple':
+            binary = False
+            accept = request.get('headers', {}).get('Accept', None)
+            if accept is not None:
+                types = accept.split(',')
+                for t in types:
+                    if t.strip() == 'application/json':
+                        binary = False
+                        break
+                    elif t.strip() == 'application/octet-stream':
+                        binary = True
+            if binary is True:
+                unwind = json.loads(reply)
+                response['headers'][
+                    'Content-type'] = 'application/octet-stream'
+                response['output'] = b64decode(unwind['value'])
+                return
+
+        response['output'] = reply
 
     def GET(self, request, response):
         trail = request.get('trail', [])
@@ -218,7 +251,7 @@ class Secrets(HTTPConsumer):
     def _int_get_key(self, trail, request, response):
         try:
             name = '/'.join(trail)
-            msg = self._parse_query(request, name)
+            handler = self._parse_query(request, name)
         except Exception as e:
             raise HTTPError(406, str(e))
         key = self._db_key(trail)
@@ -226,7 +259,7 @@ class Secrets(HTTPConsumer):
             output = self.root.store.get(key)
             if output is None:
                 raise HTTPError(404)
-            response['output'] = msg.reply(output)
+            self._format_reply(request, response, handler, output)
         except CSStoreError:
             raise HTTPError(500)
 
@@ -235,13 +268,17 @@ class Secrets(HTTPConsumer):
                     self._int_set_key, trail, request, response)
 
     def _int_set_key(self, trail, request, response):
-        content_type = request.get('headers',
-                                   dict()).get('Content-Type', '')
-        if content_type.split(';')[0].strip() != 'application/json':
-            raise HTTPError(400, 'Invalid Content-Type')
         try:
             name = '/'.join(trail)
-            msg = self._parse_body(request, name)
+
+            content_type = request.get('headers', {}).get('Content-Type', '')
+            content_type_value = content_type.split(';')[0].strip()
+            if content_type_value == 'application/octet-stream':
+                msg = self._parse_bin_body(request, name)
+            elif content_type_value == 'application/json':
+                msg = self._parse_body(request, name)
+            else:
+                raise ValueError('Invalid Content-Type')
         except UnknownMessageType as e:
             raise HTTPError(406, str(e))
         except UnallowedMessage as e:
@@ -586,3 +623,28 @@ class SecretsTests(unittest.TestCase):
         with self.assertRaises(HTTPError) as err:
             self.DELETE(req, rep)
         self.assertEqual(err.exception.code, 409)
+
+    def test_9_0_PUTRawKey(self):
+        req = {'headers': {'Content-Type': 'application/octet-stream'},
+               'remote_user': 'test',
+               'trail': ['test', 'rawkey'],
+               'body': '1234'.encode('utf-8')}
+        rep = {}
+        self.PUT(req, rep)
+
+    def test_9_1_GETRawKey(self):
+        req = {'headers': {'Accept': 'application/octet-stream'},
+               'remote_user': 'test',
+               'trail': ['test', 'rawkey']}
+        rep = {'headers': {}}
+        self.GET(req, rep)
+        self.assertEqual(rep['output'], '1234'.encode('utf-8'))
+
+    def test_9_2_GETKey(self):
+        req = {'remote_user': 'test',
+               'trail': ['test', 'rawkey']}
+        rep = {}
+        self.GET(req, rep)
+        self.assertEqual(json.loads(rep['output']),
+                         {"type": "simple", "value":
+                          b64encode('1234'.encode('utf-8')).decode('utf-8')})

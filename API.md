@@ -14,7 +14,6 @@ Key/Request formats
 ===================
 
 A key is a dictionary that contains the 'type' and 'value' of a key.
-Currently only the Simple type is recognized
 
 
 Simple
@@ -29,6 +28,14 @@ required to base64 encode binary values or non-string values.
 The value must be representable as a valid JSON string. Keys are
 validated before being stored, unknown key types or invalid JSON values
 are refused and an error is returned.
+
+
+NOTE: As an alternative it is possible to send a simple "raw" value by setting
+the Content-type of the request to "application/octet-stream". In this case the
+value will be base64 encoded when received and can be accessed as a base64
+encoded value in the JSON string when the default GET format is used.
+Sending the "Accept: application/octet-stream" header will instead cause the
+GET operation to return just the raw value that was originally sent.
 
 
 Key Exchange Message

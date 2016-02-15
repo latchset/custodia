@@ -176,8 +176,9 @@ class KEMHandler(MessageHandler):
         check_kem_claims(claims, name)
         self.name = name
         self.payload = claims.get('value')
+        self.msg_type = 'kem'
 
-        return {'type': 'kem',
+        return {'type': self.msg_type,
                 'value': {'kid': self.client_keys[KEY_USAGE_ENC].key_id,
                           'claims': claims}}
 
