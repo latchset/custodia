@@ -2,7 +2,24 @@
 
 from __future__ import print_function
 
-import etcd
+try:
+    from etcd import (Client, EtcdException, EtcdNotFile, EtcdAlreadyExist,
+                      EtcdKeyNotFound)
+except ImportError:
+    def Client(*args, **kwargs):
+        raise RuntimeError("Etcd client is unavailable")
+
+    class EtcdException(Exception):
+        pass
+
+    class EtcdNotFile(Exception):
+        pass
+
+    class EtcdKeyNotFound(Exception):
+        pass
+
+    class EtcdAlreadyExist(Exception):
+        pass
 
 from custodia.store.interface import CSStore, CSStoreError, CSStoreExists
 
@@ -17,12 +34,12 @@ class EtcdStore(CSStore):
 
         # Initialize the DB by trying to create the default table
         try:
-            self.etcd = etcd.Client(self.server, self.port)
+            self.etcd = Client(self.server, self.port)
             self.etcd.write(self.namespace, None, dir=True)
-        except etcd.EtcdNotFile:
+        except EtcdNotFile:
             # Already exists
             pass
-        except etcd.EtcdException:
+        except EtcdException:
             self.logger.exception("Error creating namespace %s",
                                   self.namespace)
             raise CSStoreError('Error occurred while trying to init db')
@@ -40,7 +57,7 @@ class EtcdStore(CSStore):
         self.logger.debug("Fetching key %s", key)
         try:
             result = self.etcd.get(self._absolute_key(key))
-        except etcd.EtcdException:
+        except EtcdException:
             self.logger.exception("Error fetching key %s", key)
             raise CSStoreError('Error occurred while trying to get key')
         self.logger.debug("Fetched key %s got result: %r", key, result)
@@ -52,9 +69,9 @@ class EtcdStore(CSStore):
         path = self._absolute_key(key)
         try:
             self.etcd.write(path, value, prevExist=replace)
-        except etcd.EtcdAlreadyExist as err:
+        except EtcdAlreadyExist as err:
             raise CSStoreExists(str(err))
-        except etcd.EtcdException:
+        except EtcdException:
             self.logger.exception("Error storing key %s", key)
             raise CSStoreError('Error occurred while trying to store key')
 
@@ -63,9 +80,9 @@ class EtcdStore(CSStore):
         self.logger.debug("Creating directory %s", path)
         try:
             self.etcd.write(path, None, dir=True, prevExist=False)
-        except etcd.EtcdAlreadyExist as err:
+        except EtcdAlreadyExist as err:
             raise CSStoreExists(str(err))
-        except etcd.EtcdException:
+        except EtcdException:
             self.logger.exception("Error storing key %s", key)
             raise CSStoreError('Error occurred while trying to store key')
 
@@ -76,9 +93,9 @@ class EtcdStore(CSStore):
         self.logger.debug("Listing keys matching %s", path)
         try:
             result = self.etcd.read(path, recursive=True)
-        except etcd.EtcdKeyNotFound:
+        except EtcdKeyNotFound:
             return None
-        except etcd.EtcdException:
+        except EtcdException:
             self.logger.exception("Error listing %s", keyfilter)
             raise CSStoreError('Error occurred while trying to list keys')
         self.logger.debug("Searched for %s got result: %r", path, result)
@@ -96,10 +113,10 @@ class EtcdStore(CSStore):
         self.logger.debug("Removing key %s", key)
         try:
             self.etcd.delete(self._absolute_key(key))
-        except etcd.EtcdKeyNotFound:
+        except EtcdKeyNotFound:
             self.logger.debug("Key %s not found", key)
             return False
-        except etcd.EtcdException:
+        except EtcdException:
             self.logger.exception("Error removing key %s", key)
             raise CSStoreError('Error occurred while trying to cut key')
         self.logger.debug("Key %s removed", key)
