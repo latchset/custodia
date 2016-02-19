@@ -1,4 +1,4 @@
-all: lint pep8 test docs
+all: lint test docs
 	echo "All tests passed"
 
 lint:
