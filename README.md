@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/simo5/custodia.svg?branch=master)](https://travis-ci.org/simo5/custodia)
+[![Build Status](https://travis-ci.org/latchset/custodia.svg?branch=master)](https://travis-ci.org/latchset/custodia)
 
 Custodia
 ========
@@ -20,4 +20,4 @@ access to even more secure means of dealing with private keys, like HSM as a
 Service and other similar security systems.
 
 See the Custodia wiki for more information about the current architecture:
-https://github.com/simo5/custodia/wiki
+https://github.com/latchset/custodia/wiki

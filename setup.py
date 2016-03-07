@@ -10,7 +10,7 @@ setup(
     license='GPLv3+',
     maintainer='Custodia project Contributors',
     maintainer_email='simo@redhat.com',
-    url='https://github.com/simo5/custodia',
+    url='https://github.com/latchset/custodia',
     packages=['custodia', 'custodia.httpd', 'custodia.store',
               'custodia.message', 'custodia.kubernetes'],
     data_files=[('share/man/man7', ["man/custodia.7"]),
