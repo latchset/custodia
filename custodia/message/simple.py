@@ -33,6 +33,9 @@ class SimpleKey(MessageHandler):
         self.msg_type = 'simple'
 
     def reply(self, output):
+        if output is None:
+            return None
+
         if self.name.endswith('/'):
             # directory listings are pass-through with simple messages
             return output
