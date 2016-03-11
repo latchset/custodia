@@ -58,7 +58,10 @@ class HTTPConsumer(CustodiaPlugin):
 
         if output is not None:
             response['output'] = output
+        else:
+            output = response.get('output', None)
 
+        if output is not None:
             if 'Content-Length' not in response['headers']:
                 if hasattr(output, 'read'):
                     # LOG: warning file-type objects should set Content-Length
