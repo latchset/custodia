@@ -21,6 +21,14 @@ except ImportError:
     from socketserver import ForkingTCPServer
     from urllib.parse import urlparse, parse_qs, unquote
 
+try:
+    # pylint: disable=import-error
+    from systemd.daemon import notify as sd_notify
+    from systemd.daemon import booted as sd_booted
+except ImportError:
+    systemd_booted = sd_notify = None
+
+
 from custodia import log
 
 logger = logging.getLogger(__name__)
@@ -63,6 +71,7 @@ class ForkingHTTPServer(ForkingTCPServer):
         if 'server_string' in self.config:
             self.server_string = self.config['server_string']
         self.auditlog = log.auditlog
+
 
 
 class ForkingUnixHTTPServer(ForkingHTTPServer):
@@ -414,4 +423,6 @@ class HTTPServer(object):
         return (self.httpd.socket, self.httpd.socket_file)
 
     def serve(self):
+        if sd_notify is not None and sd_booted():
+            sd_notify("READY=1")
         return self.httpd.serve_forever()
