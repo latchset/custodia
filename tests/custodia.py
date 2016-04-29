@@ -4,6 +4,7 @@ from __future__ import absolute_import
 
 import errno
 import os
+import socket
 import subprocess
 import time
 import unittest
@@ -12,10 +13,19 @@ from string import Template
 
 from jwcrypto import jwk
 
-from requests.exceptions import HTTPError
+from requests.exceptions import HTTPError, SSLError
 
 from custodia.client import CustodiaKEMClient, CustodiaSimpleClient
 from custodia.store.sqlite import SqliteStore
+
+
+def find_port(host='localhost'):
+    try:
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.bind((host, 0))
+        return sock.getsockname()[1]
+    finally:
+        sock.close()
 
 
 TEST_CUSTODIA_CONF = """
@@ -24,6 +34,10 @@ server_version = "Secret/0.0.7"
 server_url = ${SOCKET_URL}
 auditlog = test_audit.log
 debug = True
+tls_certfile = tests/ca/custodia-server.pem
+tls_keyfile = tests/ca/custodia-server.key
+tls_cafile = tests/ca/custodia-ca.pem
+tls_verify_client = ${VERIFY_CLIENT}
 
 [auth:header]
 handler = custodia.httpd.authenticators.SimpleHeaderAuth
@@ -65,13 +79,20 @@ paths = /forwarder /forwarder_loop
 handler = custodia.forwarder.Forwarder
 prefix_remote_user = False
 forward_uri = ${SOCKET_URL}/secrets/fwd
+tls_certfile = tests/ca/custodia-client.pem
+tls_keyfile = tests/ca/custodia-client.key
+tls_cafile = tests/ca/custodia-ca.pem
 forward_headers = {"CUSTODIA_AUTH_ID": "${TEST_AUTH_ID}", \
-"CUSTODIA_AUTH_KEY": "${TEST_AUTH_KEY}"}
+    "CUSTODIA_AUTH_KEY": "${TEST_AUTH_KEY}"}
 
 [/forwarder_loop]
 handler = custodia.forwarder.Forwarder
 forward_uri = ${SOCKET_URL}/forwarder_loop
+tls_certfile = tests/ca/custodia-client.pem
+tls_keyfile = tests/ca/custodia-client.key
+tls_cafile = tests/ca/custodia-ca.pem
 forward_headers = {"REMOTE_USER": "test"}
+
 
 # Encgen
 [store:encgen]
@@ -131,6 +152,10 @@ def generate_all_keys(filename):
 
 
 class CustodiaTests(unittest.TestCase):
+    socket_url = TEST_SOCKET_URL
+    test_auth_id = "test_user"
+    test_auth_key = "cd54b735-e756-4f12-aa18-d85509baef36"
+    verify_client = 'False'
 
     @classmethod
     def setUpClass(cls):
@@ -143,15 +168,13 @@ class CustodiaTests(unittest.TestCase):
         unlink_if_exists('test_custodia.conf')
         unlink_if_exists('test_log.txt')
         unlink_if_exists('test_audit.log')
-        cls.socket_url = TEST_SOCKET_URL
-        cls.test_auth_id = "test_user"
-        cls.test_auth_key = "cd54b735-e756-4f12-aa18-d85509baef36"
         (srvkeys, clikeys) = generate_all_keys('test_mkey.conf')
         with (open('test_custodia.conf', 'w+')) as conffile:
             t = Template(TEST_CUSTODIA_CONF)
             conf = t.substitute({'SOCKET_URL': cls.socket_url,
                                  'TEST_AUTH_ID': cls.test_auth_id,
-                                 'TEST_AUTH_KEY': cls.test_auth_key})
+                                 'TEST_AUTH_KEY': cls.test_auth_key,
+                                 'VERIFY_CLIENT': cls.verify_client})
             conffile.write(conf)
         with (open('test_log.txt', 'a')) as logfile:
             p = subprocess.Popen([pexec, 'custodia/custodia',
@@ -162,21 +185,24 @@ class CustodiaTests(unittest.TestCase):
             raise AssertionError(
                 "Premature termination of Custodia server, see test_log.txt")
         cls.custodia_process = p
-        cls.client = CustodiaSimpleClient(cls.socket_url + '/secrets/uns')
-        cls.client.headers['REMOTE_USER'] = 'test'
-        cls.admin = CustodiaSimpleClient(cls.socket_url + '/secrets')
-        cls.admin.headers['REMOTE_USER'] = 'admin'
-        cls.fwd = CustodiaSimpleClient(cls.socket_url + '/forwarder')
-        cls.fwd.headers['REMOTE_USER'] = 'test'
-        cls.loop = CustodiaSimpleClient(cls.socket_url + '/forwarder_loop')
-        cls.loop.headers['REMOTE_USER'] = 'test'
-        cls.enc = CustodiaSimpleClient(cls.socket_url + '/enc')
-        cls.enc.headers['REMOTE_USER'] = 'enc'
 
-        cls.kem = CustodiaKEMClient(cls.socket_url + '/enc')
-        cls.kem.headers['REMOTE_USER'] = 'kem'
+        cls.client = cls.create_client('/secrets/uns', 'test')
+        cls.admin = cls.create_client('/secrets', 'admin')
+        cls.fwd = cls.create_client('/forwarder', 'test')
+        cls.loop = cls.create_client('/forwarder_loop', 'test')
+        cls.enc = cls.create_client('/enc', 'enc')
+
+        cls.kem = cls.create_client('/enc', 'kem', CustodiaKEMClient)
         cls.kem.set_server_public_keys(*srvkeys)
         cls.kem.set_client_keys(*clikeys)
+
+    @classmethod
+    def create_client(cls, suffix, remote_user, clientcls=None):
+        if clientcls is None:
+            clientcls = CustodiaSimpleClient
+        client = clientcls(cls.socket_url + suffix)
+        client.headers['REMOTE_USER'] = remote_user
+        return client
 
     @classmethod
     def tearDownClass(cls):
@@ -272,3 +298,36 @@ class CustodiaTests(unittest.TestCase):
             self.kem.list_container('kem')
         except HTTPError:
             self.assertEqual(self.kem.last_response.status_code, 404)
+
+
+class CustodiaHTTPSTests(CustodiaTests):
+    socket_url = 'https://localhost:{}'.format(find_port())
+    verify_client = 'True'
+
+    ca_cert = 'tests/ca/custodia-ca.pem'
+    client_cert = 'tests/ca/custodia-client.pem'
+    client_key = 'tests/ca/custodia-client.key'
+
+    @classmethod
+    def create_client(cls, suffix, remote_user, clientcls=None):
+        client = super(CustodiaHTTPSTests, cls).create_client(suffix,
+                                                              remote_user,
+                                                              clientcls)
+        client.set_ca_cert(cls.ca_cert)
+        client.set_client_cert(cls.client_cert, cls.client_key)
+        return client
+
+    def test_client_no_ca_trust(self):
+        client = CustodiaSimpleClient(self.socket_url + '/forwarder')
+        client.headers['REMOTE_USER'] = 'test'
+        with self.assertRaises(SSLError) as e:
+            client.list_container('test')
+        self.assertIn("CERTIFICATE_VERIFY_FAILED", str(e.exception))
+
+    def test_client_no_client_cert(self):
+        client = CustodiaSimpleClient(self.socket_url + '/forwarder')
+        client.headers['REMOTE_USER'] = 'test'
+        client.set_ca_cert(self.ca_cert)
+        with self.assertRaises(SSLError) as e:
+            client.list_container('test')
+        self.assertIn("SSLV3_ALERT_HANDSHAKE_FAILURE", str(e.exception))

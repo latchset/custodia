@@ -5,6 +5,7 @@ import logging
 import os
 import shutil
 import socket
+import ssl
 import struct
 
 import six
@@ -83,6 +84,38 @@ class ForkingUnixHTTPServer(ForkingHTTPServer):
         finally:
             os.umask(oldmask)
         self.socket_file = self.socket.getsockname()
+
+
+class ForkingTLSServer(ForkingHTTPServer):
+    def __init__(self, server_address, handler_class, config, context=None):
+        ForkingHTTPServer.__init__(self, server_address, handler_class, config)
+        self._context = context if context is not None else self._mkcontext()
+
+    def _mkcontext(self):
+        certfile = self.config.get('tls_certfile')
+        keyfile = self.config.get('tls_keyfile')
+        cafile = self.config.get('tls_cafile')
+        capath = self.config.get('tls_capath')
+        if self.config.get('tls_verify_client', False):
+            verifymode = ssl.CERT_REQUIRED
+        else:
+            verifymode = ssl.CERT_NONE
+
+        if not certfile:
+            raise ValueError('tls_certfile is not set.')
+
+        context = ssl.create_default_context(
+            ssl.Purpose.CLIENT_AUTH,
+            cafile=cafile,
+            capath=capath)
+        context.load_cert_chain(certfile, keyfile)
+        context.verify_mode = verifymode
+        return context
+
+    def get_request(self):
+        conn, client_addr = self.socket.accept()
+        sslconn = self._context.wrap_socket(conn, server_side=True)
+        return sslconn, client_addr
 
 
 class HTTPRequestHandler(BaseHTTPRequestHandler):
@@ -408,7 +441,9 @@ class HTTPServer(object):
             address = (host, int(port))
             serverclass = ForkingHTTPServer
         elif url.scheme == 'https':
-            raise NotImplementedError
+            host, port = address.split(":")
+            address = (host, int(port))
+            serverclass = ForkingTLSServer
         else:
             raise ValueError('Unknown URL Scheme: %s' % url.scheme)
 

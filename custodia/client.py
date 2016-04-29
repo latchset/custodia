@@ -68,6 +68,15 @@ class CustodiaHTTPClient(object):
         self.headers[name_header] = name
         self.headers[key_header] = key
 
+    def set_ca_cert(self, cafile):
+        self.session.verify = cafile
+
+    def set_client_cert(self, certfile, keyfile=None):
+        if keyfile is None:
+            self.session.cert = certfile
+        else:
+            self.session.cert = (certfile, keyfile)
+
     def _join_url(self, path):
         return self.url.rstrip('/') + '/' + path.lstrip('/')
 

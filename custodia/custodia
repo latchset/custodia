@@ -72,6 +72,8 @@ def parse_config(cfgfile):
                     raise ValueError('"%s" is an invalid '
                                      '[global] option' % opt)
                 config[opt] = val
+            config['tls_verify_client'] = parser.getboolean(
+                    'global', 'tls_verify_client', fallback=False)
             continue
 
         if s.startswith('/'):
