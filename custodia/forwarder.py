@@ -13,6 +13,14 @@ class Forwarder(HTTPConsumer):
     def __init__(self, *args, **kwargs):
         super(Forwarder, self).__init__(*args, **kwargs)
         self.client = CustodiaHTTPClient(self.config['forward_uri'])
+        cafile = self.config.get('tls_cafile')
+        certfile = self.config.get('tls_certfile')
+        keyfile = self.config.get('tls_keyfile')
+        if certfile is not None:
+            self.client.set_client_cert(certfile, keyfile)
+        if cafile is not None:
+            self.client.set_ca_cert(cafile)
+
         self.headers = json.loads(self.config.get('forward_headers', '{}'))
         self.use_prefix = self.config.get('prefix_remote_user',
                                           'True').lower() == 'true'

@@ -13,6 +13,7 @@ globals
 
 server_url [str]
    * http://hostname:port
+   * https://hostname:port
    * http+unix://%2Fpath%2Fto%2Fserver_sock
 
 server_socket [str]
@@ -24,6 +25,21 @@ server_string [str]
 debug [bool, default=False]
    enable debugging
 
+tls_certfile [str]
+   The filename of the server cert file and its intermediate certs. The server
+   cert file can also contain the private key. The option is required for
+   HTTPS server.
+
+tls_keyfile [str]
+   The filename of the private key file for Custodia's HTTPS server.
+
+tls_cafile [str]
+   Path to a file with trust anchors. The trust anchors are used to verify
+   client certificates. When the option is not set, Python loads root CA
+   from the system's default verify location.
+
+tls_verify_client [bool, default=False]
+   Require TLS client certificates
 
 authenticators
 --------------
