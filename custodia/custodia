@@ -3,18 +3,21 @@
 # Copyright (C) 2015  Custodia Project Contributors - see LICENSE file
 
 try:
-    from ConfigParser import RawConfigParser
     from urllib import quote as url_escape
 except ImportError:
-    from configparser import RawConfigParser
     from urllib.parse import quote as url_escape
-from custodia.httpd.server import HTTPServer
-from custodia import log
 import importlib
 import logging
 import os
-import six
 import sys
+
+# use https://pypi.python.org/pypi/configparser/ on Python 2
+from configparser import SafeConfigParser, ExtendedInterpolation, DEFAULTSECT
+import six
+
+from custodia.httpd.server import HTTPServer
+from custodia import log
+
 
 logger = logging.getLogger('custodia')
 
@@ -44,16 +47,25 @@ def attach_store(typename, plugins, stores):
 CONFIG_SPECIALS = ['authenticators', 'authorizers', 'consumers', 'stores']
 
 def parse_config(cfgfile):
-    parser = RawConfigParser()
+    parser = SafeConfigParser(interpolation=ExtendedInterpolation())
     parser.optionxform = str
-    files = parser.read(cfgfile)
-    if len(files) == 0:
-        raise IOError("Failed to read config file")
+
+    with open(cfgfile) as f:
+        parser.readfp(f)
 
     config = dict()
     for s in CONFIG_SPECIALS:
         config[s] = dict()
+
+    # add env
+    parser['ENV'] = {
+        k: v.replace('$', '$$') for k, v in os.environ.items()
+        if not set(v).intersection('\r\n\x00')}
+
     for s in parser.sections():
+        if s == 'ENV':
+            # ENV section is only used for interpolation
+            continue
         if s == 'global':
             for opt, val in parser.items(s):
                 if opt in CONFIG_SPECIALS:

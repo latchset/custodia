@@ -20,6 +20,7 @@ Contents:
 .. toctree::
    :maxdepth: 2
 
+   config.rst
 
 
 Indices and tables
