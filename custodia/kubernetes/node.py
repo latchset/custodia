@@ -13,7 +13,7 @@ from custodia import log
 from custodia.httpd.authenticators import HTTPAuthenticator
 
 DEFAULT_REGEX = r'/docker-([0-9a-f]{64})\.scope'
-DEFUALT_DOCKER_URI = 'unix://var/run/docker.sock'
+DEFAULT_DOCKER_URI = 'unix://var/run/docker.sock'
 
 
 class NodeAuth(HTTPAuthenticator):
@@ -22,10 +22,10 @@ class NodeAuth(HTTPAuthenticator):
         super(NodeAuth, self).__init__(config)
         if self.config is not None:
             regex = self.config.get('docker_regex', DEFAULT_REGEX)
-            self.docker_uri = self.config.get('docker_uri', DEFUALT_DOCKER_URI)
+            self.docker_uri = self.config.get('docker_uri', DEFAULT_DOCKER_URI)
         else:
             regex = DEFAULT_REGEX
-            self.docker_uri = DEFUALT_DOCKER_URI
+            self.docker_uri = DEFAULT_DOCKER_URI
         self.id_filter = re.compile(regex)
 
     def _pid2dockerid(self, pid):
