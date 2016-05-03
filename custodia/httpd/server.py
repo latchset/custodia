@@ -194,9 +194,11 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
         if self.request.family != socket.AF_UNIX:
             self._creds = None
             return self._creds
+        # pid_t: signed int32, uid_t/gid_t: unsigned int32
+        fmt = 'iII'
         creds = self.request.getsockopt(socket.SOL_SOCKET, SO_PEERCRED,
-                                        struct.calcsize('3i'))
-        pid, uid, gid = struct.unpack('3i', creds)
+                                        struct.calcsize(fmt))
+        pid, uid, gid = struct.unpack(fmt, creds)
         try:
             creds = self.request.getsockopt(socket.SOL_SOCKET, SO_PEERSEC,
                                             SELINUX_CONTEXT_LEN)
