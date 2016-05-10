@@ -218,6 +218,12 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
             return self.request.getpeername()
         return None
 
+    @property
+    def peer_cert(self):
+        if not hasattr(self.request, 'getpeercert'):
+            return None
+        return self.request.getpeercert()
+
     def parse_request(self, *args, **kwargs):
         if not BaseHTTPRequestHandler.parse_request(self, *args, **kwargs):
             return False
@@ -280,6 +286,7 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
                 self.wfile.flush()
                 return
             request = {'creds': self.peer_creds,
+                       'client_cert': self.peer_cert,
                        'client_id': self.peer_info,
                        'command': self.command,
                        'path': self.path,
