@@ -43,6 +43,9 @@ tls_verify_client = ${VERIFY_CLIENT}
 handler = custodia.httpd.authenticators.SimpleHeaderAuth
 name = REMOTE_USER
 
+[auth:clientcert]
+handler = custodia.httpd.authenticators.SimpleClientCertAuth
+
 [authz:paths]
 handler = custodia.httpd.authorizers.SimplePathAuthz
 paths = /. /secrets
@@ -201,7 +204,8 @@ class CustodiaTests(unittest.TestCase):
         if clientcls is None:
             clientcls = CustodiaSimpleClient
         client = clientcls(cls.socket_url + suffix)
-        client.headers['REMOTE_USER'] = remote_user
+        if remote_user:
+            client.headers['REMOTE_USER'] = remote_user
         return client
 
     @classmethod
@@ -331,3 +335,15 @@ class CustodiaHTTPSTests(CustodiaTests):
         with self.assertRaises(SSLError) as e:
             client.list_container('test')
         self.assertIn("SSLV3_ALERT_HANDSHAKE_FAILURE", str(e.exception))
+
+    def test_C_client_cert_auth(self):
+        # same CN as custodia-client.pem
+        self.admin.set_secret('sak/client', self.test_auth_key)
+        self.client.set_secret('test/key', 'VmVycnlTZWNyZXQK')
+
+        c = self.create_client('/secrets', None)
+        c.headers['CUSTODIA_CERT_AUTH'] = 'true'
+        key = c.get_secret('test/key')
+        self.assertEqual(key, 'VmVycnlTZWNyZXQK')
+
+        self.client.del_secret('test/key')

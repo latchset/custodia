@@ -126,3 +126,42 @@ class SimpleAuthKeys(HTTPAuthenticator):
         self.audit_svc_access(log.AUDIT_SVC_AUTH_FAIL,
                               request['client_id'], name)
         return False
+
+
+class SimpleClientCertAuth(HTTPAuthenticator):
+    def __init__(self, config=None):
+        super(SimpleClientCertAuth, self).__init__(config)
+        self.id_header = self.config.get('header', 'CUSTODIA_CERT_AUTH')
+
+    def handle(self, request):
+        cert_auth = request['headers'].get(self.id_header, "false").lower()
+        client_cert = request['client_cert']  # {} or None
+        if not client_cert or cert_auth not in {'1', 'yes', 'true', 'on'}:
+            self.logger.debug('Ignoring request no relevant header or cert'
+                              ' provided')
+            return None
+
+        subject = client_cert.get('subject', {})
+        dn = []
+        name = None
+        # TODO: check SAN first
+        for rdn in subject:
+            for key, value in rdn:
+                dn.append('{}="{}"'.format(key, value.replace('"', r'\"')))
+                if key == 'commonName':
+                    name = value
+                    break
+
+        dn = ', '.join(dn)
+        self.logger.debug('Client cert subject: {}, serial: {}'.format(
+            dn, client_cert.get('serialNumber')))
+
+        if name:
+            self.audit_svc_access(log.AUDIT_SVC_AUTH_PASS,
+                                  request['client_id'], name)
+            request['remote_user'] = name
+            return True
+
+        self.audit_svc_access(log.AUDIT_SVC_AUTH_FAIL,
+                              request['client_id'], dn)
+        return False
