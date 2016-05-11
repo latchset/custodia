@@ -65,19 +65,20 @@ class NodeAuth(HTTPAuthenticator):
                                   request['client_id'], dockerid)
             return False
 
+        namespace = data_labels.get('io.kubernetes.pod.namespace')
         podname = data_labels.get('io.kubernetes.pod.name')
-        if podname is None:
-            self.logger.debug("Pod Name not found for Docker ID %s, pid %s",
-                              dockerid, creds['pid'])
+        if podname is None or namespace is None:
+            self.logger.debug("Pod name or namespace not found for Docker ID"
+                              "%s, pid %s", dockerid, creds['pid'])
             self.audit_svc_access(log.AUDIT_SVC_AUTH_FAIL,
                                   request['client_id'], dockerid)
             return False
 
-        self.logger.debug("PID %s runs in Docker container %s of pod '%s'",
-                          creds['pid'], dockerid, podname)
+        self.logger.debug("PID %s runs in Docker container %s of pod '%s/%s'",
+                          creds['pid'], dockerid, namespace, podname)
 
         self.audit_svc_access(log.AUDIT_SVC_AUTH_PASS,
                               request['client_id'], dockerid)
         request['client_id'] = dockerid
-        request['remote_user'] = podname
+        request['remote_user'] = '/'.join((namespace, podname))
         return True
