@@ -1,5 +1,9 @@
 # Copyright (C) 2015  Custodia Project Contributors - see LICENSE file
 
+from jwcrypto.common import json_encode
+
+import six
+
 from custodia.httpd.server import HTTPError
 from custodia.log import CustodiaPlugin
 
@@ -52,21 +56,29 @@ class HTTPConsumer(CustodiaPlugin):
 
         # Handle request
         output = handler(request, response)
+        if output is None:
+            output = response.get('output')
 
-        if 'Content-type' not in response['headers']:
-            response['headers']['Content-type'] = DEFAULT_CTYPE
+        ct = response['headers'].get('Content-Type')
+        if ct is None:
+            ct = response['headers']['Content-Type'] = DEFAULT_CTYPE
 
-        if output is not None:
-            response['output'] = output
-        else:
-            output = response.get('output', None)
+        if 'application/json' in ct and isinstance(output, (dict, list)):
+            output = json_encode(output).encode('utf-8')
+            response['headers']['Content-Length'] = str(len(output))
 
-        if output is not None:
-            if 'Content-Length' not in response['headers']:
-                if hasattr(output, 'read'):
-                    # LOG: warning file-type objects should set Content-Length
-                    pass
-                else:
-                    response['headers']['Content-Length'] = str(len(output))
+        response['output'] = output
+
+        if output is not None and not hasattr(output, 'read') \
+                and not isinstance(output, six.binary_type):
+            msg = "Handler {} returned unsupported type {} ({}):\n{!r}"
+            raise TypeError(msg.format(handler, type(output), ct, output))
+
+        if output is not None and 'Content-Length' not in response['headers']:
+            if hasattr(output, 'read'):
+                # LOG: warning file-type objects should set Content-Length
+                pass
+            else:
+                response['headers']['Content-Length'] = str(len(output))
 
         return response

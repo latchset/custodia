@@ -1,7 +1,5 @@
 # Copyright (C) 2015  Custodia Project Contributors - see LICENSE file
 
-import json
-
 from six import string_types
 
 from custodia.message.common import InvalidMessage
@@ -40,5 +38,4 @@ class SimpleKey(MessageHandler):
             # directory listings are pass-through with simple messages
             return output
 
-        return json.dumps({'type': self.msg_type, 'value': output},
-                          separators=(',', ':'))
+        return {'type': self.msg_type, 'value': output}

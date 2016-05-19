@@ -118,13 +118,15 @@ class Secrets(HTTPConsumer):
                     elif t.strip() == 'application/octet-stream':
                         binary = True
             if binary is True:
-                unwind = json.loads(reply)
                 response['headers'][
-                    'Content-type'] = 'application/octet-stream'
-                response['output'] = b64decode(unwind['value'])
+                    'Content-Type'] = 'application/octet-stream'
+                response['output'] = b64decode(reply['value'])
                 return
 
-        response['output'] = reply
+        if reply is not None:
+            response['headers'][
+                'Content-Type'] = 'application/json; charset=utf-8'
+            response['output'] = reply
 
     def GET(self, request, response):
         trail = request.get('trail', [])
@@ -169,7 +171,9 @@ class Secrets(HTTPConsumer):
             self.logger.debug('list %s returned %r', basename, keylist)
             if keylist is None:
                 raise HTTPError(404)
-            response['output'] = msg.reply(json.dumps(keylist))
+            response['headers'][
+                'Content-Type'] = 'application/json; charset=utf-8'
+            response['output'] = msg.reply(keylist)
         except CSStoreError:
             raise HTTPError(500)
 
@@ -195,6 +199,8 @@ class Secrets(HTTPConsumer):
 
         output = msg.reply(None)
         if output is not None:
+            response['headers'][
+                'Content-Type'] = 'application/json; charset=utf-8'
             response['output'] = output
         response['code'] = 201
 
@@ -222,6 +228,8 @@ class Secrets(HTTPConsumer):
         if output is None:
             response['code'] = 204
         else:
+            response['headers'][
+                'Content-Type'] = 'application/json; charset=utf-8'
             response['output'] = output
             response['code'] = 200
 
@@ -305,6 +313,8 @@ class Secrets(HTTPConsumer):
 
         output = msg.reply(None)
         if output is not None:
+            response['headers'][
+                'Content-Type'] = 'application/json; charset=utf-8'
             response['output'] = output
         response['code'] = 201
 
@@ -331,6 +341,8 @@ class Secrets(HTTPConsumer):
         if output is None:
             response['code'] = 204
         else:
+            response['headers'][
+                'Content-Type'] = 'application/json; charset=utf-8'
             response['output'] = output
             response['code'] = 200
 
@@ -396,25 +408,25 @@ class SecretsTests(unittest.TestCase):
     def test_2_GETKey(self):
         req = {'remote_user': 'test',
                'trail': ['test', 'key1']}
-        rep = {}
+        rep = {'headers': {}}
         self.GET(req, rep)
-        self.assertEqual(json.loads(rep['output']),
+        self.assertEqual(rep['output'],
                          {"type": "simple", "value": "1234"})
 
     def test_3_LISTKeys(self):
         req = {'remote_user': 'test',
                'trail': ['test', '']}
-        rep = {}
+        rep = {'headers': {}}
         self.GET(req, rep)
-        self.assertEqual(json.loads(rep['output']),
-                         json.loads('["key1"]'))
+        self.assertEqual(rep['output'],
+                         ["key1"])
 
     def test_4_PUTKey_errors_400_1(self):
         req = {'headers': {'Content-Type': 'text/plain'},
                'remote_user': 'test',
                'trail': ['test', 'key2'],
                'body': '{"type":"simple","value":"2345"}'.encode('utf-8')}
-        rep = {}
+        rep = {'headers': {}}
         with self.assertRaises(HTTPError) as err:
             self.PUT(req, rep)
         self.assertEqual(err.exception.code, 400)
@@ -423,7 +435,7 @@ class SecretsTests(unittest.TestCase):
         req = {'headers': {'Content-Type': 'text/plain'},
                'remote_user': 'test',
                'trail': ['test', 'key2']}
-        rep = {}
+        rep = {'headers': {}}
         with self.assertRaises(HTTPError) as err:
             self.PUT(req, rep)
         self.assertEqual(err.exception.code, 400)
@@ -433,7 +445,7 @@ class SecretsTests(unittest.TestCase):
                'remote_user': 'test',
                'trail': ['test', 'key2'],
                'body': '{"type":}"simple","value":"2345"}'.encode('utf-8')}
-        rep = {}
+        rep = {'headers': {}}
         with self.assertRaises(HTTPError) as err:
             self.PUT(req, rep)
         self.assertEqual(err.exception.code, 400)
@@ -443,7 +455,7 @@ class SecretsTests(unittest.TestCase):
                'remote_user': 'test',
                'trail': ['case', 'key2'],
                'body': '{"type":"simple","value":"2345"}'.encode('utf-8')}
-        rep = {}
+        rep = {'headers': {}}
         with self.assertRaises(HTTPError) as err:
             self.PUT(req, rep)
         self.assertEqual(err.exception.code, 403)
@@ -453,7 +465,7 @@ class SecretsTests(unittest.TestCase):
                'remote_user': 'test',
                'trail': ['test', 'more', 'key1'],
                'body': '{"type":"simple","value":"1234"}'.encode('utf-8')}
-        rep = {}
+        rep = {'headers': {}}
         with self.assertRaises(HTTPError) as err:
             self.PUT(req, rep)
         self.assertEqual(err.exception.code, 404)
@@ -463,7 +475,7 @@ class SecretsTests(unittest.TestCase):
                'remote_user': 'test',
                'trail': ['test', 'key2', ''],
                'body': '{"type":"simple","value":"2345"}'.encode('utf-8')}
-        rep = {}
+        rep = {'headers': {}}
         with self.assertRaises(HTTPError) as err:
             self.PUT(req, rep)
         self.assertEqual(err.exception.code, 405)
@@ -473,7 +485,7 @@ class SecretsTests(unittest.TestCase):
                'remote_user': 'test',
                'trail': ['test', 'key3'],
                'body': '{"type":"simple","value":"2345"}'.encode('utf-8')}
-        rep = {}
+        rep = {'headers': {}}
         self.PUT(req, rep)
         with self.assertRaises(HTTPError) as err:
             self.PUT(req, rep)
@@ -482,7 +494,7 @@ class SecretsTests(unittest.TestCase):
     def test_5_GETKey_errors_403(self):
         req = {'remote_user': 'case',
                'trail': ['test', 'key1']}
-        rep = {}
+        rep = {'headers': {}}
         with self.assertRaises(HTTPError) as err:
             self.GET(req, rep)
         self.assertEqual(err.exception.code, 403)
@@ -490,7 +502,7 @@ class SecretsTests(unittest.TestCase):
     def test_5_GETkey_errors_404(self):
         req = {'remote_user': 'test',
                'trail': ['test', 'key0']}
-        rep = {}
+        rep = {'headers': {}}
         with self.assertRaises(HTTPError) as err:
             self.GET(req, rep)
 
@@ -500,7 +512,7 @@ class SecretsTests(unittest.TestCase):
         req = {'remote_user': 'test',
                'query': {'type': 'complex'},
                'trail': ['test', 'key1']}
-        rep = {}
+        rep = {'headers': {}}
         with self.assertRaises(HTTPError) as err:
             self.GET(req, rep)
 
@@ -509,7 +521,7 @@ class SecretsTests(unittest.TestCase):
     def test_6_LISTkeys_errors_404_1(self):
         req = {'remote_user': 'test',
                'trail': ['test', 'case', '']}
-        rep = {}
+        rep = {'headers': {}}
         with self.assertRaises(HTTPError) as err:
             self.GET(req, rep)
         self.assertEqual(err.exception.code, 404)
@@ -518,7 +530,7 @@ class SecretsTests(unittest.TestCase):
         req = {'remote_user': 'test',
                'query': {'type': 'invalid'},
                'trail': ['test', '']}
-        rep = {}
+        rep = {'headers': {}}
         with self.assertRaises(HTTPError) as err:
             self.GET(req, rep)
         self.assertEqual(err.exception.code, 406)
@@ -526,13 +538,13 @@ class SecretsTests(unittest.TestCase):
     def test_7_DELETEKey(self):
         req = {'remote_user': 'test',
                'trail': ['test', 'key1']}
-        rep = {}
+        rep = {'headers': {}}
         self.DELETE(req, rep)
 
     def test_7_DELETEKey_errors_403(self):
         req = {'remote_user': 'case',
                'trail': ['test', 'key1']}
-        rep = {}
+        rep = {'headers': {}}
         with self.assertRaises(HTTPError) as err:
             self.DELETE(req, rep)
         self.assertEqual(err.exception.code, 403)
@@ -540,14 +552,14 @@ class SecretsTests(unittest.TestCase):
     def test_7_DELETEKey_errors_404(self):
         req = {'remote_user': 'test',
                'trail': ['test', 'nokey']}
-        rep = {}
+        rep = {'headers': {}}
         with self.assertRaises(HTTPError) as err:
             self.DELETE(req, rep)
         self.assertEqual(err.exception.code, 404)
 
     def test_7_DELETEKey_errors_405(self):
         req = {'remote_user': 'test'}
-        rep = {}
+        rep = {'headers': {}}
         with self.assertRaises(HTTPError) as err:
             self.DELETE(req, rep)
         self.assertEqual(err.exception.code, 405)
@@ -555,7 +567,7 @@ class SecretsTests(unittest.TestCase):
     def test_8_CREATEcont(self):
         req = {'remote_user': 'test',
                'trail': ['test', 'container', '']}
-        rep = {}
+        rep = {'headers': {}}
         self.POST(req, rep)
         self.assertEqual(rep['code'], 201)
 
@@ -570,7 +582,7 @@ class SecretsTests(unittest.TestCase):
     def test_8_CREATEcont_erros_404(self):
         req = {'remote_user': 'test',
                'trail': ['test', 'mid', 'container', '']}
-        rep = {}
+        rep = {'headers': {}}
         with self.assertRaises(HTTPError) as err:
             self.POST(req, rep)
         self.assertEqual(err.exception.code, 404)
@@ -578,7 +590,7 @@ class SecretsTests(unittest.TestCase):
     def test_8_CREATEcont_erros_405(self):
         req = {'remote_user': 'test',
                'trail': ['test', 'container']}
-        rep = {}
+        rep = {'headers': {}}
         with self.assertRaises(HTTPError) as err:
             self.POST(req, rep)
         self.assertEqual(err.exception.code, 405)
@@ -586,7 +598,7 @@ class SecretsTests(unittest.TestCase):
     def test_8_CREATEcont_erros_409(self):
         req = {'remote_user': 'test',
                'trail': ['test', 'exists', '']}
-        rep = {}
+        rep = {'headers': {}}
         self.POST(req, rep)
         with self.assertRaises(HTTPError) as err:
             self.POST(req, rep)
@@ -595,7 +607,7 @@ class SecretsTests(unittest.TestCase):
     def test_8_DESTROYcont(self):
         req = {'remote_user': 'test',
                'trail': ['test', 'container', '']}
-        rep = {}
+        rep = {'headers': {}}
         self.DELETE(req, rep)
         self.assertEqual(rep['code'], 204)
 
@@ -610,7 +622,7 @@ class SecretsTests(unittest.TestCase):
     def test_8_DESTROYcont_erros_404(self):
         req = {'remote_user': 'test',
                'trail': ['test', 'mid', 'container', '']}
-        rep = {}
+        rep = {'headers': {}}
         with self.assertRaises(HTTPError) as err:
             self.DELETE(req, rep)
         self.assertEqual(err.exception.code, 404)
@@ -619,7 +631,7 @@ class SecretsTests(unittest.TestCase):
         self.test_1_PUTKey()
         req = {'remote_user': 'test',
                'trail': ['test', '']}
-        rep = {}
+        rep = {'headers': {}}
         with self.assertRaises(HTTPError) as err:
             self.DELETE(req, rep)
         self.assertEqual(err.exception.code, 409)
@@ -629,7 +641,7 @@ class SecretsTests(unittest.TestCase):
                'remote_user': 'test',
                'trail': ['test', 'rawkey'],
                'body': '1234'.encode('utf-8')}
-        rep = {}
+        rep = {'headers': {}}
         self.PUT(req, rep)
 
     def test_9_1_GETRawKey(self):
@@ -643,8 +655,8 @@ class SecretsTests(unittest.TestCase):
     def test_9_2_GETKey(self):
         req = {'remote_user': 'test',
                'trail': ['test', 'rawkey']}
-        rep = {}
+        rep = {'headers': {}}
         self.GET(req, rep)
-        self.assertEqual(json.loads(rep['output']),
+        self.assertEqual(rep['output'],
                          {"type": "simple", "value":
-                          b64encode('1234'.encode('utf-8')).decode('utf-8')})
+                          b64encode(b'1234').decode('utf-8')})

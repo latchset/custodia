@@ -268,7 +268,7 @@ class CustodiaKEMClient(CustodiaHTTPClient):
         self._kem_unwrap(cname, r.json())
 
     def list_container(self, name):
-        return json_decode(self.get_secret(self.container_name(name)))
+        return self.get_secret(self.container_name(name))
 
     def get_secret(self, name):
         message = self._kem_wrap(name, None)

@@ -197,7 +197,7 @@ class KEMHandler(MessageHandler):
                              self.kkstore.alg,
                              self.client_keys[1], enc)
 
-        return json_encode({'type': 'kem', 'value': value})
+        return {'type': 'kem', 'value': value}
 
 
 class KEMClient(object):
@@ -335,6 +335,7 @@ def _store_keys(keystore, usage, keys):
 
 
 class KEMTests(unittest.TestCase):
+    maxDiff = None
 
     @classmethod
     def setUpClass(cls):
@@ -372,8 +373,9 @@ class KEMTests(unittest.TestCase):
         jtok = make_sig_kem("mykey", None, cli_skey, "RS256")
         kem = KEMHandler({'KEMKeysStore': self.kk})
         kem.parse(jtok, "mykey")
-        out = kem.reply('output')
-        jtok = JWT(jwt=json_decode(out)['value'])
+        msg = kem.reply('output')
+        self.assertEqual(msg, json_decode(json_encode(msg)))
+        jtok = JWT(jwt=msg['value'])
         cli_ekey = JWK(**self.client_keys[1])
         jtok.token.decrypt(cli_ekey)
         nested = jtok.token.payload
@@ -390,7 +392,8 @@ class KEMTests(unittest.TestCase):
         kem = KEMHandler({'KEMKeysStore': self.kk})
         req = cli.make_request("key name")
         kem.parse(req, "key name")
-        msg = json_decode(kem.reply('key value'))
+        msg = kem.reply('key value')
+        self.assertEqual(msg, json_decode(json_encode(msg)))
         rep = cli.parse_reply("key name", msg['value'])
         self.assertEqual(rep, 'key value')
 
@@ -403,7 +406,8 @@ class KEMTests(unittest.TestCase):
         kem = KEMHandler({'KEMKeysStore': self.kk})
         req = cli.make_request("key name", encalg=('RSA1_5', 'A256CBC-HS512'))
         kem.parse(req, "key name")
-        msg = json_decode(kem.reply('key value'))
+        msg = kem.reply('key value')
+        self.assertEqual(msg, json_decode(json_encode(msg)))
         rep = cli.parse_reply("key name", msg['value'])
         self.assertEqual(rep, 'key value')
 
