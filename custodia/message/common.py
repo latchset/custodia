@@ -61,7 +61,7 @@ class MessageHandler(object):
         """Generates a reply.
 
         :param req: the original request
-        :param output: a json string with the stored output payload
+        :param output: a Python object that can be converted to JSON
         """
 
         raise NotImplementedError
