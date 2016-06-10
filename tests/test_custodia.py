@@ -2,8 +2,8 @@
 
 from __future__ import absolute_import
 
-import errno
 import os
+import shutil
 import socket
 import subprocess
 import sys
@@ -33,7 +33,7 @@ TEST_CUSTODIA_CONF = """
 [global]
 server_version = "Secret/0.0.7"
 server_url = ${SOCKET_URL}
-auditlog = test_audit.log
+auditlog = ${TEST_DIR}/test_audit.log
 debug = True
 tls_certfile = tests/ca/custodia-server.pem
 tls_keyfile = tests/ca/custodia-server.key
@@ -58,7 +58,7 @@ store = simple
 
 [store:simple]
 handler = custodia.store.sqlite.SqliteStore
-dburi = test_secrets.db
+dburi = ${TEST_DIR}/test_secrets.db
 table = secrets
 
 [/secrets]
@@ -102,7 +102,7 @@ forward_headers = {"REMOTE_USER": "test"}
 [store:encgen]
 handler = custodia.store.encgen.EncryptedOverlay
 backing_store = simple
-master_key = test_mkey.conf
+master_key = ${TEST_DIR}/test_mkey.conf
 master_enctype = A128CBC-HS256
 
 [authz:enc]
@@ -122,18 +122,12 @@ store = encgen
 """
 
 
-TEST_SOCKET_URL = "http+unix://%2E%2Ftest_socket"
+TEST_SOCKET_URL = "http+unix://%2E%2Ftests%2Ftmp%2Ftest_socket"
 
 
-def unlink_if_exists(filename):
-    try:
-        os.unlink(filename)
-    except OSError as err:
-        if err.errno != errno.ENOENT:
-            raise
-
-
-def generate_all_keys(filename):
+def generate_all_keys(test_dir):
+    filename = os.path.join(test_dir, 'test_mkey.conf')
+    dburi = os.path.join(test_dir, 'test_secrets.db')
     key = jwk.JWK(generate='oct', size=256)
     with open(filename, 'w+') as keyfile:
         keyfile.write(key.export())
@@ -142,13 +136,13 @@ def generate_all_keys(filename):
     cli_kid = "clikid"
     ss_key = jwk.JWK(generate='RSA', kid=srv_kid, use="sig")
     se_key = jwk.JWK(generate='RSA', kid=srv_kid, use="enc")
-    store = SqliteStore({'dburi': 'test_secrets.db', 'table': 'secrets'})
+    store = SqliteStore({'dburi': dburi, 'table': 'secrets'})
     store.set('kemkeys/sig/%s' % srv_kid, ss_key.export())
     store.set('kemkeys/enc/%s' % srv_kid, se_key.export())
 
     cs_key = jwk.JWK(generate='RSA', kid=cli_kid, use="sig")
     ce_key = jwk.JWK(generate='RSA', kid=cli_kid, use="enc")
-    store = SqliteStore({'dburi': 'test_secrets.db', 'table': 'secrets'})
+    store = SqliteStore({'dburi': dburi, 'table': 'secrets'})
     store.set('kemkeys/sig/%s' % cli_kid, cs_key.export_public())
     store.set('kemkeys/enc/%s' % cli_kid, ce_key.export_public())
     return ([ss_key.export_public(), se_key.export_public()],
@@ -160,30 +154,34 @@ class CustodiaTests(unittest.TestCase):
     test_auth_id = "test_user"
     test_auth_key = "cd54b735-e756-4f12-aa18-d85509baef36"
     verify_client = 'False'
+    test_dir = 'tests/tmp'
 
     @classmethod
     def setUpClass(cls):
         env = os.environ.copy()
         env['PYTHONPATH'] = './'
         pexec = env.get('CUSTODIAPYTHON', sys.executable)
-        unlink_if_exists('test_socket')
-        unlink_if_exists('test_secrets.db')
-        unlink_if_exists('test_mkey.conf')
-        unlink_if_exists('test_custodia.conf')
-        unlink_if_exists('test_log.txt')
-        unlink_if_exists('test_audit.log')
-        (srvkeys, clikeys) = generate_all_keys('test_mkey.conf')
-        with (open('test_custodia.conf', 'w+')) as conffile:
+
+        if os.path.isdir(cls.test_dir):
+            shutil.rmtree(cls.test_dir)
+        os.makedirs(cls.test_dir)
+
+        srvkeys, clikeys = generate_all_keys(cls.test_dir)
+
+        custodia_conf = os.path.join(cls.test_dir, 'test_custodia.conf')
+        with (open(custodia_conf, 'w+')) as conffile:
             t = Template(TEST_CUSTODIA_CONF)
             conf = t.substitute({'SOCKET_URL': cls.socket_url,
+                                 'TEST_DIR': cls.test_dir,
                                  'TEST_AUTH_ID': cls.test_auth_id,
                                  'TEST_AUTH_KEY': cls.test_auth_key,
                                  'VERIFY_CLIENT': cls.verify_client})
             conffile.write(conf)
-        with (open('test_log.txt', 'a')) as logfile:
-            p = subprocess.Popen([pexec, 'custodia/custodia',
-                                  'test_custodia.conf'], env=env,
-                                 stdout=logfile, stderr=logfile)
+
+        test_log_file = os.path.join(cls.test_dir, 'test_log.txt')
+        with (open(test_log_file, 'a')) as logfile:
+            p = subprocess.Popen([pexec, 'custodia/custodia', custodia_conf],
+                                 env=env, stdout=logfile, stderr=logfile)
         time.sleep(1)
         if p.poll() is not None:
             raise AssertionError(

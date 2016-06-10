@@ -1,18 +1,12 @@
-build/
-dist/
+/build/
+/dist/
+/docs/build
+/tests/tmp
+__pycache__
 *.pyc
 *.pyo
 cscope.out
 .tox
 .coverage
 MANIFEST
-
-/custodia.audit.log
-/secrets.db
-/testlog.txt
-/test_audit.log
-/test_custodia.conf
-/test_log.txt
-/test_mkey.conf
-/test_secrets.db
 

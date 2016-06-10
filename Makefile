@@ -15,7 +15,8 @@ clean:
 	rm -fr build dist *.egg-info .tox
 	rm -f server_socket
 	find ./ -name '*.py[co]' -exec rm -f {} \;
-	find ./ -name __pycache__ -exec rm -rf {} \;
+	find ./ -depth -name __pycache__ -exec rm -rf {} \;
+	rm -rf tests/tmp
 
 cscope:
 	git ls-files | xargs pycscope
