@@ -6,6 +6,7 @@ import errno
 import os
 import socket
 import subprocess
+import sys
 import time
 import unittest
 
@@ -164,7 +165,7 @@ class CustodiaTests(unittest.TestCase):
     def setUpClass(cls):
         env = os.environ.copy()
         env['PYTHONPATH'] = './'
-        pexec = env.get('CUSTODIAPYTHON', 'python')
+        pexec = env.get('CUSTODIAPYTHON', sys.executable)
         unlink_if_exists('test_socket')
         unlink_if_exists('test_secrets.db')
         unlink_if_exists('test_mkey.conf')
