@@ -15,6 +15,7 @@ script:
   - tox
 
 env:
+  - TOXENV=lint
   - TOXENV=py27
   - TOXENV=py34
   - TOXENV=doc
