@@ -1,15 +1,11 @@
-all: lint test docs
+all: lint pep8 test docs
 	echo "All tests passed"
 
 lint:
-	# Analyze code
-	# don't show recommendations, info, comments, report
-	# W0613 - unused argument
-	# Ignore cherrypy class members as they are dynamically added
-	pylint -d c,r,i,W0613 -r n -f colorized \
-		   --notes= \
-		   --disable=star-args \
-		   ./custodia
+	tox -e lint
+
+pep8:
+	tox -e pep8
 
 clean:
 	rm -fr build dist *.egg-info .tox
@@ -27,8 +23,8 @@ test:
 		   --disable=star-args \
 		   ./tests
 	rm -f .coverage
-	tox -epep8
-	tox
+	tox -e py27
+	tox -e py34
 
 DOCS_DIR = docs
 .PHONY: docs

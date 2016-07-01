@@ -61,7 +61,7 @@ class EtcdStore(CSStore):
             self.logger.exception("Error fetching key %s", key)
             raise CSStoreError('Error occurred while trying to get key')
         self.logger.debug("Fetched key %s got result: %r", key, result)
-        return result.value
+        return result.value  # pylint: disable=no-member
 
     def set(self, key, value, replace=False):
         self.logger.debug("Setting key %s to value %s (replace=%s)",
