@@ -7,6 +7,7 @@ __pycache__
 *.pyo
 cscope.out
 .tox
+.cache
 .coverage
 MANIFEST
 

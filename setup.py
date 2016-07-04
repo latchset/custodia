@@ -6,7 +6,7 @@ from distutils.core import setup
 
 setup(
     name='custodia',
-    version='0.1.0',
+    version='0.1.90',
     license='GPLv3+',
     maintainer='Custodia project Contributors',
     maintainer_email='simo@redhat.com',
