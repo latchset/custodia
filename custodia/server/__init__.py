@@ -12,7 +12,7 @@ import os
 import sys
 
 # use https://pypi.python.org/pypi/configparser/ on Python 2
-from configparser import ExtendedInterpolation, ConfigParser
+from configparser import ConfigParser, ExtendedInterpolation
 
 import six
 
@@ -82,11 +82,13 @@ def parse_config(cfgfile):
 
             url = config.get('server_url')
             if url and 'server_socket' in config:
-                raise ValueError("'server_url' and ''server_socket'' are mutual exclusive")
+                raise ValueError(
+                    "'server_url' and ''server_socket'' are mutual exclusive")
             if url is None:
                 server_socket = os.path.abspath(
                     config.get('server_socket', 'server_socket'))
-                config['server_url'] = 'http+unix://{}/'.format(url_escape(server_socket, ''))
+                config['server_url'] = 'http+unix://{}/'.format(
+                    url_escape(server_socket, ''))
 
             continue
 

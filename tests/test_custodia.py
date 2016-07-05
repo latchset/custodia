@@ -179,8 +179,10 @@ class CustodiaTests(unittest.TestCase):
             conffile.write(conf)
         test_log_file = os.path.join(cls.test_dir, 'test_log.txt')
         with (open(test_log_file, 'a')) as logfile:
-            p = subprocess.Popen([pexec, '-m', 'custodia.server', custodia_conf],
-                                 env=env, stdout=logfile, stderr=logfile)
+            p = subprocess.Popen(
+                [pexec, '-m', 'custodia.server', custodia_conf],
+                env=env, stdout=logfile, stderr=logfile
+            )
         time.sleep(1)
         if p.poll() is not None:
             raise AssertionError(
