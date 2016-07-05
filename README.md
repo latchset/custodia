@@ -1,7 +1,6 @@
 [![Build Status](https://travis-ci.org/latchset/custodia.svg?branch=master)](https://travis-ci.org/latchset/custodia)
 
-Custodia
-========
+# Custodia
 
 A tool for managing secrets.
 
@@ -21,3 +20,22 @@ Service and other similar security systems.
 
 See the Custodia wiki for more information about the current architecture:
 https://github.com/latchset/custodia/wiki
+
+
+## Requirements
+
+### Runtime
+
+* configparser (Python 2.7)
+* cryptography
+* jwcrypto >= 0.2
+* requests
+* six
+
+### Installation and testing
+
+* pip
+* setuptools >= 18.0
+* tox >= 2.3.1
+* wheel
+
