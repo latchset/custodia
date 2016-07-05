@@ -1,7 +1,0 @@
-jwcrypto
-docker-py
-python-etcd
-six
-requests
-# extended interpolation is provided by stdlib in Python 3.4+
-configparser; python_version < '3.4'

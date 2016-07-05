@@ -1,5 +1,17 @@
-include *py *.md *.txt *.ini .coveragerc
-include Makefile
+include setup.py setup.cfg
+include Makefile LICENSE README
+include *.md *.ini .coveragerc
+
+include custodia.conf
 recursive-include examples *.key *.db
+
 recursive-include docs *.py *.rst
+include docs/Makefile
+include man/custodia.7
+
 recursive-include tests *.py
+recursive-include tests/ca *.conf *.key *.pem *.sh
+prune tests/tmp
+prune tests/ca/tmp
+
+exclude server_socket

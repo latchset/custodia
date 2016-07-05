@@ -1,22 +1,27 @@
-PY34 := $(shell python3.4 -V >/dev/null 2>&1 && echo "YES" || echo "NO")
-PY35 := $(shell python3.5 -V >/dev/null 2>&1 && echo "YES" || echo "NO")
+CONF := custodia.conf
+PREFIX := /usr
+PYTHON := python3
+DOCS_DIR = docs
 
 .NOTPARALLEL:
-.PHONY: all clean cscope docs lint pep8 test
+.PHONY: all clean clean_socket cscope docs lint pep8 test
 
-all: lint pep8 test docs
+all: clean_socket lint pep8 test docs
 	echo "All tests passed"
 
-lint:
+clean_socket:
+	rm -f server_socket
+
+lint: clean_socket
 	tox -e lint
 
-pep8:
+pep8: clean_socket
 	tox -e pep8py2
 	tox -e pep8py3
 
-clean:
+clean: clean_socket
 	rm -fr build dist *.egg-info .tox MANIFEST .coverage .cache
-	rm -f server_socket
+	rm -f custodia.audit.log secrets.db
 	find ./ -name '*.py[co]' -exec rm -f {} \;
 	find ./ -depth -name __pycache__ -exec rm -rf {} \;
 	rm -rf tests/tmp
@@ -24,23 +29,33 @@ clean:
 cscope:
 	git ls-files | xargs pycscope
 
-test:
-	pylint -d c,r,i,W0613 -r n -f colorized \
-		   --notes= \
-		   --disable=star-args \
-		   ./tests
+test: clean_socket
 	rm -f .coverage
-	tox -e py27
-	@# Use --skip-missing-interpreters once we can move past tox 1.8.1
-	@# which apparently fails to actually skip a missing interpreter.
-ifeq ($(PY34),YES)
-	tox -e py34
-endif
-ifeq ($(PY35),YES)
-	tox -e py35
-endif
-
-DOCS_DIR = docs
+	tox --skip-missing-interpreters -e py27
+	tox --skip-missing-interpreters -e py34
+	tox --skip-missing-interpreters -e py35
 
 docs:
 	$(MAKE) -C $(DOCS_DIR) html
+
+README: README.md
+	echo -e '.. WARNING: AUTO-GENERATED FILE. DO NOT EDIT.\n' > README
+	pandoc --from=markdown --to=rst README.md >> README
+
+.PHONY: install egg_info run release
+install: clean_socket egg_info
+	$(PYTHON) setup.py install --root "$(PREFIX)"
+	install -d "$(PREFIX)/share/man/man7"
+	install -t "$(PREFIX)/share/man/man7" man/custodia.7
+	install -d "$(PREFIX)/share/doc/custodia/examples"
+	install -t "$(PREFIX)/share/doc/custodia" LICENSE README API.md
+	install -t "$(PREFIX)/share/doc/custodia/examples" custodia.conf
+
+egg_info:
+	$(PYTHON) setup.py egg_info
+
+release: clean_socket egg_info README
+	$(PYTHON) setup.py packages
+
+run: egg_info
+	$(PYTHON) -m custodia.server $(CONF)
