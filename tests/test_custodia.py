@@ -42,11 +42,11 @@ tls_verify_client = ${VERIFY_CLIENT}
 umask = 027
 
 [auth:header]
-handler = custodia.httpd.authenticators.SimpleHeaderAuth
+handler = SimpleHeaderAuth
 name = REMOTE_USER
 
 [auth:clientcert]
-handler = custodia.httpd.authenticators.SimpleClientCertAuth
+handler = SimpleClientCertAuth
 
 [authz:paths]
 handler = custodia.httpd.authorizers.SimplePathAuthz
@@ -82,7 +82,7 @@ handler = custodia.httpd.authorizers.SimplePathAuthz
 paths = /forwarder /forwarder_loop
 
 [/forwarder]
-handler = custodia.forwarder.Forwarder
+handler = Forwarder
 prefix_remote_user = False
 forward_uri = ${SOCKET_URL}/secrets/fwd
 tls_certfile = tests/ca/custodia-client.pem
@@ -108,17 +108,17 @@ master_key = ${TEST_DIR}/test_mkey.conf
 master_enctype = A128CBC-HS256
 
 [authz:enc]
-handler = custodia.httpd.authorizers.SimplePathAuthz
+handler = SimplePathAuthz
 paths = /enc
 
 [authz:enc_kem]
-handler = custodia.message.kem.KEMKeysStore
+handler = KEMKeysStore
 server_keys = srvkid
 store = simple
 paths = /enc/kem
 
 [/enc]
-handler = custodia.secrets.Secrets
+handler = Secrets
 allowed_keytypes = simple kem
 store = encgen
 """
