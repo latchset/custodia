@@ -14,6 +14,8 @@ import sys
 # use https://pypi.python.org/pypi/configparser/ on Python 2
 from configparser import ConfigParser, ExtendedInterpolation
 
+import pkg_resources
+
 import six
 
 from custodia import log
@@ -44,6 +46,27 @@ def attach_store(typename, plugins, stores):
         except KeyError:
             raise ValueError('[%s%s] references unexisting store '
                              '"%s"' % (typename, name, c.store_name))
+
+
+def load_plugin(menu, name):
+    """Load Custodia plugin
+
+    Entry points are preferred over dotted import path.
+    """
+    group = 'custodia.{}'.format(menu)
+    eps = list(pkg_resources.iter_entry_points(group, name))
+    if len(eps) > 1:
+        raise ValueError(
+            "Multiple entry points for {} {}: {}".format(menu, name, eps))
+    elif len(eps) == 1:
+        return eps[0].resolve()
+    elif '.' in name:
+        # fall back to old style dotted name
+        module, classname = name.rsplit('.', 1)
+        m = importlib.import_module(module)
+        return getattr(m, classname)
+    else:
+        raise ValueError("{}: {} not found".format(menu, name))
 
 
 def parse_config(cfgfile):
@@ -121,9 +144,8 @@ def parse_config(cfgfile):
         for opt, val in parser.items(s):
             if opt == 'handler':
                 try:
-                    module, classname = val.rsplit('.', 1)
-                    m = importlib.import_module(module)
-                    handler = getattr(m, classname)
+                    handler = load_plugin(menu, val)
+                    classname = handler.__name__
                     hconf['facility_name'] = '%s-[%s]' % (classname, s)
                 except Exception as e:  # pylint: disable=broad-except
                     raise ValueError('Invalid format for "handler" option '

@@ -25,6 +25,42 @@ test_docs_requires = ['docutils', 'markdown']
 with open('README') as f:
     long_description = f.read()
 
+
+# Plugins
+custodia_authenticators = [
+    'SimpleCredsAuth = custodia.httpd.authenticators:SimpleCredsAuth',
+    'SimpleHeaderAuth = custodia.httpd.authenticators:SimpleHeaderAuth',
+    'SimpleAuthKeys = custodia.httpd.authenticators:SimpleAuthKeys',
+    ('SimpleClientCertAuth = '
+     'custodia.httpd.authenticators:SimpleClientCertAuth'),
+    'K8sNodeAuth = custodia.kubernetes.node:NodeAuth',
+]
+
+custodia_authorizers = [
+    'SimplePathAuthz = custodia.httpd.authorizers:SimplePathAuthz',
+    'UserNameSpace = custodia.httpd.authorizers:UserNameSpace',
+    'K8sAuthz = custodia.kubernetes.authz:KubeAuthz',
+    'KEMKeysStore = custodia.message.kem:KEMKeysStore',
+]
+
+custodia_clients = [
+    'KEMClient = custodia.client:CustodiaKEMClient',
+    'SimpleClient = custodia.client:CustodiaSimpleClient',
+]
+
+custodia_consumers = [
+    'Forwarder = custodia.forwarder:Forwarder',
+    'Secrets = custodia.secrets:Secrets',
+    'Root = custodia.root:Root',
+]
+
+custodia_stores = [
+    'EncryptedOverlay = custodia.store.encgen:EncryptedOverlay',
+    'EtcdStore = custodia.store.etcdstore:EtcdStore',
+    'SqliteStore = custodia.store.sqlite:SqliteStore',
+]
+
+
 setup(
     name='custodia',
     descricription='A service to manage, retrieve and store secrets',
@@ -44,8 +80,13 @@ setup(
     ],
     entry_points={
         'console_scripts': [
-            'custodia = custodia.server:main'
+            'custodia = custodia.server:main',
         ],
+        'custodia.authenticators': custodia_authenticators,
+        'custodia.authorizers': custodia_authorizers,
+        'custodia.clients': custodia_clients,
+        'custodia.consumers': custodia_consumers,
+        'custodia.stores': custodia_stores,
     },
     classifiers=[
         'Programming Language :: Python :: 2.7',
