@@ -16,6 +16,13 @@ server_url [str]
    * https://hostname:port
    * http+unix://%2Fpath%2Fto%2Fserver_sock
 
+   Custodia supports systemd socket activation. The server automatically
+   detects socket activation and uses the first file descriptor (requires
+   python-systemd). Socket family and port/path must match settings in
+   configuration file::
+
+       $ /usr/lib/systemd/systemd-activate -l $(pwd)/custodia.sock python -m custodia.server custodia.conf
+
 server_socket [str]
    Path to :const:`AF_UNIX` socket file.
 

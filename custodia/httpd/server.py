@@ -1,5 +1,6 @@
 # Copyright (C) 2015  Custodia Project Contributors - see LICENSE file
 
+import atexit
 import errno
 import logging
 import os
@@ -7,27 +8,27 @@ import shutil
 import socket
 import ssl
 import struct
+import sys
 
 import six
 
 try:
     # pylint: disable=import-error
     from BaseHTTPServer import BaseHTTPRequestHandler
-    from SocketServer import ForkingTCPServer
+    from SocketServer import ForkingTCPServer, BaseServer
     from urlparse import urlparse, parse_qs
     from urllib import unquote
 except ImportError:
     # pylint: disable=import-error,no-name-in-module
     from http.server import BaseHTTPRequestHandler
-    from socketserver import ForkingTCPServer
+    from socketserver import ForkingTCPServer, BaseServer
     from urllib.parse import urlparse, parse_qs, unquote
 
 try:
     # pylint: disable=import-error
-    from systemd.daemon import notify as sd_notify
-    from systemd.daemon import booted as sd_booted
+    from systemd import daemon as sd
 except ImportError:
-    systemd_booted = sd_notify = None
+    sd = None
 
 
 from custodia import log
@@ -64,8 +65,32 @@ class ForkingHTTPServer(ForkingTCPServer):
     allow_reuse_address = True
     socket_file = None
 
-    def __init__(self, server_address, handler_class, config):
-        ForkingTCPServer.__init__(self, server_address, handler_class)
+    def __init__(self, server_address, handler_class, config,
+                 bind_and_activate=True):
+        # pylint: disable=super-init-not-called, non-parent-init-called
+        # Init just BaseServer, TCPServer creates a socket.
+        BaseServer.__init__(self, server_address, handler_class)
+
+        if isinstance(server_address, socket.socket):
+            # It's a bound and activates socket from systemd.
+            self.socket = server_address
+            bind_and_activate = False
+        else:
+            self.socket = socket.socket(self.address_family,
+                                        self.socket_type)
+
+        # copied from TCPServer
+        if bind_and_activate:
+            try:
+                self.server_bind()
+                self.server_activate()
+            except:
+                self.server_close()
+                raise
+
+        if self.socket.family == socket.AF_UNIX:
+            self.socket_file = self.socket.getsockname()
+
         if 'consumers' not in config:
             raise ValueError('Configuration does not provide any consumer')
         self.config = config
@@ -78,12 +103,16 @@ class ForkingUnixHTTPServer(ForkingHTTPServer):
     address_family = socket.AF_UNIX
 
     def server_bind(self):
-        oldmask = os.umask(000)
+        self.unlink()
+        atexit.register(self.unlink)
+        ForkingHTTPServer.server_bind(self)
+        os.chmod(self.server_address, 0o666)
+
+    def unlink(self):
         try:
-            ForkingHTTPServer.server_bind(self)
-        finally:
-            os.umask(oldmask)
-        self.socket_file = self.socket.getsockname()
+            os.unlink(self.server_address)
+        except OSError:
+            pass
 
 
 class ForkingTLSServer(ForkingHTTPServer):
@@ -433,36 +462,71 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
 
 
 class HTTPServer(object):
+    handler = HTTPRequestHandler
 
     def __init__(self, srvurl, config):
         url = urlparse(srvurl)
-        address = unquote(url.netloc)
+        serverclass, address = self._get_serverclass(url)
+        if sd is not None:
+            address = self._get_systemd_socket(address)
+        self.httpd = serverclass(address, self.handler, config)
+
+    def _get_serverclass(self, url):
         if url.scheme == 'http+unix':
             # Unix socket
+            address = unquote(url.netloc)
+            if not address:
+                raise ValueError('Empty address {}'.format(url))
+            logger.info('Serving on Unix socket %s', address)
             serverclass = ForkingUnixHTTPServer
-            if os.path.exists(address):
-                os.remove(address)
         elif url.scheme == 'http':
-            host, port = address.split(":")
+            host, port = url.netloc.split(":")
             address = (host, int(port))
+            logger.info('Serving on %s (HTTP)', url.netloc)
             serverclass = ForkingHTTPServer
         elif url.scheme == 'https':
-            host, port = address.split(":")
+            host, port = url.netloc.split(":")
             address = (host, int(port))
+            logger.info('Serving on %s (HTTPS)', url.netloc)
             serverclass = ForkingTLSServer
         else:
             raise ValueError('Unknown URL Scheme: %s' % url.scheme)
+        return serverclass, address
 
-        logger.debug('Serving on %s', address)
+    def _get_systemd_socket(self, address):
+        fds = sd.listen_fds()
+        if not fds:
+            return address
+        elif len(fds) > 1:
+            raise ValueError('Too many listening sockets', fds)
 
-        self.httpd = serverclass(address,
-                                 HTTPRequestHandler,
-                                 config)
+        if isinstance(address, tuple):
+            port = address[1]
+            # systemd uses IPv6
+            if not sd.is_socket_inet(fds[0], family=socket.AF_INET6,
+                                     type=socket.SOCK_STREAM,
+                                     listening=True, port=port):
+                raise ValueError("FD {} is not TCP IPv6 socket on port {}",
+                                 fds[0], port)
+            logger.info('Using systemd socket activation on port %i', port)
+            sock = socket.fromfd(fds[0], socket.AF_INET6, socket.SOCK_STREAM)
+        else:
+            if not sd.is_socket_unix(fds[0], socket.SOCK_STREAM,
+                                     listening=True, path=address):
+                raise ValueError("FD {} is not Unix stream socket on path {}",
+                                 fds[0], address)
+            logger.info('Using systemd socket activation on path %s', address)
+            sock = socket.fromfd(fds[0], socket.AF_UNIX, socket.SOCK_STREAM)
+
+        if sys.version_info[0] < 3:
+            # Python 2.7's socket.fromfd() returns _socket.socket
+            sock = socket.socket(_sock=sock)
+        return sock
 
     def get_socket(self):
         return (self.httpd.socket, self.httpd.socket_file)
 
     def serve(self):
-        if sd_notify is not None and sd_booted():
-            sd_notify("READY=1")
+        if sd is not None and sd.booted():
+            sd.notify("READY=1")
         return self.httpd.serve_forever()
