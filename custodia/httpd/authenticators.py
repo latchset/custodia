@@ -1,6 +1,8 @@
 # Copyright (C) 2015  Custodia Project Contributors - see LICENSE file
 
+import grp
 import os
+import pwd
 
 from cryptography.hazmat.primitives import constant_time
 
@@ -18,12 +20,23 @@ class SimpleCredsAuth(HTTPAuthenticator):
 
     def __init__(self, config=None):
         super(SimpleCredsAuth, self).__init__(config)
-        self._uid = 0
-        self._gid = 0
-        if 'uid' in self.config:
-            self._uid = int(self.config['uid'])
-        if 'gid' in self.config:
-            self._gid = int(self.config['gid'])
+        uid = self.config.get('uid')
+        if uid is None:
+            self._uid = 0
+        else:
+            try:
+                self._uid = int(uid)
+            except ValueError:
+                self._uid = pwd.getpwnam(uid).pw_uid
+
+        gid = self.config.get('gid')
+        if gid is None:
+            self._gid = 0
+        else:
+            try:
+                self._gid = int(gid)
+            except ValueError:
+                self._gid = grp.getgrnam(gid).gr_gid
 
     def handle(self, request):
         creds = request.get('creds')
