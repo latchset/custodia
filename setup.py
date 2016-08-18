@@ -72,6 +72,7 @@ setup(
     url='https://github.com/latchset/custodia',
     packages=[
         'custodia',
+        'custodia.cli',
         'custodia.httpd',
         'custodia.kubernetes',
         'custodia.message',
@@ -81,6 +82,7 @@ setup(
     entry_points={
         'console_scripts': [
             'custodia = custodia.server:main',
+            'custodia-cli = custodia.cli:main',
         ],
         'custodia.authenticators': custodia_authenticators,
         'custodia.authorizers': custodia_authorizers,
