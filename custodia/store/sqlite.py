@@ -1,7 +1,7 @@
 # Copyright (C) 2015  Custodia Project Contributors - see LICENSE file
-
 from __future__ import print_function
 
+import os
 import sqlite3
 
 from custodia.store.interface import CSStore, CSStoreError, CSStoreExists
@@ -19,9 +19,12 @@ class SqliteStore(CSStore):
         else:
             self.table = "CustodiaSecrets"
 
+        filemode = int(config.get('filemode', '600'), 8)
+
         # Initialize the DB by trying to create the default table
         try:
             conn = sqlite3.connect(self.dburi)
+            os.chmod(self.dburi, filemode)
             with conn:
                 c = conn.cursor()
                 self._create(c)

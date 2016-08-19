@@ -74,8 +74,10 @@ def parse_config(cfgfile):
             'global', 'tls_verify_client', fallback=False)
         config['debug'] = parser.getboolean(
             'global', 'debug', fallback=False)
+
         config['auditlog'] = os.path.abspath(
             config.get('auditlog', 'custodia.audit.log'))
+        config['umask'] = int(config.get('umask', '027'), 8)
 
         url = config.get('server_url')
         if url and 'server_socket' in config:
@@ -86,6 +88,9 @@ def parse_config(cfgfile):
                 config.get('server_socket', 'server_socket'))
             config['server_url'] = 'http+unix://{}/'.format(
                 url_escape(server_socket, ''))
+
+    # set umask before any plugin gets a chance to create a file
+    os.umask(config['umask'])
 
     for s in parser.sections():
         if s in {'ENV', 'global'}:
