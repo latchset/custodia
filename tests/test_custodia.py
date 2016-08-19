@@ -39,6 +39,7 @@ tls_certfile = tests/ca/custodia-server.pem
 tls_keyfile = tests/ca/custodia-server.key
 tls_cafile = tests/ca/custodia-ca.pem
 tls_verify_client = ${VERIFY_CLIENT}
+umask = 027
 
 [auth:header]
 handler = custodia.httpd.authenticators.SimpleHeaderAuth
@@ -60,6 +61,7 @@ store = simple
 handler = custodia.store.sqlite.SqliteStore
 dburi = ${TEST_DIR}/test_secrets.db
 table = secrets
+filemode = 640
 
 [/secrets]
 handler = custodia.secrets.Secrets
