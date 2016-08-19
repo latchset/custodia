@@ -80,12 +80,12 @@ def parse_config(cfgfile):
         config['umask'] = int(config.get('umask', '027'), 8)
 
         url = config.get('server_url')
-        if url and 'server_socket' in config:
-            raise ValueError(
-                "'server_url' and ''server_socket'' are mutual exclusive")
-        if url is None:
-            server_socket = os.path.abspath(
-                config.get('server_socket', 'server_socket'))
+        sock = config.get('server_socket')
+        if bool(url) == bool(sock):
+            raise ValueError("Exactly one of 'server_url' or "
+                             "'server_socket' is required.")
+        if sock:
+            server_socket = os.path.abspath(sock)
             config['server_url'] = 'http+unix://{}/'.format(
                 url_escape(server_socket, ''))
 
