@@ -62,34 +62,34 @@ def parse_config(cfgfile):
         k: v.replace('$', '$$') for k, v in os.environ.items()
         if not set(v).intersection('\r\n\x00')}
 
+    # parse globals first
+    if parser.has_section('global'):
+        for opt, val in parser.items('global'):
+            if opt in CONFIG_SPECIALS:
+                raise ValueError('"%s" is an invalid '
+                                 '[global] option' % opt)
+            config[opt] = val
+
+        config['tls_verify_client'] = parser.getboolean(
+            'global', 'tls_verify_client', fallback=False)
+        config['debug'] = parser.getboolean(
+            'global', 'debug', fallback=False)
+        config['auditlog'] = os.path.abspath(
+            config.get('auditlog', 'custodia.audit.log'))
+
+        url = config.get('server_url')
+        if url and 'server_socket' in config:
+            raise ValueError(
+                "'server_url' and ''server_socket'' are mutual exclusive")
+        if url is None:
+            server_socket = os.path.abspath(
+                config.get('server_socket', 'server_socket'))
+            config['server_url'] = 'http+unix://{}/'.format(
+                url_escape(server_socket, ''))
+
     for s in parser.sections():
-        if s == 'ENV':
+        if s in {'ENV', 'global'}:
             # ENV section is only used for interpolation
-            continue
-        if s == 'global':
-            for opt, val in parser.items(s):
-                if opt in CONFIG_SPECIALS:
-                    raise ValueError('"%s" is an invalid '
-                                     '[global] option' % opt)
-                config[opt] = val
-
-            config['tls_verify_client'] = parser.getboolean(
-                'global', 'tls_verify_client', fallback=False)
-            config['debug'] = parser.getboolean(
-                'global', 'debug', fallback=False)
-            config['auditlog'] = os.path.abspath(
-                config.get('auditlog', 'custodia.audit.log'))
-
-            url = config.get('server_url')
-            if url and 'server_socket' in config:
-                raise ValueError(
-                    "'server_url' and ''server_socket'' are mutual exclusive")
-            if url is None:
-                server_socket = os.path.abspath(
-                    config.get('server_socket', 'server_socket'))
-                config['server_url'] = 'http+unix://{}/'.format(
-                    url_escape(server_socket, ''))
-
             continue
 
         if s.startswith('/'):
