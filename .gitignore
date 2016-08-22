@@ -2,6 +2,7 @@
 /dist/
 /docs/build
 /tests/tmp
+/*.egg-info
 __pycache__
 *.pyc
 *.pyo
@@ -10,4 +11,6 @@ cscope.out
 .cache
 .coverage
 MANIFEST
-
+custodia.audit.log
+secrets.db
+server_socket
