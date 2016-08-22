@@ -1,4 +1,4 @@
-jwcrypto
+jwcrypto < 0.3
 docker-py
 python-etcd
 six

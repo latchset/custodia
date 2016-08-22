@@ -7,6 +7,7 @@ import shutil
 import socket
 import subprocess
 import sys
+import textwrap
 import time
 import unittest
 
@@ -16,7 +17,9 @@ from jwcrypto import jwk
 
 from requests.exceptions import HTTPError, SSLError
 
-from custodia.client import CustodiaKEMClient, CustodiaSimpleClient
+from custodia.client import (
+    CustodiaConfigParser, CustodiaKEMClient, CustodiaSimpleClient)
+from custodia.client.cfgparser import CustodiaSectionProxy
 from custodia.store.sqlite import SqliteStore
 
 
@@ -232,6 +235,44 @@ class CustodiaTests(unittest.TestCase):
 
     def test_2_get_simple_key(self):
         key = self.client.get_secret('test/key')
+        self.assertEqual(key, 'VmVycnlTZWNyZXQK')
+
+    def test_2_configparser_get_simple_key(self):
+        cfg = CustodiaConfigParser(custodia_client=self.client)
+        cfg.read_string(textwrap.dedent(u"""
+        [example]
+        password = test/key
+        [interpolation]
+        password = ${CUSTODIA:test/key}
+        """))
+        key = cfg.getsecret('example', 'password')
+        self.assertEqual(key, 'VmVycnlTZWNyZXQK')
+        self.assertIsInstance(cfg['example'], CustodiaSectionProxy)
+        key = cfg['example'].getsecret('password')
+        self.assertEqual(key, 'VmVycnlTZWNyZXQK')
+        key = cfg.get('interpolation', 'password')
+        self.assertEqual(key, 'VmVycnlTZWNyZXQK')
+
+    def test_2_configparser_client_get_simple_key(self):
+        cfg = CustodiaConfigParser()
+        cfg.read_string(textwrap.dedent(u"""
+        [custodia_client]
+        url = {}
+        headers = {{"REMOTE_USER": "test"}}
+        tls_cafile = tests/ca/custodia-ca.pem
+        tls_certfile = tests/ca/custodia-client.pem
+        tls_keyfile = tests/ca/custodia-client.key
+        [example]
+        password = test/key
+        [interpolation]
+        password = ${{CUSTODIA:test/key}}
+        """.format(self.client.url)))
+        key = cfg.getsecret('example', 'password')
+        self.assertEqual(key, 'VmVycnlTZWNyZXQK')
+        self.assertIsInstance(cfg['example'], CustodiaSectionProxy)
+        key = cfg['example'].getsecret('password')
+        self.assertEqual(key, 'VmVycnlTZWNyZXQK')
+        key = cfg.get('interpolation', 'password')
         self.assertEqual(key, 'VmVycnlTZWNyZXQK')
 
     def test_3_list_container(self):
