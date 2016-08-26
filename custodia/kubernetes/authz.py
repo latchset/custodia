@@ -7,6 +7,8 @@ from custodia.httpd.authorizers import HTTPAuthorizer
 
 DEFAULT_API_SERVER = 'http://localhost:8080'
 
+log.warn_provisional(__name__)
+
 
 class KubeAuthz(HTTPAuthorizer):
 

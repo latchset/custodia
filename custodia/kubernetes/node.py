@@ -16,6 +16,9 @@ DEFAULT_REGEX = r'/docker-([0-9a-f]{64})\.scope'
 DEFAULT_DOCKER_URI = 'unix://var/run/docker.sock'
 
 
+log.warn_provisional(__name__)
+
+
 class NodeAuth(HTTPAuthenticator):
 
     def __init__(self, config=None):

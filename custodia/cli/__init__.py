@@ -13,7 +13,11 @@ except ImportError:
 import pkg_resources
 
 
+from custodia import log
 from custodia.client import CustodiaSimpleClient
+
+log.warn_provisional(__name__)
+
 
 main_parser = argparse.ArgumentParser(
     prog='custodia-cli',
