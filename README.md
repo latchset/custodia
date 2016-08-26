@@ -38,3 +38,11 @@ https://github.com/latchset/custodia/wiki
 * setuptools >= 18.0
 * tox >= 2.3.1
 * wheel
+
+## API stability
+
+Some APIs are provisional and may change in the future.
+
+* Kubernetes and Docker authenticator and authorizer modules in ```custodia.kubernetes```.
+* Command line interface in module ```custodia.cli```.
+* The script custodia-cli.

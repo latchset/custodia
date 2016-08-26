@@ -2,6 +2,7 @@
 
 import logging
 import sys
+import warnings
 
 custodia_logger = logging.getLogger('custodia')
 custodia_logger.addHandler(logging.NullHandler())
@@ -126,3 +127,14 @@ class CustodiaPlugin(object):
 
     def audit_svc_access(self, *args, **kwargs):
         self._auditlog.svc_access(self.origin, *args, **kwargs)
+
+
+class ProvisionalWarning(FutureWarning):
+    pass
+
+
+def warn_provisional(modulename, stacklevel=3):
+    msg = ("Module '{}' is a provisional API. It may changed or get "
+           "removed in future releases.")
+    return warnings.warn(msg.format(modulename), ProvisionalWarning,
+                         stacklevel=stacklevel)
