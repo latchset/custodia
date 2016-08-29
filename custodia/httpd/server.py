@@ -104,7 +104,11 @@ class ForkingUnixHTTPServer(ForkingHTTPServer):
 
     def server_bind(self):
         self.unlink()
+        # Remove on exit
         atexit.register(self.unlink)
+        basedir = os.path.dirname(self.server_address)
+        if not os.path.isdir(basedir):
+            os.makedirs(basedir, mode=0o755)
         ForkingHTTPServer.server_bind(self)
         os.chmod(self.server_address, 0o666)
 

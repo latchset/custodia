@@ -35,7 +35,9 @@ def server_check(arg):
 
 
 main_parser.add_argument(
-    '--server', type=server_check, default='/var/run/custodia.sock',
+    '--server',
+    type=server_check,
+    default='/var/run/custodia/custodia.sock',
     help='Custodia server'
 )
 main_parser.add_argument(
@@ -69,7 +71,7 @@ def handle_name(args):
     return func(args.name)
 
 
-def handle_name_value(client, args):
+def handle_name_value(args):
     client = args.client_conn
     func = getattr(client, args.command)
     return func(args.name, args.value)
