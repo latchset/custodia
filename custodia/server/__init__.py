@@ -139,21 +139,23 @@ def parse_config(cfgfile):
         if not parser.has_option(s, 'handler'):
             raise ValueError('Invalid section, missing "handler"')
 
-        handler = None
+        handler_name = parser.get(s, 'handler')
         hconf = {'facility_name': s}
-        for opt, val in parser.items(s):
-            if opt == 'handler':
-                try:
-                    handler = load_plugin(menu, val)
-                    classname = handler.__name__
-                    hconf['facility_name'] = '%s-[%s]' % (classname, s)
-                except Exception as e:  # pylint: disable=broad-except
-                    raise ValueError('Invalid format for "handler" option '
-                                     '[%r]: %s' % (e, val))
+        try:
+            handler = load_plugin(menu, handler_name)
+            classname = handler.__name__
+            hconf['facility_name'] = '%s-[%s]' % (classname, s)
+        except Exception as e:  # pylint: disable=broad-except
+            raise ValueError('Invalid format for "handler" option '
+                             '[%r]: %s' % (e, handler_name))
 
-            else:
-                hconf[opt] = val
-        config[menu][name] = handler(hconf)
+        if handler.options is not None:
+            config[menu][name] = handler(parser, s)
+        else:
+            # old style plugin
+            hconf.update(parser.items(s))
+            hconf.pop('handler')
+            config[menu][name] = handler(hconf)
 
     # Attach stores to other plugins
     attach_store('auth:', config['authenticators'], config['stores'])
