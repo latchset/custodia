@@ -4,13 +4,13 @@ Plugin base classes
 .. autosummary::
    :nosignatures:
 
-   custodia.log.CustodiaPlugin
+   custodia.plugin.CustodiaPlugin
    custodia.httpd.authenticators.HTTPAuthenticator
    custodia.httpd.authorizers.HTTPAuthorizer
    custodia.store.interface.CSStore
    custodia.httpd.consumer.HTTPConsumer
 
-.. autoclass:: custodia.log.CustodiaPlugin
+.. autoclass:: custodia.plugin.CustodiaPlugin
     :members:
     :undoc-members:
     :show-inheritance:
