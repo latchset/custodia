@@ -1,7 +1,5 @@
 .. WARNING: AUTO-GENERATED FILE. DO NOT EDIT.
 
-|Build Status|
-
 Custodia
 ========
 
@@ -53,6 +51,3 @@ Some APIs are provisional and may change in the future.
    ``custodia.kubernetes``.
 -  Command line interface in module ``custodia.cli``.
 -  The script custodia-cli.
-
-.. |Build Status| image:: https://travis-ci.org/latchset/custodia.svg?branch=master
-   :target: https://travis-ci.org/latchset/custodia
