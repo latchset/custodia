@@ -20,7 +20,7 @@ etcd_requires = ['python-etcd']
 test_requires = ['coverage', 'pytest'] + k8s_requires + etcd_requires
 test_pylint_requires = ['pylint'] + test_requires
 test_pep8_requires = ['flake8', 'flake8-import-order', 'pep8-naming']
-test_docs_requires = ['docutils', 'markdown']
+test_docs_requires = ['docutils', 'markdown'] + k8s_requires + etcd_requires
 
 with open('README') as f:
     long_description = f.read()
