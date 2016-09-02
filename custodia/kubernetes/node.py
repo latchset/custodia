@@ -10,7 +10,7 @@ except ImportError:
 
 
 from custodia import log
-from custodia.httpd.authenticators import HTTPAuthenticator
+from custodia.plugin import HTTPAuthenticator
 
 DEFAULT_REGEX = r'/docker-([0-9a-f]{64})\.scope'
 DEFAULT_DOCKER_URI = 'unix://var/run/docker.sock'

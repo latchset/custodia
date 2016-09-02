@@ -2,7 +2,7 @@
 
 import json
 
-from custodia.httpd.consumer import HTTPConsumer
+from custodia.plugin import HTTPConsumer
 from custodia.secrets import Secrets
 
 

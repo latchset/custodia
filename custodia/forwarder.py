@@ -4,8 +4,7 @@ import json
 import uuid
 
 from custodia.client import CustodiaHTTPClient
-from custodia.httpd.consumer import HTTPConsumer
-from custodia.httpd.server import HTTPError
+from custodia.plugin import HTTPConsumer, HTTPError
 
 
 class Forwarder(HTTPConsumer):

@@ -8,7 +8,7 @@ from base64 import b64encode
 
 from custodia import log
 from custodia.httpd.authorizers import UserNameSpace
-from custodia.httpd.server import HTTPError
+from custodia.plugin import HTTPError
 from custodia.secrets import Secrets
 from custodia.store.sqlite import SqliteStore
 

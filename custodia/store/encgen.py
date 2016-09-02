@@ -6,7 +6,7 @@ from jwcrypto.common import json_decode, json_encode
 from jwcrypto.jwe import JWE
 from jwcrypto.jwk import JWK
 
-from custodia.store.interface import CSStore, CSStoreError
+from custodia.plugin import CSStore, CSStoreError
 
 
 class EncryptedOverlay(CSStore):
