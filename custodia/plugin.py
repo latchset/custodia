@@ -1,7 +1,10 @@
 # Copyright (C) 2016  Custodia Project Contributors - see LICENSE file
 
 import abc
+import configparser
+import grp
 import logging
+import pwd
 
 from jwcrypto.common import json_encode
 
@@ -11,6 +14,9 @@ from .log import auditlog
 
 
 logger = logging.getLogger(__name__)
+
+
+REQUIRED = object()
 
 
 class CustodiaException(Exception):
@@ -38,25 +44,111 @@ class CSStoreExists(CustodiaException):
         super(CSStoreExists, self).__init__(message)
 
 
+class OptionHandler(object):
+    def __init__(self, config, section):
+        self.config = config
+        self.section = section
+
+    def get(self, name, typ, default, doc):
+        if typ in {str, int, float, bool}:
+            typ = typ.__name__
+        if (default is REQUIRED and
+                not self.config.has_option(self.section, name)):
+            raise NameError(self.section, name)
+        handler = getattr(self, '_get_{}'.format(typ), None)
+        if handler is None:
+            raise ValueError(typ)
+        return handler(name, default)
+
+    def _get_int(self, name, default):
+        return self.config.getint(self.section, name, fallback=default)
+
+    def _get_float(self, name, default):
+        return self.config.getfloat(self.section, name, fallback=default)
+
+    def _get_bool(self, name, default):
+        return self.config.getboolean(self.section, name, fallback=default)
+
+    def _get_str(self, name, default):
+        return self.config.get(self.section, name, fallback=default)
+
+    def _get_str_set(self, name, default):
+        try:
+            value = self.config.get(self.section, name)
+        except configparser.NoOptionError:
+            return default
+        if not value or not value.strip():
+            return None
+        else:
+            return set(v.strip() for v in value.split(','))
+
+    def _get_store(self, name, default):
+        return self.config.get(self.section, name, fallback=default)
+
+    def _get_pwd_uid(self, name, default):
+        value = self.config.get(self.section, name, fallback=default)
+        try:
+            return int(value)
+        except ValueError:
+            return pwd.getpwnam(value).pw_uid
+
+    def _get_grp_gid(self, name, default):
+        value = self.config.get(self.section, name, fallback=default)
+        try:
+            return int(value)
+        except ValueError:
+            return grp.getgrnam(value).gr_gid
+
+
 @six.add_metaclass(abc.ABCMeta)
 class CustodiaPlugin(object):
-    def __init__(self, config=None):
-        self.config = config if config is not None else dict()
+    options = None
+
+    def __init__(self, config=None, section=None):
+        origin, debug = self._configure(config, section)
         self._auditlog = auditlog
-        self.origin = self.config.get('facility_name', self.__class__.__name__)
+        self.origin = origin
         l = logging.getLogger(
             'custodia.plugins.%s' % self.__class__.__name__)
+        l.setLevel(logging.DEBUG if debug else logging.INFO)
         self.logger = logging.LoggerAdapter(l, {'origin': self.origin})
-        if self.config.get('debug', 'false').lower() == 'true':
-            l.setLevel(logging.DEBUG)
-        else:
-            l.setLevel(logging.INFO)
 
     def audit_key_access(self, *args, **kwargs):
         self._auditlog.key_access(self.origin, *args, **kwargs)
 
     def audit_svc_access(self, *args, **kwargs):
         self._auditlog.svc_access(self.origin, *args, **kwargs)
+
+    def _configure(self, config, section):
+        if self.options is not None:
+            # new style configuration
+            opt = OptionHandler(config, section)
+            # pylint: disable=not-an-iterable
+            for name, typ, default, doc in self.options:
+                # no name clashes
+                if getattr(self, name, None):
+                    raise NameError(name)
+                value = opt.get(name, typ, default, doc)
+                # special case for store
+                if typ == 'store':
+                    if name != 'store':
+                        raise ValueError(name)
+                    self.store_name = value
+                    self.store = None
+                else:
+                    setattr(self, name, value)
+
+            origin = '%s-[%s]' % (type(self).__name__, section)
+            debug = opt.get('debug', bool, False, '')
+        else:
+            # old style configuration
+            if config is None:
+                config = {}
+            self.config = config
+            origin = config.get('facility_name', self.__class__.__name__)
+            debug = config.get('debug', 'false').lower() == 'true'
+
+        return origin, debug
 
 
 class CSStore(CustodiaPlugin):
@@ -82,8 +174,8 @@ class CSStore(CustodiaPlugin):
 
 
 class HTTPAuthorizer(CustodiaPlugin):
-    def __init__(self, config=None):
-        super(HTTPAuthorizer, self).__init__(config)
+    def __init__(self, config=None, section=None):
+        super(HTTPAuthorizer, self).__init__(config, section)
         self.store_name = None
         if self.config and 'store' in self.config:
             self.store_name = self.config['store']
@@ -105,9 +197,8 @@ SUPPORTED_COMMANDS = ['GET', 'PUT', 'POST', 'DELETE']
 
 
 class HTTPConsumer(CustodiaPlugin):
-    def __init__(self, config=None):
-        super(HTTPConsumer, self).__init__(config)
-        self.config = config
+    def __init__(self, config=None, section=None):
+        super(HTTPConsumer, self).__init__(config, section)
         self.store_name = None
         if config and 'store' in config:
             self.store_name = config['store']

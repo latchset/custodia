@@ -1,8 +1,6 @@
 # Copyright (C) 2015  Custodia Project Contributors - see LICENSE file
 
-import grp
 import os
-import pwd
 
 from cryptography.hazmat.primitives import constant_time
 
@@ -11,26 +9,13 @@ from custodia.plugin import HTTPAuthenticator
 
 
 class SimpleCredsAuth(HTTPAuthenticator):
+    options = [
+        ('uid', 'pwd_uid', 0, "User id or name"),
+        ('gid', 'grp_gid', 0, "Group id or name"),
+    ]
 
-    def __init__(self, config=None):
-        super(SimpleCredsAuth, self).__init__(config)
-        uid = self.config.get('uid')
-        if uid is None:
-            self._uid = 0
-        else:
-            try:
-                self._uid = int(uid)
-            except ValueError:
-                self._uid = pwd.getpwnam(uid).pw_uid
-
-        gid = self.config.get('gid')
-        if gid is None:
-            self._gid = 0
-        else:
-            try:
-                self._gid = int(gid)
-            except ValueError:
-                self._gid = grp.getgrnam(gid).gr_gid
+    uid = None
+    gid = None
 
     def handle(self, request):
         creds = request.get('creds')
@@ -39,7 +24,7 @@ class SimpleCredsAuth(HTTPAuthenticator):
             return False
         uid = int(creds['gid'])
         gid = int(creds['uid'])
-        if self._gid == gid or self._uid == uid:
+        if self.gid == gid or self.uid == uid:
             self.audit_svc_access(log.AUDIT_SVC_AUTH_PASS,
                                   request['client_id'],
                                   "%d, %d" % (uid, gid))
@@ -52,38 +37,25 @@ class SimpleCredsAuth(HTTPAuthenticator):
 
 
 class SimpleHeaderAuth(HTTPAuthenticator):
+    options = [
+        ('header', str, 'REMOTE_USER', "header name"),
+        ('value', 'str_set', None, "Comma-separated list of required values"),
+    ]
 
-    def __init__(self, config=None):
-        super(SimpleHeaderAuth, self).__init__(config)
-        self.name = 'REMOTE_USER'
-        self.value = None
-        if 'header' in self.config:
-            self.name = self.config['header']
-        if 'value' in self.config:
-            self.value = self.config['value']
+    header = None
+    value = None
 
     def handle(self, request):
-        if self.name not in request['headers']:
+        if self.header not in request['headers']:
             self.logger.debug('SHA: No "headers" in request')
             return None
-        value = request['headers'][self.name]
-        if self.value is None:
-            # Any value is accepted
-            pass
-        elif isinstance(self.value, str):
-            if value != self.value:
-                self.audit_svc_access(log.AUDIT_SVC_AUTH_FAIL,
-                                      request['client_id'], value)
-                return False
-        elif isinstance(self.value, list):
+        value = request['headers'][self.header]
+        if self.value is not None:
+            # pylint: disable=unsupported-membership-test
             if value not in self.value:
                 self.audit_svc_access(log.AUDIT_SVC_AUTH_FAIL,
                                       request['client_id'], value)
                 return False
-        else:
-            self.audit_svc_access(log.AUDIT_SVC_AUTH_FAIL,
-                                  request['client_id'], value)
-            return False
 
         self.audit_svc_access(log.AUDIT_SVC_AUTH_PASS,
                               request['client_id'], value)
@@ -136,12 +108,14 @@ class SimpleAuthKeys(HTTPAuthenticator):
 
 
 class SimpleClientCertAuth(HTTPAuthenticator):
-    def __init__(self, config=None):
-        super(SimpleClientCertAuth, self).__init__(config)
-        self.id_header = self.config.get('header', 'CUSTODIA_CERT_AUTH')
+    options = [
+        ('header', str, 'CUSTODIA_CERT_AUTH', "header name"),
+    ]
+
+    header = None
 
     def handle(self, request):
-        cert_auth = request['headers'].get(self.id_header, "false").lower()
+        cert_auth = request['headers'].get(self.header, "false").lower()
         client_cert = request['client_cert']  # {} or None
         if not client_cert or cert_auth not in {'1', 'yes', 'true', 'on'}:
             self.logger.debug('Ignoring request no relevant header or cert'
