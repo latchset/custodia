@@ -7,13 +7,7 @@ import pwd
 from cryptography.hazmat.primitives import constant_time
 
 from custodia import log
-from custodia.httpd.server import HTTPError
-
-
-class HTTPAuthenticator(log.CustodiaPlugin):
-
-    def handle(self, request):
-        raise HTTPError(403)
+from custodia.plugin import HTTPAuthenticator
 
 
 class SimpleCredsAuth(HTTPAuthenticator):

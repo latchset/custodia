@@ -4,7 +4,7 @@ from jwcrypto.common import json_decode, json_encode
 from jwcrypto.jwe import JWE
 from jwcrypto.jwk import JWK
 
-from custodia.store.interface import CSStoreError
+from custodia.plugin import CSStoreError
 from custodia.store.sqlite import SqliteStore
 
 

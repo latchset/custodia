@@ -108,27 +108,6 @@ class AuditLog(object):
 auditlog = AuditLog(logging.getLogger('custodia.audit'))
 
 
-class CustodiaPlugin(object):
-
-    def __init__(self, config=None):
-        self.config = config if config is not None else dict()
-        self._auditlog = auditlog
-        self.origin = self.config.get('facility_name', self.__class__.__name__)
-        l = logging.getLogger(
-            'custodia.plugins.%s' % self.__class__.__name__)
-        self.logger = logging.LoggerAdapter(l, {'origin': self.origin})
-        if self.config.get('debug', 'false').lower() == 'true':
-            l.setLevel(logging.DEBUG)
-        else:
-            l.setLevel(logging.INFO)
-
-    def audit_key_access(self, *args, **kwargs):
-        self._auditlog.key_access(self.origin, *args, **kwargs)
-
-    def audit_svc_access(self, *args, **kwargs):
-        self._auditlog.svc_access(self.origin, *args, **kwargs)
-
-
 class ProvisionalWarning(FutureWarning):
     pass
 

@@ -6,13 +6,11 @@ import os
 from base64 import b64decode, b64encode
 
 from custodia import log
-from custodia.httpd.consumer import HTTPConsumer
-from custodia.httpd.server import HTTPError
 from custodia.message.common import UnallowedMessage
 from custodia.message.common import UnknownMessageType
 from custodia.message.formats import Validator
-from custodia.store.interface import CSStoreError
-from custodia.store.interface import CSStoreExists
+from custodia.plugin import HTTPConsumer, HTTPError
+from custodia.plugin import CSStoreError, CSStoreExists
 
 
 class Secrets(HTTPConsumer):

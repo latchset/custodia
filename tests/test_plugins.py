@@ -5,9 +5,7 @@ import unittest
 import pkg_resources
 
 from custodia.client import CustodiaHTTPClient
-from custodia.httpd.authenticators import HTTPAuthenticator
-from custodia.httpd.authorizers import HTTPAuthorizer
-from custodia.store.interface import CSStore
+from custodia.plugin import CSStore, HTTPAuthenticator, HTTPAuthorizer
 
 
 class TestCustodiaPlugins(unittest.TestCase):

@@ -32,6 +32,7 @@ except ImportError:
 
 
 from custodia import log
+from custodia.plugin import HTTPError
 
 logger = logging.getLogger(__name__)
 
@@ -39,16 +40,6 @@ SO_PEERCRED = getattr(socket, 'SO_PEERCRED', 17)
 SO_PEERSEC = getattr(socket, 'SO_PEERSEC', 31)
 SELINUX_CONTEXT_LEN = 256
 MAX_REQUEST_SIZE = 10 * 1024 * 1024  # For now limit body to 10MiB
-
-
-class HTTPError(Exception):
-
-    def __init__(self, code=None, message=None):
-        self.code = code if code is not None else 500
-        self.mesg = message
-        errstring = '%d: %s' % (self.code, self.mesg)
-        logger.debug(errstring)
-        super(HTTPError, self).__init__(errstring)
 
 
 class ForkingHTTPServer(ForkingTCPServer):

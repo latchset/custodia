@@ -3,7 +3,7 @@
 import requests
 
 from custodia import log
-from custodia.httpd.authorizers import HTTPAuthorizer
+from custodia.plugin import HTTPAuthorizer
 
 DEFAULT_API_SERVER = 'http://localhost:8080'
 

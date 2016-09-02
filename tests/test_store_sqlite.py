@@ -4,7 +4,7 @@ from __future__ import print_function
 import os
 import unittest
 
-from custodia.store.interface import CSStoreExists
+from custodia.plugin import CSStoreExists
 from custodia.store.sqlite import SqliteStore
 
 

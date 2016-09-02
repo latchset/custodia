@@ -6,8 +6,8 @@ import shutil
 import tempfile
 import unittest
 
+from custodia.plugin import CSStoreError
 from custodia.store.encgen import EncryptedOverlay
-from custodia.store.interface import CSStoreError
 from custodia.store.sqlite import SqliteStore
 
 

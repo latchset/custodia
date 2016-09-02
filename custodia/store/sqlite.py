@@ -4,7 +4,7 @@ from __future__ import print_function
 import os
 import sqlite3
 
-from custodia.store.interface import CSStore, CSStoreError, CSStoreExists
+from custodia.plugin import CSStore, CSStoreError, CSStoreExists
 
 
 class SqliteStore(CSStore):

@@ -21,7 +21,7 @@ except ImportError:
     class EtcdAlreadyExist(Exception):
         pass
 
-from custodia.store.interface import CSStore, CSStoreError, CSStoreExists
+from custodia.plugin import CSStore, CSStoreError, CSStoreExists
 
 
 class EtcdStore(CSStore):

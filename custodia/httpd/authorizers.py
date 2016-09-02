@@ -3,19 +3,7 @@
 import os
 
 from custodia import log
-
-
-class HTTPAuthorizer(log.CustodiaPlugin):
-
-    def __init__(self, config=None):
-        super(HTTPAuthorizer, self).__init__(config)
-        self.store_name = None
-        if self.config and 'store' in self.config:
-            self.store_name = self.config['store']
-        self.store = None
-
-    def handle(self, request):
-        raise NotImplementedError
+from custodia.plugin import HTTPAuthorizer
 
 
 class SimplePathAuthz(HTTPAuthorizer):
