@@ -186,7 +186,7 @@ class KEMHandler(MessageHandler):
 
         ktype = self.client_keys[KEY_USAGE_ENC].key_type
         if ktype == 'RSA':
-            enc = ('RSA1_5', 'A256CBC-HS512')
+            enc = ('RSA-OAEP', 'A256CBC-HS512')
         else:
             raise ValueError("'%s' type not supported yet" % ktype)
 

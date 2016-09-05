@@ -169,7 +169,8 @@ class KEMTests(unittest.TestCase):
                        JWK(**self.client_keys[kem.KEY_USAGE_ENC])]
         cli = kem.KEMClient(server_keys, client_keys)
         kh = kem.KEMHandler({'KEMKeysStore': self.kk})
-        req = cli.make_request("key name", encalg=('RSA1_5', 'A256CBC-HS512'))
+        req = cli.make_request("key name",
+                               encalg=('RSA-OAEP', 'A256CBC-HS512'))
         kh.parse(req, "key name")
         msg = kh.reply('key value')
         self.assertEqual(msg, json_decode(json_encode(msg)))
