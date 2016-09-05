@@ -5,32 +5,32 @@ Plugin base classes
    :nosignatures:
 
    custodia.plugin.CustodiaPlugin
-   custodia.httpd.authenticators.HTTPAuthenticator
-   custodia.httpd.authorizers.HTTPAuthorizer
-   custodia.store.interface.CSStore
-   custodia.httpd.consumer.HTTPConsumer
+   custodia.plugin.HTTPAuthenticator
+   custodia.plugin.HTTPAuthorizer
+   custodia.plugin.CSStore
+   custodia.plugin.HTTPConsumer
 
 .. autoclass:: custodia.plugin.CustodiaPlugin
     :members:
     :undoc-members:
     :show-inheritance:
 
-.. autoclass:: custodia.httpd.authenticators.HTTPAuthenticator
+.. autoclass:: custodia.plugin.HTTPAuthenticator
     :members:
     :undoc-members:
     :show-inheritance:
 
-.. autoclass:: custodia.httpd.authorizers.HTTPAuthorizer
+.. autoclass:: custodia.plugin.HTTPAuthorizer
     :members:
     :undoc-members:
     :show-inheritance:
 
-.. autoclass:: custodia.store.interface.CSStore
+.. autoclass:: custodia.plugin.CSStore
     :members:
     :undoc-members:
     :show-inheritance:
 
-.. autoclass:: custodia.httpd.consumer.HTTPConsumer
+.. autoclass:: custodia.plugin.HTTPConsumer
     :members:
     :undoc-members:
     :show-inheritance:
