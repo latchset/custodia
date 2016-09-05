@@ -5,17 +5,12 @@ import os
 from cryptography.hazmat.primitives import constant_time
 
 from custodia import log
-from custodia.plugin import HTTPAuthenticator
+from custodia.plugin import HTTPAuthenticator, PluginOption
 
 
 class SimpleCredsAuth(HTTPAuthenticator):
-    options = [
-        ('uid', 'pwd_uid', 0, "User id or name"),
-        ('gid', 'grp_gid', 0, "Group id or name"),
-    ]
-
-    uid = None
-    gid = None
+    uid = PluginOption('pwd_uid', 0, "User id or name")
+    gid = PluginOption('grp_gid', 0, "Group id or name")
 
     def handle(self, request):
         creds = request.get('creds')
@@ -37,13 +32,9 @@ class SimpleCredsAuth(HTTPAuthenticator):
 
 
 class SimpleHeaderAuth(HTTPAuthenticator):
-    options = [
-        ('header', str, 'REMOTE_USER', "header name"),
-        ('value', 'str_set', None, "Comma-separated list of required values"),
-    ]
-
-    header = None
-    value = None
+    header = PluginOption(str, 'REMOTE_USER', "header name")
+    value = PluginOption('str_set', None,
+                         "Comma-separated list of required values")
 
     def handle(self, request):
         if self.header not in request['headers']:
@@ -65,7 +56,7 @@ class SimpleHeaderAuth(HTTPAuthenticator):
 
 class SimpleAuthKeys(HTTPAuthenticator):
 
-    def __init__(self, config=None):
+    def __init__(self, config):
         super(SimpleAuthKeys, self).__init__(config)
         self.id_header = self.config.get('header', 'CUSTODIA_AUTH_ID')
         self.key_header = self.config.get('header', 'CUSTODIA_AUTH_KEY')
@@ -108,11 +99,7 @@ class SimpleAuthKeys(HTTPAuthenticator):
 
 
 class SimpleClientCertAuth(HTTPAuthenticator):
-    options = [
-        ('header', str, 'CUSTODIA_CERT_AUTH', "header name"),
-    ]
-
-    header = None
+    header = PluginOption(str, 'CUSTODIA_CERT_AUTH', "header name")
 
     def handle(self, request):
         cert_auth = request['headers'].get(self.header, "false").lower()

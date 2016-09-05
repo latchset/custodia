@@ -1,25 +1,34 @@
 # Copyright (C) 2015  Custodia Project Contributors - see LICENSE file
 from __future__ import print_function
 
-import os
+import configparser
+import shutil
+import tempfile
 import unittest
 
 from custodia.plugin import CSStoreExists
 from custodia.store.sqlite import SqliteStore
 
+CONFIG = u"""
+[store:teststore]
+dburi = ${tmpdir}/teststore.sqlite
+"""
+
 
 class SqliteStoreTests(unittest.TestCase):
-
     @classmethod
     def setUpClass(cls):
-        cls.store = SqliteStore({'dburi': 'testdbstore.sqlite'})
+        cls.tmpdir = tempfile.mkdtemp()
+        cls.parser = configparser.ConfigParser(
+            interpolation=configparser.ExtendedInterpolation(),
+            defaults={'tmpdir': cls.tmpdir}
+        )
+        cls.parser.read_string(CONFIG)
+        cls.store = SqliteStore(cls.parser, 'store:teststore')
 
     @classmethod
     def tearDownClass(cls):
-        try:
-            os.unlink('testdbstore.sqlite')
-        except OSError:
-            pass
+        shutil.rmtree(cls.tmpdir)
 
     def test_0_get_empty(self):
         value = self.store.get('test')

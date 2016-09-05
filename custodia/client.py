@@ -174,8 +174,8 @@ class CustodiaSimpleClient(CustodiaHTTPClient):
 
 
 class CustodiaKEMClient(CustodiaHTTPClient):
-    def __init__(self, *args, **kwargs):
-        super(CustodiaKEMClient, self).__init__(*args, **kwargs)
+    def __init__(self, url):
+        super(CustodiaKEMClient, self).__init__(url)
         self._cli_signing_key = None
         self._cli_decryption_key = None
         self._srv_verifying_key = None

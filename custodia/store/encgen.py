@@ -7,6 +7,7 @@ from jwcrypto.jwe import JWE
 from jwcrypto.jwk import JWK
 
 from custodia.plugin import CSStore, CSStoreError
+from custodia.plugin import PluginOption, REQUIRED
 
 
 class EncryptedOverlay(CSStore):
@@ -27,30 +28,26 @@ class EncryptedOverlay(CSStore):
         'A256CBC-HS512': 512,
     }
 
-    def __init__(self, config):
-        super(EncryptedOverlay, self).__init__(config)
+    backing_store = PluginOption(str, REQUIRED, None)
+    master_enctype = PluginOption(str, 'A256CBC-HS512', None)
+    master_key = PluginOption(str, REQUIRED, None)
+    autogen_master_key = PluginOption(bool, False, None)
 
-        if 'backing_store' not in config:
-            raise ValueError('Missing "backing_store" for Encrypted Store')
-        self.store_name = config['backing_store']
+    def __init__(self, config, section):
+        super(EncryptedOverlay, self).__init__(config, section)
+        self.store_name = self.backing_store
         self.store = None
 
-        self.enc = config.get('master_enctype', 'A256CBC-HS512')
-        master_key_file = config.get('master_key')
-
-        if master_key_file is None:
-            raise ValueError('Missing "master_key" for Encrypted Store')
-
-        if (not os.path.isfile(master_key_file) and
-                config.get('autogen_master_key') == 'true'):
+        if (not os.path.isfile(self.master_key) and
+                self.autogen_master_key):
             # XXX https://github.com/latchset/jwcrypto/issues/50
-            size = self.key_sizes.get(self.enc, 512)
+            size = self.key_sizes.get(self.master_enctype, 512)
             key = JWK(generate='oct', size=size)
-            with open(master_key_file, 'w') as f:
+            with open(self.master_key, 'w') as f:
                 os.fchmod(f.fileno(), 0o600)
                 f.write(key.export())
 
-        with open(master_key_file) as f:
+        with open(self.master_key) as f:
             data = f.read()
             key = json_decode(data)
             self.mkey = JWK(**key)
@@ -68,7 +65,8 @@ class EncryptedOverlay(CSStore):
             raise CSStoreError('Error occurred while trying to parse key')
 
     def set(self, key, value, replace=False):
-        jwe = JWE(value, json_encode({'alg': 'dir', 'enc': self.enc}))
+        protected = json_encode({'alg': 'dir', 'enc': self.master_enctype})
+        jwe = JWE(value, protected)
         jwe.add_recipient(self.mkey)
         cvalue = jwe.serialize(compact=True)
         return self.store.set(key, cvalue, replace)

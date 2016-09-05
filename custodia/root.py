@@ -2,16 +2,17 @@
 
 import json
 
-from custodia.plugin import HTTPConsumer
+from custodia.plugin import HTTPConsumer, PluginOption
 from custodia.secrets import Secrets
 
 
 class Root(HTTPConsumer):
+    store = PluginOption('store', None, None)
 
-    def __init__(self, *args, **kwargs):
-        super(Root, self).__init__(*args, **kwargs)
+    def __init__(self, config, section):
+        super(Root, self).__init__(config, section)
         if self.store_name is not None:
-            self.add_sub('secrets', Secrets(self.config))
+            self.add_sub('secrets', Secrets(config, section))
 
     def GET(self, request, response):
         return json.dumps({'message': "Quis custodiet ipsos custodes?"})

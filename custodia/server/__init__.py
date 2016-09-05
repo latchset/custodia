@@ -21,6 +21,7 @@ from custodia import log
 from custodia.httpd.server import HTTPServer
 
 
+logger = logging.getLogger('custodia')
 CONFIG_SPECIALS = ['authenticators', 'authorizers', 'consumers', 'stores']
 
 
@@ -53,7 +54,7 @@ def attach_store(typename, plugins, stores):
                              '"%s"' % (typename, name, c.store_name))
 
 
-def load_plugin(menu, name):
+def _load_plugin_class(menu, name):
     """Load Custodia plugin
 
     Entry points are preferred over dotted import path.
@@ -72,6 +73,30 @@ def load_plugin(menu, name):
         return getattr(m, classname)
     else:
         raise ValueError("{}: {} not found".format(menu, name))
+
+
+def _create_plugin(parser, section, menu):
+    if not parser.has_option(section, 'handler'):
+        raise ValueError('Invalid section, missing "handler"')
+
+    handler_name = parser.get(section, 'handler')
+    hconf = {'facility_name': section}
+    try:
+        handler = _load_plugin_class(menu, handler_name)
+        classname = handler.__name__
+        hconf['facility_name'] = '%s-[%s]' % (classname, section)
+    except Exception as e:  # pylint: disable=broad-except
+        raise ValueError('Invalid format for "handler" option '
+                         '[%r]: %s' % (e, handler_name))
+
+    if handler._options is not None:  # pylint: disable=protected-access
+        # new-style plugin with parser and section
+        return handler(parser, section)
+    else:
+        # old-style plugin with config dict
+        hconf.update(parser.items(section))
+        hconf.pop('handler')
+        return handler(hconf)
 
 
 def parse_config(args):
@@ -142,26 +167,10 @@ def parse_config(args):
             else:
                 raise ValueError('Invalid section name [%s].\n' % s)
 
-        if not parser.has_option(s, 'handler'):
-            raise ValueError('Invalid section, missing "handler"')
-
-        handler_name = parser.get(s, 'handler')
-        hconf = {'facility_name': s}
         try:
-            handler = load_plugin(menu, handler_name)
-            classname = handler.__name__
-            hconf['facility_name'] = '%s-[%s]' % (classname, s)
-        except Exception as e:  # pylint: disable=broad-except
-            raise ValueError('Invalid format for "handler" option '
-                             '[%r]: %s' % (e, handler_name))
-
-        if handler.options is not None:
-            config[menu][name] = handler(parser, s)
-        else:
-            # old style plugin
-            hconf.update(parser.items(s))
-            hconf.pop('handler')
-            config[menu][name] = handler(hconf)
+            config[menu][name] = _create_plugin(parser, s, menu)
+        except Exception as e:
+            raise RuntimeError(menu, name, e)
 
     # Attach stores to other plugins
     attach_store('auth:', config['authenticators'], config['stores'])
@@ -176,8 +185,6 @@ def main():
     args = argparser.parse_args()
     config = parse_config(args)
     log.setup_logging(config['debug'], config['auditlog'])
-    logger = logging.getLogger('custodia')
     logger.debug('Config file %s loaded', args.configfile)
-
     httpd = HTTPServer(config['server_url'], config)
     httpd.serve()

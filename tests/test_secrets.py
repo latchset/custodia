@@ -1,5 +1,6 @@
 # Copyright (C) 2015  Custodia Project Contributors - see LICENSE file
 
+import configparser
 import logging
 import os
 import unittest
@@ -12,22 +13,35 @@ from custodia.plugin import HTTPError
 from custodia.secrets import Secrets
 from custodia.store.sqlite import SqliteStore
 
+CONFIG = u"""
+[store:sqlite]
+dburi = testdb.sqlite
+
+[authz:secrets]
+
+[authz:user]
+"""
+
 
 class SecretsTests(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
+        cls.parser = configparser.ConfigParser(
+            interpolation=configparser.ExtendedInterpolation()
+        )
+        cls.parser.read_string(CONFIG)
         cls.log_handlers = log.auditlog.logger.handlers[:]
         log.auditlog.logger.handlers = [logging.NullHandler()]
-        cls.secrets = Secrets()
-        cls.secrets.root.store = SqliteStore({'dburi': 'testdb.sqlite'})
-        cls.authz = UserNameSpace({})
+        cls.secrets = Secrets(cls.parser, 'authz:secrets')
+        cls.secrets.root.store = SqliteStore(cls.parser, 'store:sqlite')
+        cls.authz = UserNameSpace(cls.parser, 'authz:user')
 
     @classmethod
     def tearDownClass(cls):
         log.auditlog.logger.handlers = cls.log_handlers
         try:
-            os.unlink('testdb.sqlite')
+            os.unlink(cls.secrets.root.store.dburi)
         except OSError:
             pass
 

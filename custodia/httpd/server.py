@@ -177,7 +177,7 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
 
     protocol_version = "HTTP/1.0"
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, request, client_address, server):
         self.requestline = ''
         self.request_version = ''
         self.command = ''
@@ -189,7 +189,7 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
         self.body = None
         self.loginuid = None
         self._creds = False
-        BaseHTTPRequestHandler.__init__(self, *args, **kwargs)
+        BaseHTTPRequestHandler.__init__(self, request, client_address, server)
 
     def version_string(self):
         return self.server.server_string

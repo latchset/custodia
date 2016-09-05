@@ -42,7 +42,7 @@ value = admin
 
 [auth:header_values]
 header = GSSAPI
-value = admin, user
+value = admin user
 """
 
 

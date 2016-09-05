@@ -10,17 +10,15 @@ from custodia.message.common import UnallowedMessage
 from custodia.message.common import UnknownMessageType
 from custodia.message.formats import Validator
 from custodia.plugin import CSStoreError, CSStoreExists
-from custodia.plugin import HTTPConsumer, HTTPError
+from custodia.plugin import HTTPConsumer, HTTPError, PluginOption
 
 
 class Secrets(HTTPConsumer):
+    allowed_keytypes = PluginOption('str_set', 'simple', None)
+    store = PluginOption('store', None, None)
 
-    def __init__(self, *args, **kwargs):
-        super(Secrets, self).__init__(*args, **kwargs)
-        self.allowed_keytypes = ['simple']
-        if self.config and 'allowed_keytypes' in self.config:
-            kt = self.config['allowed_keytypes'].split()
-            self.allowed_keytypes = kt
+    def __init__(self, config, section):
+        super(Secrets, self).__init__(config, section)
         self._validator = Validator(self.allowed_keytypes)
 
     def _db_key(self, trail):

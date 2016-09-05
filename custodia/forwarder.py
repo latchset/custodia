@@ -1,34 +1,35 @@
 # Copyright (C) 2015  Custodia Project Contributors - see LICENSE file
 
-import json
 import uuid
 
 from custodia.client import CustodiaHTTPClient
-from custodia.plugin import HTTPConsumer, HTTPError
+from custodia.plugin import HTTPConsumer, HTTPError, PluginOption, REQUIRED
 
 
 class Forwarder(HTTPConsumer):
+    forward_uri = PluginOption(str, REQUIRED, None)
+    tls_cafile = PluginOption(str, None, 'Path to CA file')
+    tls_certfile = PluginOption(
+        str, None, 'Path to cert file for client cert auth')
+    tls_keyfile = PluginOption(
+        str, None, 'Path to key file for client cert auth')
+    forward_headers = PluginOption('json', '{}', None)
+    prefix_remote_user = PluginOption(bool, True, None)
 
-    def __init__(self, *args, **kwargs):
-        super(Forwarder, self).__init__(*args, **kwargs)
-        self.client = CustodiaHTTPClient(self.config['forward_uri'])
-        cafile = self.config.get('tls_cafile')
-        certfile = self.config.get('tls_certfile')
-        keyfile = self.config.get('tls_keyfile')
-        if certfile is not None:
-            self.client.set_client_cert(certfile, keyfile)
-        if cafile is not None:
-            self.client.set_ca_cert(cafile)
-
-        self.headers = json.loads(self.config.get('forward_headers', '{}'))
-        self.use_prefix = self.config.get('prefix_remote_user',
-                                          'True').lower() == 'true'
+    def __init__(self, config, section):
+        super(Forwarder, self).__init__(config, section)
+        self.client = CustodiaHTTPClient(self.forward_uri)
+        if self.tls_certfile is not None:
+            self.client.set_client_cert(self.tls_certfile, self.tls_keyfile)
+        if self.tls_cafile is not None:
+            self.client.set_ca_cert(self.tls_cafile)
         self.uuid = str(uuid.uuid4())
-        self.headers['X-LOOP-CUSTODIA'] = self.uuid
+        # pylint: disable=unsubscriptable-object
+        self.forward_headers['X-LOOP-CUSTODIA'] = self.uuid
 
     def _path(self, request):
         trail = request.get('trail', [])
-        if self.use_prefix:
+        if self.prefix_remote_user:
             prefix = [request.get('remote_user', 'guest').rstrip('/')]
         else:
             prefix = []
@@ -36,7 +37,7 @@ class Forwarder(HTTPConsumer):
 
     def _headers(self, request):
         headers = {}
-        headers.update(self.headers)
+        headers.update(self.forward_headers)
         loop = request['headers'].get('X-LOOP-CUSTODIA', None)
         if loop is not None:
             headers['X-LOOP-CUSTODIA'] += ',' + loop

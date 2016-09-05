@@ -3,7 +3,7 @@
 import requests
 
 from custodia import log
-from custodia.plugin import HTTPAuthorizer
+from custodia.plugin import HTTPAuthorizer, PluginOption
 
 DEFAULT_API_SERVER = 'http://localhost:8080'
 
@@ -11,14 +11,10 @@ log.warn_provisional(__name__)
 
 
 class KubeAuthz(HTTPAuthorizer):
-
-    def __init__(self, config=None):
-        super(KubeAuthz, self).__init__(config)
-        self.path = self.config.get('path', '/nodes')
-        self.secrets = self.config.get('secrets', '/secrets')
-        self.label = self.config.get('secrets_label', 'secrets_namespace')
-        self.server_api = self.config.get('kube_api_server',
-                                          DEFAULT_API_SERVER)
+    path = PluginOption(str, '/nodes', None)
+    secrets = PluginOption(str, '/secrets', None)
+    secrets_label = PluginOption(str, 'secrets_namespace', None)
+    kube_api_server = PluginOption(str, DEFAULT_API_SERVER, None)
 
     def handle(self, request):
         reqpath = path = request.get('path', '')
@@ -43,11 +39,11 @@ class KubeAuthz(HTTPAuthorizer):
 
         try:
             r = requests.get('%s/api/v1/namespaces/%s/pods/%s' % (
-                             self.server_api, namespace, podname))
+                             self.kube_api_server, namespace, podname))
             r.raise_for_status()
             data = r.json()
             node_id = data["spec"]["nodeName"]
-            secrets_namespace = data["metadata"]["labels"][self.label]
+            secrets_namespace = data["metadata"]["labels"][self.secrets_label]
         except Exception:  # pylint: disable=broad-except
             self.logger.exception("Failed to fecth data from Kube API Server")
             self.audit_svc_access(log.AUDIT_SVC_AUTHZ_FAIL,

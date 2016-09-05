@@ -9,11 +9,11 @@ Plugin base classes
    custodia.plugin.HTTPAuthorizer
    custodia.plugin.CSStore
    custodia.plugin.HTTPConsumer
+   custodia.plugin.PluginOption
 
 .. autoclass:: custodia.plugin.CustodiaPlugin
     :members:
     :undoc-members:
-    :show-inheritance:
 
 .. autoclass:: custodia.plugin.HTTPAuthenticator
     :members:
@@ -34,3 +34,5 @@ Plugin base classes
     :members:
     :undoc-members:
     :show-inheritance:
+
+.. autoclass:: custodia.plugin.PluginOption
