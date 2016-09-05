@@ -3,8 +3,12 @@
 import abc
 import configparser
 import grp
+import inspect
+import json
 import logging
 import pwd
+import re
+import sys
 
 from jwcrypto.common import json_encode
 
@@ -16,7 +20,12 @@ from .log import auditlog
 logger = logging.getLogger(__name__)
 
 
-REQUIRED = object()
+class _Required(object):
+    def __repr__(self):
+        return 'REQUIRED'
+
+
+REQUIRED = _Required()
 
 
 class CustodiaException(Exception):
@@ -45,66 +54,217 @@ class CSStoreExists(CustodiaException):
 
 
 class OptionHandler(object):
-    def __init__(self, config, section):
-        self.config = config
+    """Handler and parser for plugin options
+    """
+    def __init__(self, parser, section):
+        self.parser = parser
         self.section = section
+        # handler is reserved to look up the plugin class
+        self.seen = {'handler'}
 
-    def get(self, name, typ, default, doc):
-        if typ in {str, int, float, bool}:
-            typ = typ.__name__
+    def get(self, po):
+        """Lookup value for a PluginOption instance
+
+        Args:
+            po: PluginOption
+
+        Returns: converted value
+        """
+        name = po.name
+        typ = po.typ
+        default = po.default
         if (default is REQUIRED and
-                not self.config.has_option(self.section, name)):
+                not self.parser.has_option(self.section, name)):
             raise NameError(self.section, name)
         handler = getattr(self, '_get_{}'.format(typ), None)
         if handler is None:
             raise ValueError(typ)
+        self.seen.add(name)
         return handler(name, default)
 
+    def check_surplus(self):
+        surplus = []
+        for name, _ in self.parser.items(self.section):
+            if (name not in self.seen and not
+                    self.parser.has_option(configparser.DEFAULTSECT, name)):
+                surplus.append(name)
+        return surplus
+
     def _get_int(self, name, default):
-        return self.config.getint(self.section, name, fallback=default)
+        return self.parser.getint(self.section, name, fallback=default)
+
+    def _get_oct(self, name, default):
+        value = self.parser.get(self.section, name, fallback=default)
+        return int(value, 8)
+
+    def _get_hex(self, name, default):
+        value = self.parser.get(self.section, name, fallback=default)
+        return int(value, 16)
 
     def _get_float(self, name, default):
-        return self.config.getfloat(self.section, name, fallback=default)
+        return self.parser.getfloat(self.section, name, fallback=default)
 
     def _get_bool(self, name, default):
-        return self.config.getboolean(self.section, name, fallback=default)
+        return self.parser.getboolean(self.section, name, fallback=default)
+
+    def _get_regex(self, name, default):
+        value = self.parser.get(self.section, name, fallback=default)
+        if not value:
+            return None
+        else:
+            return re.compile(value)
 
     def _get_str(self, name, default):
-        return self.config.get(self.section, name, fallback=default)
+        return self.parser.get(self.section, name, fallback=default)
 
     def _get_str_set(self, name, default):
         try:
-            value = self.config.get(self.section, name)
+            value = self.parser.get(self.section, name)
         except configparser.NoOptionError:
             return default
         if not value or not value.strip():
             return None
         else:
-            return set(v.strip() for v in value.split(','))
+            return set(v.strip() for v in value.split(' '))
+
+    def _get_str_list(self, name, default):
+        try:
+            value = self.parser.get(self.section, name)
+        except configparser.NoOptionError:
+            return default
+        if not value or not value.strip():
+            return None
+        else:
+            return list(v.strip() for v in value.split(' ') if v.strip())
 
     def _get_store(self, name, default):
-        return self.config.get(self.section, name, fallback=default)
+        return self.parser.get(self.section, name, fallback=default)
 
     def _get_pwd_uid(self, name, default):
-        value = self.config.get(self.section, name, fallback=default)
+        value = self.parser.get(self.section, name, fallback=default)
         try:
             return int(value)
         except ValueError:
             return pwd.getpwnam(value).pw_uid
 
     def _get_grp_gid(self, name, default):
-        value = self.config.get(self.section, name, fallback=default)
+        value = self.parser.get(self.section, name, fallback=default)
         try:
             return int(value)
         except ValueError:
             return grp.getgrnam(value).gr_gid
 
+    def _get_json(self, name, default):
+        value = self.parser.get(self.section, name, fallback=default)
+        return json.loads(value)
 
-@six.add_metaclass(abc.ABCMeta)
+
+class PluginOption(object):
+    """Plugin option
+
+    code::
+
+        class MyPlugin(CustodiaPlugin):
+            number = PluginOption(int, REQUIRED, 'my value')
+            values = PluginOption('str_list', 'foo bar', 'a list of strings')
+
+
+    config::
+
+        [myplugin]
+        handler = MyPlugin
+        number = 1
+        values = egg spam python
+
+
+    **Supported value types**
+
+    *str*
+      plain string
+    *str_set*
+      set of space-separated strings
+    *str_list*
+      ordered list of space-separated strings
+    *int*
+      number (converted from base 10)
+    *hex*
+      number (converted from base 16)
+    *oct*
+      number (converted from base 8)
+    *float*
+      floating point number
+    *bool*
+      boolean (true: on, true, yes, 1; false: off, false, no, 0)
+    *regex*
+      regular expression string
+    *store*
+      special value for refer to a store plugin
+    *pwd_uid*
+      numeric user id or user name
+    *grp_gid*
+      numeric group id or group name
+    *json*
+      JSON string
+    """
+    __slots__ = ('name', 'typ', 'default', 'doc')
+
+    def __init__(self, typ, default, doc):
+        self.name = None
+        if typ in {str, int, float, bool, oct, hex}:
+            self.typ = typ.__name__
+        else:
+            self.typ = typ
+        self.default = default
+        self.doc = doc
+
+    def __repr__(self):
+        if self.default is REQUIRED:
+            msg = "<Required option {0.name} ({0.typ}): {0.doc}>"
+        else:
+            msg = ("<Option {0.name} ({0.typ}, default: '{0.default}'): "
+                   "{0.doc}>")
+        return msg.format(self)
+
+
+class CustodiaPluginMeta(abc.ABCMeta):
+    def __new__(cls, name, bases, namespace):
+        ncls = super(CustodiaPluginMeta, cls).__new__(
+            cls, name, bases, namespace)
+
+        if sys.version_info < (3, 0):
+            args = inspect.getargspec(ncls.__init__).args
+        else:
+            sig = inspect.signature(ncls.__init__)  # pylint: disable=no-member
+            args = list(sig.parameters)
+
+        if args[1:3] != ['config', 'section']:
+            # old-style plugin class
+            ncls._options = None  # pylint: disable=protected-access
+            return ncls
+
+        # new-style plugin class
+        # every plugin has a debug option
+        if not hasattr(ncls, 'debug'):
+            ncls.debug = PluginOption(bool, False, '')
+        # get options
+        options = []
+        for name, value in inspect.getmembers(ncls):
+            if not isinstance(value, PluginOption):
+                continue
+            value.name = name
+            options.append(value)
+
+        ncls._options = tuple(options)  # pylint: disable=protected-access
+        return ncls
+
+
+@six.add_metaclass(CustodiaPluginMeta)
 class CustodiaPlugin(object):
-    options = None
+    """Abstract base class for all Custodia plugins
+    """
+    _options = ()
 
-    def __init__(self, config=None, section=None):
+    def __init__(self, config, section=None):
         origin, debug = self._configure(config, section)
         self._auditlog = auditlog
         self.origin = origin
@@ -120,31 +280,37 @@ class CustodiaPlugin(object):
         self._auditlog.svc_access(self.origin, *args, **kwargs)
 
     def _configure(self, config, section):
-        if self.options is not None:
+        if section is not None and self._options is not None:
             # new style configuration
             opt = OptionHandler(config, section)
             # pylint: disable=not-an-iterable
-            for name, typ, default, doc in self.options:
-                # no name clashes
-                if getattr(self, name, None):
-                    raise NameError(name)
-                value = opt.get(name, typ, default, doc)
+            for option in self._options:
+                value = opt.get(option)
                 # special case for store
-                if typ == 'store':
-                    if name != 'store':
-                        raise ValueError(name)
+                if option.typ == 'store':
+                    if option.name != 'store':
+                        raise ValueError(option.name)
                     self.store_name = value
                     self.store = None
                 else:
-                    setattr(self, name, value)
+                    setattr(self, option.name, value)
+
+            surplus = opt.check_surplus()
+            if surplus:
+                raise ValueError('Surplus options in {}: {}'.format(
+                    section, surplus))
 
             origin = '%s-[%s]' % (type(self).__name__, section)
-            debug = opt.get('debug', bool, False, '')
+            debug = self.debug  # pylint: disable=no-member
         else:
             # old style configuration
             if config is None:
                 config = {}
             self.config = config
+            # special case for store
+            if 'store' in config:
+                self.store_name = self.config.get('store')
+                self.store = None
             origin = config.get('facility_name', self.__class__.__name__)
             debug = config.get('debug', 'false').lower() == 'true'
 
@@ -152,6 +318,8 @@ class CustodiaPlugin(object):
 
 
 class CSStore(CustodiaPlugin):
+    """Base class for stores
+    """
     @abc.abstractmethod
     def get(self, key):
         pass
@@ -174,19 +342,16 @@ class CSStore(CustodiaPlugin):
 
 
 class HTTPAuthorizer(CustodiaPlugin):
-    def __init__(self, config=None, section=None):
-        super(HTTPAuthorizer, self).__init__(config, section)
-        self.store_name = None
-        if self.config and 'store' in self.config:
-            self.store_name = self.config['store']
-        self.store = None
-
+    """Base class for authorizers
+    """
     @abc.abstractmethod
     def handle(self, request):
         pass
 
 
 class HTTPAuthenticator(CustodiaPlugin):
+    """Base class for authenticators
+    """
     @abc.abstractmethod
     def handle(self, request):
         pass
@@ -197,12 +362,10 @@ SUPPORTED_COMMANDS = ['GET', 'PUT', 'POST', 'DELETE']
 
 
 class HTTPConsumer(CustodiaPlugin):
-    def __init__(self, config=None, section=None):
+    """Base class for consumers
+    """
+    def __init__(self, config, section=None):
         super(HTTPConsumer, self).__init__(config, section)
-        self.store_name = None
-        if config and 'store' in config:
-            self.store_name = config['store']
-        self.store = None
         self.subs = dict()
         self.root = self
 

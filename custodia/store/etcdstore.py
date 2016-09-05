@@ -22,19 +22,19 @@ except ImportError:
         pass
 
 from custodia.plugin import CSStore, CSStoreError, CSStoreExists
+from custodia.plugin import PluginOption
 
 
 class EtcdStore(CSStore):
+    etcd_server = PluginOption(str, '127.0.0.1', None)
+    etcd_port = PluginOption(int, '4001', None)
+    namespace = PluginOption(str, '/custodia', None)
 
-    def __init__(self, config):
-        super(EtcdStore, self).__init__(config)
-        self.server = config.get('etcd_server', '127.0.0.1')
-        self.port = int(config.get('etcd_port', 4001))
-        self.namespace = config.get('namespace', "/custodia")
-
+    def __init__(self, config, section):
+        super(EtcdStore, self).__init__(config, section)
         # Initialize the DB by trying to create the default table
         try:
-            self.etcd = Client(self.server, self.port)
+            self.etcd = Client(self.etcd_server, self.etcd_port)
             self.etcd.write(self.namespace, None, dir=True)
         except EtcdNotFile:
             # Already exists

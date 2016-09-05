@@ -3,12 +3,14 @@
 import os
 
 from custodia import log
-from custodia.plugin import HTTPAuthorizer
+from custodia.plugin import HTTPAuthorizer, PluginOption
 
 
 class SimplePathAuthz(HTTPAuthorizer):
+    # keep SimplePathAuthz an old-style plugin for now.
+    # KEMKeysStore and IPAKEMKeys haven't been ported.
 
-    def __init__(self, config=None):
+    def __init__(self, config):
         super(SimplePathAuthz, self).__init__(config)
         self.paths = []
         if 'paths' in self.config:
@@ -19,7 +21,7 @@ class SimplePathAuthz(HTTPAuthorizer):
 
         # if an authorized path does not end in /
         # check if it matches fullpath for strict match
-        for authz in self.paths:
+        for authz in self.paths:  # pylint: disable=not-an-iterable
             if authz.endswith('/'):
                 continue
             if authz.endswith('.'):
@@ -31,6 +33,7 @@ class SimplePathAuthz(HTTPAuthorizer):
                 return True
 
         while path != '':
+            # pylint: disable=unsupported-membership-test
             if path in self.paths:
                 self.audit_svc_access(log.AUDIT_SVC_AUTHZ_PASS,
                                       request['client_id'], path)
@@ -45,10 +48,8 @@ class SimplePathAuthz(HTTPAuthorizer):
 
 
 class UserNameSpace(HTTPAuthorizer):
-
-    def __init__(self, *args, **kwargs):
-        super(UserNameSpace, self).__init__(*args, **kwargs)
-        self.path = self.config.get('path', '/')
+    path = PluginOption(str, '/', 'User namespace path')
+    store = PluginOption('store', None, None)
 
     def handle(self, request):
         # Only check if we are in the right (sub)path
@@ -64,6 +65,7 @@ class UserNameSpace(HTTPAuthorizer):
                                   request['client_id'], path)
             return False
 
+        # pylint: disable=no-member
         namespace = self.path.rstrip('/') + '/' + name + '/'
         if not path.startswith(namespace):
             # Not in the namespace

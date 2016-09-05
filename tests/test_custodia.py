@@ -2,6 +2,7 @@
 
 from __future__ import absolute_import
 
+import configparser
 import os
 import shutil
 import socket
@@ -9,7 +10,6 @@ import subprocess
 import sys
 import time
 import unittest
-
 from string import Template
 
 from jwcrypto import jwk
@@ -37,7 +37,7 @@ def find_port(host='localhost'):
         sock.close()
 
 
-TEST_CUSTODIA_CONF = """
+TEST_CUSTODIA_CONF = u"""
 [global]
 server_version = "Secret/0.0.7"
 server_url = ${SOCKET_URL}
@@ -51,7 +51,7 @@ umask = 027
 
 [auth:header]
 handler = SimpleHeaderAuth
-name = REMOTE_USER
+header = REMOTE_USER
 
 [auth:clientcert]
 handler = SimpleClientCertAuth
@@ -135,24 +135,29 @@ store = encgen
 TEST_SOCKET_URL = "http+unix://%2E%2Ftests%2Ftmp%2Ftest_socket"
 
 
-def generate_all_keys(test_dir):
-    filename = os.path.join(test_dir, 'test_mkey.conf')
-    dburi = os.path.join(test_dir, 'test_secrets.db')
+def generate_all_keys(custodia_conf):
+    parser = configparser.ConfigParser(
+        interpolation=configparser.ExtendedInterpolation()
+    )
+    with open(custodia_conf) as f:
+        parser.read_file(f)
+
+    filename = parser.get('store:encgen', 'master_key')
     key = jwk.JWK(generate='oct', size=256)
     with open(filename, 'w+') as keyfile:
         keyfile.write(key.export())
+
+    store = SqliteStore(parser, 'store:simple')
 
     srv_kid = "srvkid"
     cli_kid = "clikid"
     ss_key = jwk.JWK(generate='RSA', kid=srv_kid, use="sig")
     se_key = jwk.JWK(generate='RSA', kid=srv_kid, use="enc")
-    store = SqliteStore({'dburi': dburi, 'table': 'secrets'})
     store.set('kemkeys/sig/%s' % srv_kid, ss_key.export())
     store.set('kemkeys/enc/%s' % srv_kid, se_key.export())
 
     cs_key = jwk.JWK(generate='RSA', kid=cli_kid, use="sig")
     ce_key = jwk.JWK(generate='RSA', kid=cli_kid, use="enc")
-    store = SqliteStore({'dburi': dburi, 'table': 'secrets'})
     store.set('kemkeys/sig/%s' % cli_kid, cs_key.export_public())
     store.set('kemkeys/enc/%s' % cli_kid, ce_key.export_public())
     return ([ss_key.export_public(), se_key.export_public()],
@@ -176,8 +181,6 @@ class CustodiaTests(unittest.TestCase):
             shutil.rmtree(cls.test_dir)
         os.makedirs(cls.test_dir)
 
-        srvkeys, clikeys = generate_all_keys(cls.test_dir)
-
         custodia_conf = os.path.join(cls.test_dir, 'test_custodia.conf')
         with (open(custodia_conf, 'w+')) as conffile:
             t = Template(TEST_CUSTODIA_CONF)
@@ -187,6 +190,9 @@ class CustodiaTests(unittest.TestCase):
                                  'TEST_AUTH_KEY': cls.test_auth_key,
                                  'VERIFY_CLIENT': cls.verify_client})
             conffile.write(conf)
+
+        srvkeys, clikeys = generate_all_keys(custodia_conf)
+
         test_log_file = os.path.join(cls.test_dir, 'test_log.txt')
         with (open(test_log_file, 'a')) as logfile:
             p = subprocess.Popen(

@@ -46,7 +46,7 @@ class KEMKeysStore(SimplePathAuthz):
     manage.
     """
 
-    def __init__(self, config=None):
+    def __init__(self, config):
         super(KEMKeysStore, self).__init__(config)
         self._server_keys = None
         self._alg = None
@@ -169,6 +169,7 @@ class KEMHandler(MessageHandler):
             token.verify(self.client_keys[KEY_USAGE_SIG])
             claims = json_decode(token.payload)
         except Exception as e:
+            logger.debug('Failed to validate message', exc_info=True)
             raise InvalidMessage('Failed to validate message: %s' % str(e))
 
         check_kem_claims(claims, name)

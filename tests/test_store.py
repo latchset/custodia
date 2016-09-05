@@ -1,6 +1,7 @@
 # Copyright (C) 2016  Custodia Project Contributors - see LICENSE file
 from __future__ import print_function
 
+import configparser
 import os
 import shutil
 import tempfile
@@ -11,38 +12,48 @@ from custodia.store.encgen import EncryptedOverlay
 from custodia.store.sqlite import SqliteStore
 
 
-class EncryptedOverlayTests(unittest.TestCase):
-    def setUp(self):
-        self.tmpdir = tempfile.mkdtemp()
-        self.backing_store = SqliteStore(
-            {'dburi': os.path.join(self.tmpdir, 'teststore.sqlite')}
-        )
+CONFIG = u"""
+[store:teststore]
+dburi = ${tmpdir}/teststore.sqlite
 
-    def tearDown(self):
-        shutil.rmtree(self.tmpdir)
+[store:enc_noauto]
+backing_store = teststore
+master_key = ${tmpdir}/master.key
+
+[store:enc_auto]
+backing_store = teststore
+master_key = ${tmpdir}/master.key
+autogen_master_key = true
+"""
+
+
+class EncryptedOverlayTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.tmpdir = tempfile.mkdtemp()
+        cls.parser = configparser.ConfigParser(
+            interpolation=configparser.ExtendedInterpolation(),
+            defaults={'tmpdir': cls.tmpdir}
+        )
+        cls.parser.read_string(CONFIG)
+        cls.backing_store = SqliteStore(cls.parser, 'store:teststore')
+
+    @classmethod
+    def tearDownClass(cls):
+        shutil.rmtree(cls.tmpdir)
 
     def test_autogen(self):
         master_key = os.path.join(self.tmpdir, 'master.key')
         with self.assertRaises(IOError):
-            EncryptedOverlay({
-                'backing_store': 'teststore',
-                'master_key': master_key})
+            EncryptedOverlay(self.parser, 'store:enc_noauto')
 
         self.assertFalse(os.path.isfile(master_key))
-        enc = EncryptedOverlay({
-            'backing_store': 'teststore',
-            'master_key': master_key,
-            'autogen_master_key': 'true'
-        })
+        enc = EncryptedOverlay(self.parser, 'store:enc_auto')
         self.assertTrue(os.path.isfile(master_key))
         stats = os.stat(master_key)
 
         # second attempt does not override master key
-        enc = EncryptedOverlay({
-            'backing_store': 'teststore',
-            'master_key': master_key,
-            'autogen_master_key': 'true'
-        })
+        enc = EncryptedOverlay(self.parser, 'store:enc_auto')
         self.assertEqual(stats, os.stat(master_key))
 
         enc.store = self.backing_store
@@ -52,11 +63,7 @@ class EncryptedOverlayTests(unittest.TestCase):
 
         # new master key
         os.unlink(master_key)
-        enc2 = EncryptedOverlay({
-            'backing_store': 'teststore',
-            'master_key': master_key,
-            'autogen_master_key': 'true'
-        })
+        enc2 = EncryptedOverlay(self.parser, 'store:enc_auto')
         enc2.store = self.backing_store
         with self.assertRaises(CSStoreError):
             # different key causes MAC error during decryption

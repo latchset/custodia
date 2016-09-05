@@ -1,7 +1,5 @@
 # Copyright (C) 2015  Custodia Project Contributors - see LICENSE file
 
-import re
-
 try:
     from docker import Client
 except ImportError:
@@ -10,7 +8,7 @@ except ImportError:
 
 
 from custodia import log
-from custodia.plugin import HTTPAuthenticator
+from custodia.plugin import HTTPAuthenticator, PluginOption
 
 DEFAULT_REGEX = r'/docker-([0-9a-f]{64})\.scope'
 DEFAULT_DOCKER_URI = 'unix://var/run/docker.sock'
@@ -20,21 +18,14 @@ log.warn_provisional(__name__)
 
 
 class NodeAuth(HTTPAuthenticator):
-
-    def __init__(self, config=None):
-        super(NodeAuth, self).__init__(config)
-        if self.config is not None:
-            regex = self.config.get('docker_regex', DEFAULT_REGEX)
-            self.docker_uri = self.config.get('docker_uri', DEFAULT_DOCKER_URI)
-        else:
-            regex = DEFAULT_REGEX
-            self.docker_uri = DEFAULT_DOCKER_URI
-        self.id_filter = re.compile(regex)
+    docker_uri = PluginOption(str, DEFAULT_DOCKER_URI, None)
+    docker_regex = PluginOption('regex', DEFAULT_REGEX, None)
 
     def _pid2dockerid(self, pid):
         with open('/proc/%i/cgroup' % pid) as f:
             for line in f:
-                mo = self.id_filter.search(line)
+                # pylint: disable=no-member
+                mo = self.docker_regex.search(line)
                 if mo is not None:
                     return mo.group(1)
         return None

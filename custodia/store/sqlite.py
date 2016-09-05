@@ -5,26 +5,20 @@ import os
 import sqlite3
 
 from custodia.plugin import CSStore, CSStoreError, CSStoreExists
+from custodia.plugin import PluginOption, REQUIRED
 
 
 class SqliteStore(CSStore):
+    dburi = PluginOption(str, REQUIRED, None)
+    table = PluginOption(str, "CustodiaSecrets", None)
+    filemode = PluginOption(oct, '600', None)
 
-    def __init__(self, config):
-        super(SqliteStore, self).__init__(config)
-        if 'dburi' not in config:
-            raise ValueError('Missing "dburi" for Sqlite Store')
-        self.dburi = config['dburi']
-        if 'table' in config:
-            self.table = config['table']
-        else:
-            self.table = "CustodiaSecrets"
-
-        filemode = int(config.get('filemode', '600'), 8)
-
+    def __init__(self, config, section):
+        super(SqliteStore, self).__init__(config, section)
         # Initialize the DB by trying to create the default table
         try:
             conn = sqlite3.connect(self.dburi)
-            os.chmod(self.dburi, filemode)
+            os.chmod(self.dburi, self.filemode)
             with conn:
                 c = conn.cursor()
                 self._create(c)

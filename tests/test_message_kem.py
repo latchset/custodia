@@ -1,5 +1,6 @@
 # Copyright (C) 2015  Custodia Project Contributors - see LICENSE file
 
+import configparser
 import os
 import time
 import unittest
@@ -100,16 +101,29 @@ def _store_keys(keystore, usage, keys):
     keystore.set(name, json_encode(keys[usage]), True)
 
 
+CONFIG = u"""
+[store:sqlite]
+dburi = kemtests.db
+"""
+
+
 class KEMTests(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
+        cls.parser = configparser.ConfigParser(
+            interpolation=configparser.ExtendedInterpolation()
+        )
+        cls.parser.read_string(CONFIG)
+
         config = {'server_keys': test_keys[0]['kid']}
         with open('examples/client_enc.key') as f:
             data = f.read()
             cls.client_keys = json_decode(data)
+
         cls.kk = kem.KEMKeysStore(config)
-        cls.kk.store = SqliteStore({'dburi': 'kemtests.db'})
+        cls.kk.store = SqliteStore(cls.parser, 'store:sqlite')
+
         _store_keys(cls.kk.store, kem.KEY_USAGE_SIG, test_keys)
         _store_keys(cls.kk.store, kem.KEY_USAGE_ENC, test_keys)
         _store_keys(cls.kk.store, kem.KEY_USAGE_SIG, cls.client_keys)
