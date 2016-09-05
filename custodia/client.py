@@ -221,7 +221,7 @@ class CustodiaKEMClient(CustodiaHTTPClient):
         if self._enc_alg is not None:
             return self._enc_alg
         elif key.key_type == 'RSA':
-            return ('RSA1_5', 'A256CBC-HS512')
+            return ('RSA-OAEP', 'A256CBC-HS512')
         elif key.key_type == 'EC':
             return ('ECDH-ES+A256KW', 'A256CBC-HS512')
         else:
