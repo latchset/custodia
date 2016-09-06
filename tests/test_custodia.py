@@ -9,8 +9,14 @@ import subprocess
 import sys
 import time
 import unittest
-
 from string import Template
+
+try:
+    # pylint: disable=import-error
+    from urllib import quote_plus
+except ImportError:
+    # pylint: disable=import-error,no-name-in-module
+    from urllib.parse import quote_plus
 
 from jwcrypto import jwk
 
@@ -229,19 +235,28 @@ class CustodiaTests(unittest.TestCase):
 
     def test_1_set_simple_key(self):
         self.client.set_secret('test/key', 'VmVycnlTZWNyZXQK')
+        urlkey = 'test/{}'.format(quote_plus('http://localhost:5000'))
+        self.client.set_secret(urlkey, 'path with /')
 
     def test_2_get_simple_key(self):
         key = self.client.get_secret('test/key')
         self.assertEqual(key, 'VmVycnlTZWNyZXQK')
+        key = self.client.get_secret('test/http%3A%2F%2Flocalhost%3A5000')
+        self.assertEqual(key, 'path with /')
 
     def test_3_list_container(self):
         cl = self.client.list_container('test')
-        self.assertEqual(cl, ["key"])
+        self.assertEqual(cl, ["http%3A%2F%2Flocalhost%3A5000", "key"])
 
     def test_4_del_simple_key(self):
         self.client.del_secret('test/key')
+        self.client.del_secret('test/http%3A%2F%2Flocalhost%3A5000')
         try:
             self.client.get_secret('test/key')
+        except HTTPError:
+            self.assertEqual(self.client.last_response.status_code, 404)
+        try:
+            self.client.get_secret('test/http%3A%2F%2Flocalhost%3A5000')
         except HTTPError:
             self.assertEqual(self.client.last_response.status_code, 404)
 

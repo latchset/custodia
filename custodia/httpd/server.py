@@ -177,6 +177,11 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
 
     protocol_version = "HTTP/1.0"
 
+    # RFC 2396 reserved chars
+    path_translation = {
+        ord(s): u'%{:02X}'.format(ord(s)) for s in ';/?:@&+$,'
+    }
+
     def __init__(self, *args, **kwargs):
         self.requestline = ''
         self.request_version = ''
@@ -262,7 +267,8 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
         url = urlparse(self.path)
 
         # Yes, override path with the path part only
-        self.path = unquote(url.path)
+
+        self.path = self.parse_path(url.path)
 
         # Create dict out of query
         self.query = parse_qs(url.query)
@@ -271,6 +277,16 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
         self.url = url
 
         return True
+
+    def parse_path(self, path):
+        segments = []
+        for seg in path.split('/'):
+            seg = unquote(seg)
+            if not isinstance(seg, six.text_type):
+                seg = seg.decode('utf-8')
+            # quote /:? again
+            segments.append(seg.translate(self.path_translation))
+        return u'/'.join(segments)
 
     def parse_body(self):
         length = int(self.headers.get('content-length', 0))
