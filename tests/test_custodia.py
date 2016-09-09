@@ -18,6 +18,8 @@ import pytest
 
 from requests.exceptions import HTTPError, SSLError
 
+import six
+
 from custodia.client import CustodiaKEMClient, CustodiaSimpleClient
 from custodia.store.sqlite import SqliteStore
 
@@ -168,7 +170,7 @@ class CustodiaTests(unittest.TestCase):
     def setUpClass(cls):
         env = os.environ.copy()
         env['PYTHONPATH'] = './'
-        pexec = env.get('CUSTODIAPYTHON', sys.executable)
+        cls.pexec = env.get('CUSTODIAPYTHON', sys.executable)
 
         if os.path.isdir(cls.test_dir):
             shutil.rmtree(cls.test_dir)
@@ -188,7 +190,7 @@ class CustodiaTests(unittest.TestCase):
         test_log_file = os.path.join(cls.test_dir, 'test_log.txt')
         with (open(test_log_file, 'a')) as logfile:
             p = subprocess.Popen(
-                [pexec, '-m', 'custodia.server', custodia_conf],
+                [cls.pexec, '-m', 'custodia.server', custodia_conf],
                 env=env, stdout=logfile, stderr=logfile
             )
         time.sleep(1)
@@ -206,6 +208,14 @@ class CustodiaTests(unittest.TestCase):
         cls.kem = cls.create_client('/enc', 'kem', CustodiaKEMClient)
         cls.kem.set_server_public_keys(*srvkeys)
         cls.kem.set_client_keys(*clikeys)
+        cls.custodia_cli_args = [
+            cls.pexec,
+            '-Wignore',
+            '-m', 'custodia.cli',
+            '--debug',
+            '--header', 'REMOTE_USER=test',
+            '--server', cls.socket_url
+        ]
 
     @classmethod
     def create_client(cls, suffix, remote_user, clientcls=None):
@@ -220,6 +230,30 @@ class CustodiaTests(unittest.TestCase):
     def tearDownClass(cls):
         cls.custodia_process.kill()
         cls.custodia_process.wait()
+
+    def _custoda_cli(self, *extra_args, **kwargs):
+        args = list(self.custodia_cli_args)
+        args.extend(extra_args)
+        try:
+            out = subprocess.check_output(args, stderr=subprocess.STDOUT)
+        except subprocess.CalledProcessError as e:
+            if e.returncode == 1:
+                # HTTP error, reraise
+                raise
+            else:
+                # other other
+                out = e.output
+                if not isinstance(out, six.text_type):
+                    out = out.decode('utf-8')
+                self.fail(out)
+
+        if not isinstance(out, six.text_type):
+            out = out.decode('utf-8')
+        # remove trailing new line
+        out = out.rstrip()
+        if kwargs.get('split'):
+            out = out.split('\n')
+        return out
 
     def test_0_0_setup(self):
         self.admin.create_container('fwd')
@@ -236,13 +270,26 @@ class CustodiaTests(unittest.TestCase):
     def test_1_set_simple_key(self):
         self.client.set_secret('test/key', 'VmVycnlTZWNyZXQK')
 
+    def test_1_set_simple_key_cli(self):
+        self._custoda_cli('set', 'test/cli', 'oaxaif4poo0Waec')
+
     def test_2_get_simple_key(self):
         key = self.client.get_secret('test/key')
         self.assertEqual(key, 'VmVycnlTZWNyZXQK')
 
+    def test_2_get_simple_key_cli(self):
+        key = self._custoda_cli('get', 'test/key')
+        self.assertEqual(key, 'VmVycnlTZWNyZXQK')
+        key = self._custoda_cli('get', 'test/cli')
+        self.assertEqual(key, 'oaxaif4poo0Waec')
+
     def test_3_list_container(self):
         cl = self.client.list_container('test')
-        self.assertEqual(cl, ["key"])
+        self.assertEqual(cl, ["cli", "key"])
+
+    def test_3_list_container_cli(self):
+        cl = self._custoda_cli('ls', 'test', split=True)
+        self.assertEqual(cl, ["cli", "key"])
 
     def test_4_del_simple_key(self):
         self.client.del_secret('test/key')
@@ -250,6 +297,15 @@ class CustodiaTests(unittest.TestCase):
             self.client.get_secret('test/key')
         except HTTPError:
             self.assertEqual(self.client.last_response.status_code, 404)
+
+    def test_4_del_simple_key_cli(self):
+        self._custoda_cli('del', 'test/cli')
+        with self.assertRaises(subprocess.CalledProcessError) as e:
+            self._custoda_cli('get', 'test/cli')
+        self.assertIn(
+            b'404 Client Error: Not Found for url',
+            e.exception.output
+        )
 
     def test_5_list_empty(self):
         cl = self.client.list_container('test')
@@ -319,6 +375,20 @@ class CustodiaHTTPSTests(CustodiaTests):
     ca_cert = 'tests/ca/custodia-ca.pem'
     client_cert = 'tests/ca/custodia-client.pem'
     client_key = 'tests/ca/custodia-client.key'
+
+    @classmethod
+    def setUpClass(cls):
+        super(CustodiaHTTPSTests, cls).setUpClass()
+        cls.custodia_cli_args = [
+            cls.pexec,
+            '-Wignore',
+            '-m', 'custodia.cli',
+            '--debug',
+            '--cafile', cls.ca_cert,
+            '--certfile', cls.client_cert,
+            '--keyfile', cls.client_key,
+            '--server', cls.socket_url + '/secrets'
+        ]
 
     @classmethod
     def create_client(cls, suffix, remote_user, clientcls=None):
