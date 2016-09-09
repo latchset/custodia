@@ -56,6 +56,7 @@ custodia_consumers = [
 
 custodia_stores = [
     'EncryptedOverlay = custodia.store.encgen:EncryptedOverlay',
+    'EncryptedStore = custodia.store.enclite:EncryptedStore',
     'EtcdStore = custodia.store.etcdstore:EtcdStore',
     'SqliteStore = custodia.store.sqlite:SqliteStore',
 ]
