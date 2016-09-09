@@ -14,10 +14,16 @@ from string import Template
 
 from jwcrypto import jwk
 
+import pytest
+
 from requests.exceptions import HTTPError, SSLError
 
 from custodia.client import CustodiaKEMClient, CustodiaSimpleClient
 from custodia.store.sqlite import SqliteStore
+
+
+# mark all tests in this module as 'servertest' test cases
+pytestmark = pytest.mark.servertest
 
 
 def find_port(host='localhost'):
