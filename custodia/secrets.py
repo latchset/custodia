@@ -9,8 +9,8 @@ from custodia import log
 from custodia.message.common import UnallowedMessage
 from custodia.message.common import UnknownMessageType
 from custodia.message.formats import Validator
-from custodia.plugin import HTTPConsumer, HTTPError
 from custodia.plugin import CSStoreError, CSStoreExists
+from custodia.plugin import HTTPConsumer, HTTPError
 
 
 class Secrets(HTTPConsumer):
