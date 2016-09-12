@@ -1,6 +1,7 @@
 # Copyright (C) 2016  Custodia Project Contributors - see LICENSE file
 import argparse
 import logging
+import os
 import sys
 import traceback
 
@@ -33,6 +34,11 @@ def server_check(arg):
     """
     if arg.startswith(('http://', 'https://', 'http+unix://')):
         return arg
+    if arg.startswith('./'):
+        arg = os.path.abspath(arg)
+    elif not arg.startswith('/'):
+        raise argparse.ArgumentTypeError(
+            'Unix socket path must start with / or ./')
     # assume it is a unix socket
     return 'http+unix://{}'.format(url_escape(arg, ''))
 
@@ -46,7 +52,8 @@ main_parser.add_argument(
     '--server',
     type=server_check,
     default='/var/run/custodia/custodia.sock',
-    help='Custodia server'
+    help=('Custodia server location, supports http://, https://, '
+          'or path to a unix socket.')
 )
 main_parser.add_argument(
     '--uds-urlpath', type=str, default='/secrets/',
