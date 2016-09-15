@@ -33,7 +33,7 @@ sys.path.insert(0, os.path.join(HERE, '..', '..'))
 extensions = [
     'sphinx.ext.autodoc',
     'sphinx.ext.autosummary',
-    'sphinx.ext.intersphinx',
+    # 'sphinx.ext.intersphinx',
     'sphinx.ext.viewcode',
 ]
 
@@ -269,4 +269,5 @@ texinfo_documents = [
 
 
 # Example configuration for intersphinx: refer to the Python standard library.
-intersphinx_mapping = {'http://docs.python.org/': None}
+# Disabled, see https://github.com/latchset/custodia/issues/13
+# intersphinx_mapping = {'http://docs.python.org/': None}
