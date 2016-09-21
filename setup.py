@@ -71,6 +71,7 @@ setup(
     maintainer='Custodia project Contributors',
     maintainer_email='simo@redhat.com',
     url='https://github.com/latchset/custodia',
+    namespace_packages=['custodia'],
     packages=[
         'custodia',
         'custodia.cli',
