@@ -13,14 +13,13 @@ requirements = [
 # extended interpolation is provided by stdlib in Python 3.4+
 
 # extra requirements
-k8s_requires = ['docker-py']
 etcd_requires = ['python-etcd']
 
 # test requirements
-test_requires = ['coverage', 'pytest'] + k8s_requires + etcd_requires
+test_requires = ['coverage', 'pytest'] + etcd_requires
 test_pylint_requires = ['pylint'] + test_requires
 test_pep8_requires = ['flake8', 'flake8-import-order', 'pep8-naming']
-test_docs_requires = ['docutils', 'markdown'] + k8s_requires + etcd_requires
+test_docs_requires = ['docutils', 'markdown'] + etcd_requires
 
 with open('README') as f:
     long_description = f.read()
@@ -33,13 +32,11 @@ custodia_authenticators = [
     'SimpleAuthKeys = custodia.httpd.authenticators:SimpleAuthKeys',
     ('SimpleClientCertAuth = '
      'custodia.httpd.authenticators:SimpleClientCertAuth'),
-    'K8sNodeAuth = custodia.kubernetes.node:NodeAuth',
 ]
 
 custodia_authorizers = [
     'SimplePathAuthz = custodia.httpd.authorizers:SimplePathAuthz',
     'UserNameSpace = custodia.httpd.authorizers:UserNameSpace',
-    'K8sAuthz = custodia.kubernetes.authz:KubeAuthz',
     'KEMKeysStore = custodia.message.kem:KEMKeysStore',
 ]
 
@@ -76,7 +73,6 @@ setup(
         'custodia',
         'custodia.cli',
         'custodia.httpd',
-        'custodia.kubernetes',
         'custodia.message',
         'custodia.server',
         'custodia.store',
@@ -106,7 +102,6 @@ setup(
         # extended interpolation is provided by stdlib in Python 3.4+
         ':python_version<"3.4"': ['configparser'],
         'etcd_store': etcd_requires,
-        'kubernetes': k8s_requires,
         'test': test_requires,
         'test_docs': test_docs_requires,
         'test_pep8': test_pep8_requires,
