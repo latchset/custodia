@@ -6,7 +6,6 @@ Authorizers
 
    custodia.httpd.authorizers.SimplePathAuthz
    custodia.httpd.authorizers.UserNameSpace
-   custodia.kubernetes.authz.KubeAuthz
    custodia.message.kem.KEMKeysStore
 
 .. autoclass:: custodia.httpd.authorizers.SimplePathAuthz
@@ -15,11 +14,6 @@ Authorizers
     :show-inheritance:
 
 .. autoclass:: custodia.httpd.authorizers.UserNameSpace
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-.. autoclass:: custodia.kubernetes.authz.KubeAuthz
     :members:
     :undoc-members:
     :show-inheritance:

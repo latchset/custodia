@@ -8,7 +8,6 @@ Authenticators
    custodia.httpd.authenticators.SimpleHeaderAuth
    custodia.httpd.authenticators.SimpleAuthKeys
    custodia.httpd.authenticators.SimpleClientCertAuth
-   custodia.kubernetes.node.NodeAuth
 
 .. autoclass:: custodia.httpd.authenticators.SimpleCredsAuth
     :members:
@@ -30,7 +29,3 @@ Authenticators
     :undoc-members:
     :show-inheritance:
 
-.. autoclass:: custodia.kubernetes.node.NodeAuth
-    :members:
-    :undoc-members:
-    :show-inheritance:

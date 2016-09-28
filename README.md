@@ -43,6 +43,5 @@ https://github.com/latchset/custodia/wiki
 
 Some APIs are provisional and may change in the future.
 
-* Kubernetes and Docker authenticator and authorizer modules in ```custodia.kubernetes```.
 * Command line interface in module ```custodia.cli```.
 * The script custodia-cli.

@@ -1,5 +1,6 @@
 .. WARNING: AUTO-GENERATED FILE. DO NOT EDIT.
 
+
 Custodia
 ========
 
@@ -47,7 +48,5 @@ API stability
 
 Some APIs are provisional and may change in the future.
 
--  Kubernetes and Docker authenticator and authorizer modules in
-   ``custodia.kubernetes``.
 -  Command line interface in module ``custodia.cli``.
 -  The script custodia-cli.
