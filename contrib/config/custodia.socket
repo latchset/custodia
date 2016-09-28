@@ -1,0 +1,14 @@
+# /etc/systemd/system/custodia.socket
+
+[Unit]
+Description=Custodia Socket
+Documentation=https://github.com/latchset/custodia
+
+[Socket]
+ListenStream=/var/run/custodia/custodia.sock
+SocketUser=root
+SocketGroup=root
+SocketMode=0666
+
+[Install]
+WantedBy=sockets.target
