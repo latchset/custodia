@@ -23,6 +23,7 @@ Contents:
    readme.rst
    config.rst
    api.rst
+   examples/index.rst
    plugins/index.rst
 
 Indices and tables
