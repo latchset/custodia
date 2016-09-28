@@ -55,17 +55,13 @@ class SimpleHeaderAuth(HTTPAuthenticator):
 
 
 class SimpleAuthKeys(HTTPAuthenticator):
-
-    def __init__(self, config):
-        super(SimpleAuthKeys, self).__init__(config)
-        self.id_header = self.config.get('header', 'CUSTODIA_AUTH_ID')
-        self.key_header = self.config.get('header', 'CUSTODIA_AUTH_KEY')
-        self.store_name = self.config['store']
-        self.store = None
-        self.namespace = self.config.get('store_namespace', 'custodiaSAK')
+    id_header = PluginOption(str, 'CUSTODIA_AUTH_ID', "auth id header name")
+    key_header = PluginOption(str, 'CUSTODIA_AUTH_KEY', "auth key header name")
+    store = PluginOption('store', None, None)
+    store_namespace = PluginOption(str, 'custodiaSAK', "")
 
     def _db_key(self, name):
-        return os.path.join(self.namespace, name)
+        return os.path.join(self.store_namespace, name)
 
     def handle(self, request):
         name = request['headers'].get(self.id_header, None)
@@ -78,7 +74,7 @@ class SimpleAuthKeys(HTTPAuthenticator):
         try:
             val = self.store.get(self._db_key(name))
             if val is None:
-                raise Exception("No such ID")
+                raise ValueError("No such ID")
             if constant_time.bytes_eq(val.encode('utf-8'),
                                       key.encode('utf-8')):
                 validated = True
