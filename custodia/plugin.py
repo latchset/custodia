@@ -328,17 +328,19 @@ class CSStore(CustodiaPlugin):
     def set(self, key, value, replace=False):
         pass
 
-    @abc.abstractmethod
+    # relax ABC for now, see https://github.com/latchset/custodia/issues/84
+
+    # @abc.abstractmethod
     def span(self, key):
-        pass
+        raise NotImplementedError
 
-    @abc.abstractmethod
+    # @abc.abstractmethod
     def list(self, keyfilter=None):
-        pass
+        raise NotImplementedError
 
-    @abc.abstractmethod
+    # @abc.abstractmethod
     def cut(self, key):
-        pass
+        raise NotImplementedError
 
 
 class HTTPAuthorizer(CustodiaPlugin):
