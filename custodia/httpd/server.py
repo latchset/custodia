@@ -262,7 +262,7 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
         url = urlparse(self.path)
 
         # Yes, override path with the path part only
-        self.path = unquote(url.path)
+        self.path = url.path
 
         # Create dict out of query
         self.query = parse_qs(url.query)
