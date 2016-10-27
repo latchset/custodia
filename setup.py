@@ -63,7 +63,7 @@ setup(
     name='custodia',
     descricription='A service to manage, retrieve and store secrets',
     long_description=long_description,
-    version='0.2.dev1',
+    version='0.2.0',
     license='GPLv3+',
     maintainer='Custodia project Contributors',
     maintainer_email='simo@redhat.com',
