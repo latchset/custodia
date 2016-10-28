@@ -9,6 +9,9 @@ recursive-include docs *.py *.rst
 include docs/Makefile
 include man/custodia.7
 
+include contrib/config/custodia.*
+include contrib/config/README.txt
+
 recursive-include tests *.py
 recursive-include tests/ca *.conf *.key *.pem *.sh
 prune tests/tmp
