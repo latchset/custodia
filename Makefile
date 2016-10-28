@@ -1,6 +1,7 @@
 CONF := custodia.conf
 PREFIX := /usr
 PYTHON := python3
+TOX := $(PYTHON) -m tox
 DOCS_DIR = docs
 
 .NOTPARALLEL:
@@ -13,14 +14,14 @@ clean_socket:
 	rm -f server_socket
 
 lint: clean_socket
-	tox -e lint
+	$(TOX) -e lint
 
 pep8: clean_socket
-	tox -e pep8py2
-	tox -e pep8py3
+	$(TOX) -e pep8py2
+	$(TOX) -e pep8py3
 
 clean: clean_socket
-	rm -fr build dist *.egg-info .tox MANIFEST .coverage .cache
+	rm -fr build dist *.egg-info .$(TOX) MANIFEST .coverage .cache
 	rm -f custodia.audit.log secrets.db
 	rm -rf docs/build
 	find ./ -name '*.py[co]' -exec rm -f {} \;
@@ -32,9 +33,10 @@ cscope:
 
 test: clean_socket
 	rm -f .coverage
-	tox --skip-missing-interpreters -e py27
-	tox --skip-missing-interpreters -e py34
-	tox --skip-missing-interpreters -e py35
+	$(TOX) --skip-missing-interpreters -e py27
+	$(TOX) --skip-missing-interpreters -e py34
+	$(TOX) --skip-missing-interpreters -e py35
+	$(TOX) --skip-missing-interpreters -e doc
 
 README: README.md
 	echo -e '.. WARNING: AUTO-GENERATED FILE. DO NOT EDIT.\n' > $@

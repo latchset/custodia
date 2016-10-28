@@ -61,7 +61,7 @@ custodia_stores = [
 
 setup(
     name='custodia',
-    descricription='A service to manage, retrieve and store secrets',
+    description='A service to manage, retrieve and store secrets',
     long_description=long_description,
     version='0.3.dev1',
     license='GPLv3+',
