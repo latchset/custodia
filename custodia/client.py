@@ -33,7 +33,7 @@ class HTTPUnixConnection(HTTPConnection):
         s = socket.socket(family=socket.AF_UNIX)
         s.settimeout(self.timeout)
         s.connect(self.unix_socket)
-        self.sock = s
+        self.sock = s  # pylint: disable=attribute-defined-outside-init
 
 
 class HTTPUnixConnectionPool(HTTPConnectionPool):

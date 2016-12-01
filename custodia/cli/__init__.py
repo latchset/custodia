@@ -167,6 +167,7 @@ def handle_plugins(args):
         result.append('')
     return result[:-1]
 
+
 parser_plugins = subparsers.add_parser(
     'plugins', help='List plugins')
 parser_plugins.set_defaults(

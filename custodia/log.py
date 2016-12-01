@@ -105,6 +105,7 @@ class AuditLog(object):
         args = {'cli': client, 'name': name}
         self.logger.info(msg, args, extra={'origin': origin})
 
+
 auditlog = AuditLog(logging.getLogger('custodia.audit'))
 
 
