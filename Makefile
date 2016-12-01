@@ -1,7 +1,7 @@
 CONF := custodia.conf
 PREFIX := /usr
 PYTHON := python3
-TOX := $(PYTHON) -m tox
+TOX := $(PYTHON) -m tox --sitepackages
 DOCS_DIR = docs
 
 .NOTPARALLEL:
