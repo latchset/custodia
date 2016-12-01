@@ -421,12 +421,22 @@ class CustodiaHTTPSTests(CustodiaTests):
         client.set_client_cert(cls.client_cert, cls.client_key)
         return client
 
+    def assert_ssl_error_msg(self, msg, exc):
+        # CERTIFICATE_VERIFY_FAILED, SSLV3_ALERT_HANDSHAKE_FAILURE
+        if msg in str(exc):
+            return
+        # 'certificate verify failed'
+        msg = msg.lower().replace('_', ' ')
+        if msg in str(exc):
+            return
+        self.fail(str(exc))
+
     def test_client_no_ca_trust(self):
         client = CustodiaSimpleClient(self.socket_url + '/forwarder')
         client.headers['REMOTE_USER'] = 'test'
         with self.assertRaises(SSLError) as e:
             client.list_container('test')
-        self.assertIn("CERTIFICATE_VERIFY_FAILED", str(e.exception))
+        self.assert_ssl_error_msg("CERTIFICATE_VERIFY_FAILED", e.exception)
 
     def test_client_no_client_cert(self):
         client = CustodiaSimpleClient(self.socket_url + '/forwarder')
@@ -434,7 +444,8 @@ class CustodiaHTTPSTests(CustodiaTests):
         client.set_ca_cert(self.ca_cert)
         with self.assertRaises(SSLError) as e:
             client.list_container('test')
-        self.assertIn("SSLV3_ALERT_HANDSHAKE_FAILURE", str(e.exception))
+        self.assert_ssl_error_msg("SSLV3_ALERT_HANDSHAKE_FAILURE",
+                                  e.exception)
 
     def test_C_client_cert_auth(self):
         # same CN as custodia-client.pem
