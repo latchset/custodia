@@ -11,6 +11,7 @@ include man/custodia.7
 
 include contrib/config/custodia.*
 include contrib/config/README.txt
+include contrib/docker/*
 
 recursive-include tests *.py
 recursive-include tests/ca *.conf *.key *.pem *.sh

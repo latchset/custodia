@@ -1,0 +1,10 @@
+# exclude all
+*
+
+# include wheels
+!dist/custodia*.whl
+
+# include Docker helpers
+!contrib/docker
+!contrib/config
+
