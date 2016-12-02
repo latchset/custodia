@@ -3,6 +3,24 @@ PREFIX := /usr
 PYTHON := python3
 TOX := $(PYTHON) -m tox --sitepackages
 DOCS_DIR = docs
+SERVER_SOCKET = $(CURDIR)/server_socket
+
+DOCKER_CMD = docker
+DOCKER_IMAGE = latchset/custodia
+CONTAINER_NAME = custodia_container
+CONTAINER_VOL = $(CURDIR)/vol
+CONTAINER_SOCKET = $(CONTAINER_VOL)/run/sock
+CONTAINER_CLI = $(CONTAINER_VOL)/custodia-cli
+
+# helper script for demo
+define CUSTODIA_CLI_SCRIPT
+#!/bin/sh
+set -e
+PYTHONPATH=$(CURDIR) $(PYTHON) -Wignore -m custodia.cli \
+    --server $(CONTAINER_SOCKET) $$@
+endef
+export CUSTODIA_CLI_SCRIPT
+
 
 .NOTPARALLEL:
 .PHONY: all clean clean_socket cscope docs lint pep8 test
@@ -11,7 +29,7 @@ all: clean_socket lint pep8 test docs
 	echo "All tests passed"
 
 clean_socket:
-	rm -f server_socket
+	rm -f $(SERVER_SOCKET) $(CONTAINER_SOCKET)
 
 lint: clean_socket
 	$(TOX) -e lint
@@ -21,12 +39,13 @@ pep8: clean_socket
 	$(TOX) -e pep8py3
 
 clean: clean_socket
-	rm -fr build dist *.egg-info .$(TOX) MANIFEST .coverage .cache
+	rm -fr build dist *.egg-info .tox MANIFEST .coverage .cache
 	rm -f custodia.audit.log secrets.db
 	rm -rf docs/build
 	find ./ -name '*.py[co]' -exec rm -f {} \;
 	find ./ -depth -name __pycache__ -exec rm -rf {} \;
 	rm -rf tests/tmp
+	rm -rf vol
 
 cscope:
 	git ls-files | xargs pycscope
@@ -65,3 +84,38 @@ release: clean_socket egg_info README
 
 run: egg_info
 	$(PYTHON) -m custodia.server $(CONF)
+
+.PHONY = dockerbuild dockerdemo dockerdemoinit dockershell
+dockerbuild:
+	rm -f dist/custodia*.whl
+	$(PYTHON) setup.py bdist_wheel
+	$(DOCKER_CMD) build -f contrib/docker/Dockerfile -t $(DOCKER_IMAGE) .
+
+dockerdemo: dockerbuild
+	@mkdir -p -m755 $(CONTAINER_VOL)/lib $(CONTAINER_VOL)/log $(CONTAINER_VOL)/run
+	@echo "$$CUSTODIA_CLI_SCRIPT" > $(CONTAINER_CLI)
+	@chmod 755 $(CONTAINER_CLI)
+	@echo "Custodia CLI: $(CONTAINER_CLI)"
+
+	@$(DOCKER_CMD) rm $(CONTAINER_NAME) >/dev/null 2>&1|| true
+	$(DOCKER_CMD) run \
+	    --name $(CONTAINER_NAME) \
+	    --user $(shell id -u):$(shell id -g) \
+	    -e CREDS_UID=$(shell id -u) -e CREDS_GID=$(shell id -g) \
+	    -v $(CONTAINER_VOL)/lib:/var/lib/custodia:Z \
+	    -v $(CONTAINER_VOL)/log:/var/log/custodia:Z \
+	    -v $(CONTAINER_VOL)/run:/var/run/custodia:Z \
+	    $(DOCKER_IMAGE):latest \
+	    /usr/bin/custodia /etc/custodia/demo.conf
+
+dockerdemoinit:
+	$(CONTAINER_VOL)/custodia-cli mkdir /container
+	$(CONTAINER_VOL)/custodia-cli set /container/key value
+	$(CONTAINER_VOL)/custodia-cli get /container/key
+
+dockershell:
+	$(DOCKER_CMD) exec -ti $(CONTAINER_NAME) /bin/bash
+
+.PHONY=dockerpush
+dockerpush: dockerbuild
+	docker push $(DOCKER_IMAGE)

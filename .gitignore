@@ -14,3 +14,4 @@ MANIFEST
 custodia.audit.log
 secrets.db
 server_socket
+vol
