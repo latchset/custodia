@@ -1,0 +1,6 @@
+include setup.py setup.cfg
+include LICENSE 
+include *.md *.ini
+
+include contrib/config/custodia.*
+
