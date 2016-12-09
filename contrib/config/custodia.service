@@ -9,9 +9,8 @@ After=network.target
 [Service]
 #Type=notify
 Type=simple
-ExecStartPre=/bin/kdestroy -A
+Environment=KRB5CCNAME=FILE:/var/run/custodia/custodia.ccache
 ExecStart=/usr/bin/custodia /etc/custodia/custodia.conf
 
 [Install]
 WantedBy=multi-user.target
-
