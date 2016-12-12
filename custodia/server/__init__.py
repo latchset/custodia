@@ -9,6 +9,7 @@ import argparse
 import importlib
 import logging
 import os
+import socket
 
 # use https://pypi.python.org/pypi/configparser/ on Python 2
 from configparser import ConfigParser, ExtendedInterpolation
@@ -100,7 +101,16 @@ def _create_plugin(parser, section, menu):
 
 
 def parse_config(args):
-    parser = ConfigParser(interpolation=ExtendedInterpolation())
+    defaults = {
+        # Do not use getfqdn(). Internaly it calls gethostbyaddr which might
+        # perform a DNS query.
+        'hostname': socket.gethostname(),
+    }
+
+    parser = ConfigParser(
+        interpolation=ExtendedInterpolation(),
+        defaults=defaults
+    )
     parser.optionxform = str
 
     with args.configfile as f:
