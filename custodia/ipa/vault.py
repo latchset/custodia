@@ -129,7 +129,10 @@ class IPAVault(CSStore):
         names = []
         for entry in result[u'result']:
             cn = entry[u'cn'][0]
-            names.append(cn)
+            key = cn.replace('__', '/')
+            if keyfilter is not None and not key.startswith(keyfilter):
+                continue
+            names.append(key.rsplit('/', 1)[-1])
         return names
 
     def cut(self, key):
