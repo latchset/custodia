@@ -138,7 +138,12 @@ class IPAVault(CSStore):
     def cut(self, key):
         key = self._mangle_key(key)
         with self.ipa as ipa:
-            ipa.Command.vault_del(key, service=self.principal)
+            try:
+                ipa.Command.vault_del(key, service=self.principal)
+            except NotFound:
+                return False
+            else:
+                return True
 
 
 if __name__ == '__main__':
