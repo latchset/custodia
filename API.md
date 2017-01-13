@@ -6,7 +6,7 @@ Authentication and authorization are fully pluggable and are
 therefore, not standardized.
 
 Access paths are also not standardized, although the common practice
-is to mount th secrets api under the /secrets URI
+is to mount the secrets api under the /secrets URI
 
 The Custodia API uses JSON to format requests and replies.
 
@@ -65,15 +65,15 @@ Format:
 
  Attributes:
  - public-key-identifier: This is the kid of a key that must be known to the
- Custodia service. If opportunistic encription is desired, and the requesting
+ Custodia service. If opportunistic encryption is desired, and the requesting
  client is authenticated in other ways a "jku"  header could be used instead,
- and a key fetched on the fly. This is not recommended for the gneral case and
+ and a key fetched on the fly. This is not recommended for the general case and
  is not currently supported by the implementation.
- - name-of-secret: this repeates the name of the secret embedded in the GET,
+ - name-of-secret: this repeats the name of the secret embedded in the GET,
  This is used to prevent substitution attacks where a client is intercepted
  and its signed request is reused to request a different key.
  - unix-timestamp: used to limit replay attacks, indicated expiration time,
- and should be no further than 5 minutes in the future, with leway up to 10
+ and should be no further than 5 minutes in the future, with leeway up to 10
  minutes to account for clock skews
  Additional claims may be present, for example a 'value'.
 
@@ -108,7 +108,7 @@ There are essentially 2 objects recognized by the API:
 
 Key containers can be nested and named arbitrarily, however depending on
 authorization schemes used the basic container is often named after a group or
-a user in order to make authorization chcks simpler.
+a user in order to make authorization checks simpler.
 
 
 Getting keys
@@ -131,7 +131,7 @@ Returns:
 Storing keys
 ------------
 
-A PUT operation withthe name of the key:
+A PUT operation with the name of the key:
 PUT /secrets/name/of/key
 
 The Content-Type MUST be 'application/json'
@@ -170,7 +170,7 @@ A GET operation on a path that ends in a '/' translates into
 a listing for a container.
 GET /secrets/container/
 
-Implementations may assume a default container if none is excplicitly
+Implementations may assume a default container if none is explicitly
 provided: GET /secrets/ may return only keys under /<user-default>/*
 
 Returns:
