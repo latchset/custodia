@@ -1,4 +1,4 @@
-FROM fedora:24
+FROM fedora:25
 MAINTAINER Christian Heimes <cheimes@redhat.com>
 
 RUN dnf -y update && dnf clean all
