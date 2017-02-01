@@ -78,6 +78,9 @@ dburi = ${TEST_DIR}/test_secrets.db
 table = secrets
 filemode = 640
 
+[/]
+handler = Root
+
 [/secrets]
 handler = custodia.secrets.Secrets
 store = simple
@@ -217,6 +220,7 @@ class CustodiaTests(unittest.TestCase):
         cls.fwd = cls.create_client('/forwarder', 'test')
         cls.loop = cls.create_client('/forwarder_loop', 'test')
         cls.enc = cls.create_client('/enc', 'enc')
+        cls.root = cls.create_client('/', 'test')
 
         cls.kem = cls.create_client('/enc', 'kem', CustodiaKEMClient)
         cls.kem.set_server_public_keys(*srvkeys)
@@ -279,6 +283,12 @@ class CustodiaTests(unittest.TestCase):
 
     def test_0_delete_container(self):
         self.client.delete_container('test/container')
+
+    def test_0_get_root(self):
+        r = self.root.get('')
+        r.raise_for_status()
+        msg = r.json()
+        self.assertEqual(msg, {"message": "Quis custodiet ipsos custodes?"})
 
     def test_1_set_simple_key(self):
         self.client.set_secret('test/key', 'VmVycnlTZWNyZXQK')

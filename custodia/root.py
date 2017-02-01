@@ -15,4 +15,5 @@ class Root(HTTPConsumer):
             self.add_sub('secrets', Secrets(config, section))
 
     def GET(self, request, response):
-        return json.dumps({'message': "Quis custodiet ipsos custodes?"})
+        msg = json.dumps({'message': "Quis custodiet ipsos custodes?"})
+        return msg.encode('utf-8')
