@@ -20,7 +20,7 @@ RUN install -d -m 755 -o custodia -g custodia \
     /var/log/custodia \
     /var/run/custodia \
     /var/lib/custodia
-VOLUME ["/var/log/custodia", "/var/lib/custodia", "/var/run/custodia"]
+VOLUME ["/etc/custodia", "/var/log/custodia", "/var/lib/custodia", "/var/run/custodia"]
 
 # Copy default custodia conf
 COPY contrib/config/custodia.conf /etc/custodia/
