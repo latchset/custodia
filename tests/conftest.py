@@ -5,10 +5,13 @@ import pytest
 
 from custodia.log import ProvisionalWarning
 
-# silence our own warnings about provisional APIs
-warnings.simplefilter('ignore', category=ProvisionalWarning)
 # deprecated APIs raise an exception
 warnings.simplefilter('error', category=DeprecationWarning)
+# ignore pytest warnings
+warnings.filterwarnings('ignore', category=DeprecationWarning,
+                        module='_pytest\..*')
+# silence our own warnings about provisional APIs
+warnings.simplefilter('ignore', category=ProvisionalWarning)
 
 
 SKIP_SERVERTEST = "--skip-servertests"
