@@ -25,6 +25,7 @@ Contents:
    api.rst
    examples/index.rst
    plugins/index.rst
+   container.rst
 
 Indices and tables
 ==================
