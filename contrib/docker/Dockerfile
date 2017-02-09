@@ -23,7 +23,7 @@ RUN install -d -m 755 -o custodia -g custodia \
 VOLUME ["/etc/custodia", "/var/log/custodia", "/var/lib/custodia", "/var/run/custodia"]
 
 # Copy default custodia conf
-COPY contrib/config/custodia.conf /etc/custodia/
+COPY contrib/config/custodia/custodia.conf /etc/custodia/
 COPY contrib/docker/demo.conf /etc/custodia/
 RUN chown custodia:custodia /etc/custodia/*.conf \
     && chmod 644 /etc/custodia/*.conf

@@ -9,9 +9,7 @@ recursive-include docs *.py *.rst
 include docs/Makefile
 include man/custodia.7
 
-include contrib/config/custodia.*
-include contrib/config/README.txt
-include contrib/docker/*
+recursive-include contrib *.txt *.conf *.service *.socket Dockerfile
 
 recursive-include tests *.py
 recursive-include tests/ca *.conf *.key *.pem *.sh
