@@ -7,8 +7,8 @@ Documentation=https://github.com/latchset/custodia
 [Socket]
 ListenStream=/var/run/custodia/custodia.sock
 RemoveOnStop=true
-SocketUser=root
-SocketGroup=root
+SocketUser=custodia
+SocketGroup=custodia
 SocketMode=0666
 
 [Install]

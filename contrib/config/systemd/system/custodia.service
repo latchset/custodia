@@ -9,6 +9,8 @@ After=network.target
 [Service]
 Type=notify
 ExecStart=/usr/sbin/custodia /etc/custodia/custodia.conf
+User=custodia
+Group=custodia
 
 [Install]
 WantedBy=multi-user.target
