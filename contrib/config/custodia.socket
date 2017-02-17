@@ -6,6 +6,7 @@ Documentation=https://github.com/latchset/custodia
 
 [Socket]
 ListenStream=/var/run/custodia/custodia.sock
+RemoveOnStop=true
 SocketUser=root
 SocketGroup=root
 SocketMode=0666
