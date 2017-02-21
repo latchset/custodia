@@ -26,16 +26,16 @@ logger = logging.getLogger('custodia')
 CONFIG_SPECIALS = ['authenticators', 'authorizers', 'consumers', 'stores']
 
 
-argparser = argparse.ArgumentParser(
+default_argparser = argparse.ArgumentParser(
     prog='custodia',
     description='Custodia server'
 )
-argparser.add_argument(
+default_argparser.add_argument(
     '--debug',
     action='store_true',
     help='Debug mode'
 )
-argparser.add_argument(
+default_argparser.add_argument(
     'configfile',
     nargs='?',
     type=argparse.FileType('r'),
@@ -191,7 +191,9 @@ def parse_config(args):
     return config
 
 
-def main():
+def main(argparser=None):
+    if argparser is None:
+        argparser = default_argparser
     args = argparser.parse_args()
     config = parse_config(args)
     log.setup_logging(config['debug'], config['auditlog'])
