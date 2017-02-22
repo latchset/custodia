@@ -9,6 +9,7 @@ import socket
 import ssl
 import struct
 import sys
+import warnings
 
 import six
 
@@ -25,10 +26,21 @@ except ImportError:
     from urllib.parse import urlparse, parse_qs, unquote
 
 try:
-    # pylint: disable=import-error
-    from systemd import daemon as sd
+    from systemd import daemon as sd  # pylint: disable=import-error
 except ImportError:
     sd = None
+    if 'NOTIFY_SOCKET' in os.environ:
+        warnings.warn(
+            "NOTIFY_SOCKET env var is set but python-systemd bindings are "
+            "not available!",
+            category=RuntimeWarning
+        )
+    if 'LISTEN_FDS' in os.environ:
+        warnings.warn(
+            "LISTEN_FDS env var is set, but python-systemd bindings are"
+            "not available!",
+            category=RuntimeWarning
+        )
 
 
 from custodia import log
