@@ -22,6 +22,12 @@ gid = 0
 uid = root
 gid = root
 
+[auth:cred_user]
+uid = root
+
+[auth:cred_group]
+gid = root
+
 [auth:cred_other_int]
 uid = ${DEFAULT:other_uid}
 gid = ${DEFAULT:other_gid}
@@ -51,6 +57,8 @@ class TestAuthenticators(unittest.TestCase):
     def setUpClass(cls):
         cls.user = user = pwd.getpwuid(os.getuid())
         cls.group = group = grp.getgrgid(user.pw_gid)
+        if cls.user.pw_uid == 0 or cls.group.gr_gid == 0:
+            raise ValueError("Don't run tests as root!")
 
         cls.parser = configparser.ConfigParser(
             interpolation=configparser.ExtendedInterpolation(),
@@ -63,19 +71,44 @@ class TestAuthenticators(unittest.TestCase):
         )
         cls.parser.read_string(CONFIG)
 
+    def assertCredMatch(self, cred, uid, gid):
+        request = {'creds': {'uid': uid, 'gid': gid}, 'client_id': 'tests'}
+        self.assertTrue(cred.handle(request))
+
+    def assertCredMismatch(self, cred, uid, gid):
+        request = {'creds': {'uid': uid, 'gid': gid}, 'client_id': 'tests'}
+        self.assertFalse(cred.handle(request))
+
     def test_cred(self):
         parser = self.parser
         cred = authenticators.SimpleCredsAuth(parser, 'auth:cred_default')
-        self.assertEqual(cred.uid, 0)
-        self.assertEqual(cred.gid, 0)
+        self.assertEqual(cred.uid, -1)
+        self.assertEqual(cred.gid, -1)
+        self.assertCredMismatch(cred, 0, 0)
 
         cred = authenticators.SimpleCredsAuth(parser, 'auth:cred_int')
         self.assertEqual(cred.uid, 0)
         self.assertEqual(cred.gid, 0)
+        self.assertCredMatch(cred, 0, 0)
+        self.assertCredMatch(cred, 0, self.group.gr_gid)
+        self.assertCredMatch(cred, self.user.pw_uid, 0)
+        self.assertCredMismatch(cred, self.user.pw_uid, self.group.gr_gid)
 
         cred = authenticators.SimpleCredsAuth(parser, 'auth:cred_root')
         self.assertEqual(cred.uid, 0)
         self.assertEqual(cred.gid, 0)
+
+        cred = authenticators.SimpleCredsAuth(parser, 'auth:cred_user')
+        self.assertEqual(cred.uid, 0)
+        self.assertEqual(cred.gid, -1)
+        self.assertCredMatch(cred, 0, 0)
+        self.assertCredMismatch(cred, self.user.pw_uid, 0)
+
+        cred = authenticators.SimpleCredsAuth(parser, 'auth:cred_group')
+        self.assertEqual(cred.uid, -1)
+        self.assertEqual(cred.gid, 0)
+        self.assertCredMatch(cred, 0, 0)
+        self.assertCredMismatch(cred, 0, self.group.gr_gid)
 
         cred = authenticators.SimpleCredsAuth(parser, 'auth:cred_other_int')
         self.assertNotEqual(cred.uid, 0)
