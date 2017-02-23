@@ -5,7 +5,6 @@ from __future__ import absolute_import
 import configparser
 
 import grp
-import os
 import pwd
 import unittest
 
@@ -55,10 +54,12 @@ value = admin user
 class TestAuthenticators(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.user = user = pwd.getpwuid(os.getuid())
+        # Tests are depending on two existing and distinct users and groups.
+        # We chose 'root' with uid/gid 0 and 'nobody', because both exist on
+        # all relevant platforms. Tests use a mocked request so they run
+        # under any user.
+        cls.user = user = pwd.getpwnam('nobody')
         cls.group = group = grp.getgrgid(user.pw_gid)
-        if cls.user.pw_uid == 0 or cls.group.gr_gid == 0:
-            raise ValueError("Don't run tests as root!")
 
         cls.parser = configparser.ConfigParser(
             interpolation=configparser.ExtendedInterpolation(),
