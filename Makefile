@@ -7,6 +7,8 @@ SERVER_SOCKET = $(CURDIR)/server_socket
 
 DOCKER_CMD = docker
 DOCKER_IMAGE = latchset/custodia
+DOCKER_RELEASE_ARGS = --no-cache=true --pull=true
+
 CONTAINER_NAME = custodia_container
 CONTAINER_VOL = $(CURDIR)/vol
 CONTAINER_SOCKET = $(CONTAINER_VOL)/run/sock
@@ -93,11 +95,13 @@ release: clean egg_info README
 run: egg_info
 	$(PYTHON) -m custodia.server $(CONF)
 
-.PHONY = dockerbuild dockerdemo dockerdemoinit dockershell
+.PHONY: dockerbuild dockerdemo dockerdemoinit dockershell dockerreleasebuild
 dockerbuild:
 	rm -f dist/custodia*.whl
 	$(PYTHON) setup.py bdist_wheel
-	$(DOCKER_CMD) build -f contrib/docker/Dockerfile -t $(DOCKER_IMAGE) .
+	$(DOCKER_CMD) build $(DOCKER_BUILD_ARGS) \
+		-f contrib/docker/Dockerfile \
+		-t $(DOCKER_IMAGE) .
 
 dockerdemo: dockerbuild
 	@mkdir -p -m755 $(CONTAINER_VOL)/lib $(CONTAINER_VOL)/log $(CONTAINER_VOL)/run
@@ -124,6 +128,10 @@ dockerdemoinit:
 dockershell:
 	$(DOCKER_CMD) exec -ti $(CONTAINER_NAME) /bin/bash
 
-.PHONY=dockerpush
-dockerpush: dockerbuild
-	docker push $(DOCKER_IMAGE)
+dockerrelasebuild:
+	VERSION=$$($(PYTHON) -c \
+	    "import pkg_resources; print(pkg_resources.get_distribution('custodia').version)") && \
+	$(MAKE) dockerbuild \
+	    DOCKER_BUILD_ARGS="$(DOCKER_RELEASE_ARGS)" \
+	    DOCKER_IMAGE="$(DOCKER_IMAGE):$${VERSION}" && \
+	echo -e "\n\nRun: $(DOCKER_CMD) push $(DOCKER_IMAGE):$${VERSION}"
