@@ -128,7 +128,7 @@ dockerdemoinit:
 dockershell:
 	$(DOCKER_CMD) exec -ti $(CONTAINER_NAME) /bin/bash
 
-dockerrelasebuild:
+dockerreleasebuild:
 	VERSION=$$($(PYTHON) -c \
 	    "import pkg_resources; print(pkg_resources.get_distribution('custodia').version)") && \
 	$(MAKE) dockerbuild \
