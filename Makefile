@@ -33,6 +33,9 @@ all: clean_socket lint pep8 test docs
 clean_socket:
 	rm -f $(SERVER_SOCKET) $(CONTAINER_SOCKET)
 
+clean_coverage:
+	rm -f .coverage .coverage.*
+
 lint: clean_socket
 	$(TOX) -e lint
 
@@ -40,8 +43,8 @@ pep8: clean_socket
 	$(TOX) -e pep8py2
 	$(TOX) -e pep8py3
 
-clean: clean_socket
-	rm -fr build dist *.egg-info .tox MANIFEST .coverage .cache
+clean: clean_socket clean_coverage
+	rm -fr build dist *.egg-info .tox MANIFEST .cache
 	rm -f custodia.audit.log secrets.db
 	rm -rf docs/build
 	find ./ -name '*.py[co]' -exec rm -f {} \;
@@ -52,12 +55,13 @@ clean: clean_socket
 cscope:
 	git ls-files | xargs pycscope
 
-test: clean_socket
-	rm -f .coverage
+test: clean_socket clean_coverage
 	$(TOX) --skip-missing-interpreters -e py27
 	$(TOX) --skip-missing-interpreters -e py34
 	$(TOX) --skip-missing-interpreters -e py35
+	$(TOX) --skip-missing-interpreters -e py36
 	$(TOX) --skip-missing-interpreters -e doc
+	$(TOX) -e coverage-report
 
 README: README.md
 	echo -e '.. WARNING: AUTO-GENERATED FILE. DO NOT EDIT.\n' > $@

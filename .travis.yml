@@ -26,10 +26,14 @@ matrix:
       env: TOXENV=pep8py3
 
 install:
-  - pip install --upgrade pip setuptools
+  - pip install --upgrade pip setuptools codecov
   - pip --version
   - pip install tox
   - tox --version
 
 script:
   - tox
+
+after_success:
+  - python -m coverage combine
+  - codecov
