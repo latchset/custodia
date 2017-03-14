@@ -10,6 +10,7 @@ cscope.out
 .tox
 .cache
 .coverage
+.coverage.*
 MANIFEST
 custodia.audit.log
 secrets.db
