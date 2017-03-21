@@ -21,6 +21,7 @@ Contents:
    :maxdepth: 2
 
    readme.rst
+   quick.rst
    config.rst
    api.rst
    examples/index.rst
