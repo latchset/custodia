@@ -93,6 +93,10 @@ class IPAVault(CSStore):
             self.principal = self.principal.decode('utf-8')
         with self.ipa:
             self.logger.info(repr(self.ipa.Command.ping()))
+            # retrieve and cache KRA transport cert
+            response = self.ipa.Command.vaultconfig_show()
+            servers = response[u'result'][u'kra_server_server']
+            self.logger.info("KRA server(s) %s", ', '.join(servers))
 
     def _mangle_key(self, key):
         if '__' in key:

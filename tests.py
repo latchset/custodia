@@ -26,6 +26,11 @@ class TestCustodiaIPA(unittest.TestCase):
         self.m_api = self.p_api.start()
         self.m_api.Backend = mock.Mock()
         self.m_api.Command = mock.Mock()
+        self.m_api.Command.vaultconfig_show.return_value = {
+            u'result': {
+                u'kra_server_server': [u'ipa.example'],
+            }
+        }
 
     def tearDown(self):
         self.p_api.stop()
@@ -37,7 +42,8 @@ class TestCustodiaIPA(unittest.TestCase):
         m_api.isdone.assert_called_once_with('bootstrap')
         m_api.bootstrap.assert_called_once_with(
             context='cli',
-            debug=False
+            debug=False,
+            log=None,
         )
 
         m_api.Backend.rpcclient.isconnected.return_value = False
