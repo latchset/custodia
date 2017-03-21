@@ -11,8 +11,10 @@ Requirements
 Runtime
 ~~~~~~~
 
--  custodia >= 0.2
+-  custodia >= 0.3
 -  ipalib >= 4.4
+-  ipaclient >= 4.4
+-  setuptools
 
 Installation and testing
 ~~~~~~~~~~~~~~~~~~~~~~~~
