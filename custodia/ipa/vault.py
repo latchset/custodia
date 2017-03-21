@@ -11,6 +11,8 @@ from ipalib import api
 from ipalib.errors import DuplicateEntry, NotFound
 from ipalib.constants import FQDN
 
+import six
+
 
 class FreeIPA(object):
     """FreeIPA wrapper
@@ -80,6 +82,8 @@ class IPAVault(CSStore):
             ipa_debug=self.ipa_debug,
             ipa_context=self.ipa_context,
         )
+        if six.PY2 and isinstance(self.principal, str):
+            self.principal = self.principal.decode('utf-8')
         with self.ipa:
             self.logger.info(repr(self.ipa.Command.ping()))
 
