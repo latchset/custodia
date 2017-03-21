@@ -30,7 +30,8 @@ class FreeIPA(object):
             self._api = api
         self._ipa_config = dict(
             context=ipa_context,
-            debug=ipa_debug
+            debug=ipa_debug,
+            log=None,  # disable logging to file
         )
         if ipa_confdir is not None:
             self._ipa_config['confdir'] = ipa_confdir
