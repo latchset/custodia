@@ -2,6 +2,7 @@
 from __future__ import absolute_import
 
 import os
+import shlex
 import shutil
 import socket
 import subprocess
@@ -137,6 +138,8 @@ store = encgen
 
 TEST_SOCKET_URL = "http+unix://%2E%2Ftests%2Ftmp%2Ftest_socket"
 
+HERE = os.path.dirname(os.path.abspath(__file__))
+
 
 def generate_all_keys(custodia_conf):
     parser = configparser.ConfigParser(
@@ -177,7 +180,8 @@ class CustodiaTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         env = os.environ.copy()
-        cls.pexec = env.get('CUSTODIAPYTHON', sys.executable)
+        # CUSTODIAPYTHON can be a list of arguments
+        cls.pexec = shlex.split(env.get('CUSTODIAPYTHON', sys.executable))
 
         if os.path.isdir(cls.test_dir):
             shutil.rmtree(cls.test_dir)
@@ -198,7 +202,7 @@ class CustodiaTests(unittest.TestCase):
         test_log_file = os.path.join(cls.test_dir, 'test_log.txt')
         with (open(test_log_file, 'a')) as logfile:
             p = subprocess.Popen(
-                [cls.pexec, '-m', 'custodia.server', custodia_conf],
+                cls.pexec + ['-m', 'custodia.server', custodia_conf],
                 env=env, stdout=logfile, stderr=logfile
             )
         time.sleep(1)
@@ -217,9 +221,7 @@ class CustodiaTests(unittest.TestCase):
         cls.kem = cls.create_client('/enc', 'kem', CustodiaKEMClient)
         cls.kem.set_server_public_keys(*srvkeys)
         cls.kem.set_client_keys(*clikeys)
-        cls.custodia_cli_args = [
-            cls.pexec,
-            '-Wignore',
+        cls.custodia_cli_args = cls.pexec + [
             '-m', 'custodia.cli',
             '--verbose',
             '--header', 'REMOTE_USER=test',
@@ -237,14 +239,18 @@ class CustodiaTests(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
-        cls.custodia_process.kill()
+        cls.custodia_process.terminate()
         cls.custodia_process.wait()
 
     def _custoda_cli(self, *extra_args, **kwargs):
+        env = os.environ.copy()
+        env['PYTHONWARNINGS'] = 'ignore'
         args = list(self.custodia_cli_args)
         args.extend(extra_args)
         try:
-            out = subprocess.check_output(args, stderr=subprocess.STDOUT)
+            out = subprocess.check_output(
+                args, env=env, stderr=subprocess.STDOUT,
+            )
         except subprocess.CalledProcessError as e:
             if e.returncode == 1:
                 # HTTP error, reraise
@@ -416,16 +422,14 @@ class CustodiaHTTPSTests(CustodiaTests):
     socket_url = 'https://localhost:{}'.format(find_port())
     verify_client = 'True'
 
-    ca_cert = 'tests/ca/custodia-ca.pem'
-    client_cert = 'tests/ca/custodia-client.pem'
-    client_key = 'tests/ca/custodia-client.key'
+    ca_cert = os.path.join(HERE, 'ca/custodia-ca.pem')
+    client_cert = os.path.join(HERE, 'ca/custodia-client.pem')
+    client_key = os.path.join(HERE, 'ca/custodia-client.key')
 
     @classmethod
     def setUpClass(cls):
         super(CustodiaHTTPSTests, cls).setUpClass()
-        cls.custodia_cli_args = [
-            cls.pexec,
-            '-Wignore',
+        cls.custodia_cli_args = cls.pexec + [
             '-m', 'custodia.cli',
             '--verbose',
             '--cafile', cls.ca_cert,

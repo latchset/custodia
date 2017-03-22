@@ -2,6 +2,7 @@
 from __future__ import absolute_import
 
 import os
+import shlex
 import socket
 import subprocess
 import sys
@@ -41,10 +42,9 @@ def find_free_address():
 class TestsCommandLine(unittest.TestCase):
     def _custodia_cli(self, *args):
         env = os.environ.copy()
-        pexec = env.get('CUSTODIAPYTHON', sys.executable)
-        cli = [
-            pexec,
-            '-Wignore',
+        env['PYTHONWARNINGS'] = 'ignore'
+        pexec = shlex.split(env.get('CUSTODIAPYTHON', sys.executable))
+        cli = pexec + [
             '-m', 'custodia.cli',
             '--verbose'
         ]
