@@ -59,7 +59,12 @@ def _load_plugin_class(menu, name):
         raise ValueError(
             "Multiple entry points for {} {}: {}".format(menu, name, eps))
     elif len(eps) == 1:
-        return eps[0].resolve()
+        # backwards compatibility with old setuptools
+        ep = eps[0]
+        if hasattr(ep, 'resolve'):
+            return ep.resolve()
+        else:
+            return ep.load(require=False)
     elif '.' in name:
         # fall back to old style dotted name
         module, classname = name.rsplit('.', 1)
