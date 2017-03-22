@@ -22,7 +22,11 @@ class TestCustodiaPlugins(unittest.TestCase):
 
     def assert_ep(self, ep, basecls):
         try:
-            cls = ep.resolve()
+            # backwards compatibility with old setuptools
+            if hasattr(ep, "resolve"):
+                cls = ep.resolve()
+            else:
+                cls = ep.load(require=False)
         except Exception as e:  # pylint: disable=broad-except
             self.fail("Failed to load %r: %r" % (ep, e))
         if not issubclass(cls, basecls):

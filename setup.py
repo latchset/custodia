@@ -2,24 +2,42 @@
 #
 # Copyright (C) 2015  Custodia project Contributors, for licensee see COPYING
 
+import sys
+
+import setuptools
 from setuptools import setup
+
+SETUPTOOLS_VERSION = tuple(int(v) for v in setuptools.__version__.split("."))
+
 
 requirements = [
     'cryptography',
     'jwcrypto',
     'six',
-    'requests']
-# configparser; python_version<'3.4'
-# extended interpolation is provided by stdlib in Python 3.4+
+    'requests'
+]
 
 # extra requirements
 etcd_requires = ['python-etcd']
 
 # test requirements
 test_requires = ['coverage', 'pytest'] + etcd_requires
-test_pylint_requires = ['pylint'] + test_requires
-test_pep8_requires = ['flake8', 'flake8-import-order', 'pep8-naming']
-test_docs_requires = ['docutils', 'markdown'] + etcd_requires
+
+extras_require = {
+    'etcd_store': etcd_requires,
+    'test': test_requires,
+    'test_docs': ['docutils', 'markdown'] + etcd_requires,
+    'test_pep8': ['flake8', 'flake8-import-order', 'pep8-naming'],
+    'test_pylint': ['pylint'] + test_requires,
+}
+
+# backwards compatibility with old setuptools
+# extended interpolation is provided by stdlib in Python 3.4+
+if SETUPTOOLS_VERSION < (18, 0, 0) and sys.version_info < (3, 4):
+    requirements.append('configparser')
+else:
+    extras_require[':python_version<"3.4"'] = ['configparser']
+
 
 with open('README') as f:
     long_description = f.read()
@@ -99,13 +117,5 @@ setup(
     ],
     install_requires=requirements,
     tests_require=test_requires,
-    extras_require={
-        # extended interpolation is provided by stdlib in Python 3.4+
-        ':python_version<"3.4"': ['configparser'],
-        'etcd_store': etcd_requires,
-        'test': test_requires,
-        'test_docs': test_docs_requires,
-        'test_pep8': test_pep8_requires,
-        'test_pylint': test_pylint_requires,
-    },
+    extras_require=extras_require,
 )
