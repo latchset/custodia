@@ -392,6 +392,26 @@ class CustodiaTests(unittest.TestCase):
         except HTTPError:
             self.assertEqual(self.kem.last_response.status_code, 404)
 
+    def test_B_1_kem_space(self):
+        self.kem.create_container('kem')
+        cl = self.kem.list_container('kem')
+        self.assertEqual(cl, [])
+        self.kem.set_secret('kem/key with space', 'Protected Space')
+        cl = self.kem.list_container('kem')
+        self.assertEqual(cl, ['key with space'])
+        value = self.kem.get_secret('kem/key with space')
+        self.assertEqual(value, 'Protected Space')
+        self.kem.del_secret('kem/key with space')
+        try:
+            self.kem.get_secret('kem/key with space')
+        except HTTPError:
+            self.assertEqual(self.kem.last_response.status_code, 404)
+        self.kem.delete_container('kem')
+        try:
+            self.kem.list_container('kem')
+        except HTTPError:
+            self.assertEqual(self.kem.last_response.status_code, 404)
+
 
 class CustodiaHTTPSTests(CustodiaTests):
     socket_url = 'https://localhost:{}'.format(find_port())
