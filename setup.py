@@ -11,7 +11,7 @@ requirements = [
     'six',
 ]
 # test requirements
-test_requires = ['coverage', 'pytest']
+test_requires = ['coverage', 'pytest', 'mock']
 test_pylint_requires = ['pylint'] + test_requires
 test_pep8_requires = ['flake8', 'flake8-import-order', 'pep8-naming']
 
@@ -50,6 +50,7 @@ setup(
     tests_require=test_requires,
     extras_require={
         'test': test_requires,
+        'test_docs': ['docutils', 'markdown'],
         'test_pep8': test_pep8_requires,
         'test_pylint': test_pylint_requires,
     },

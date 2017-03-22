@@ -1,0 +1,39 @@
+sudo: required
+
+dist: trusty
+
+language: python
+
+cache: pip
+
+matrix:
+  include:
+    - python: 2.7
+      env: TOXENV=py27
+    - python: 3.4
+      env: TOXENV=py34
+    - python: 3.5
+      env: TOXENV=py35
+    - python: 3.6
+      env: TOXENV=py36
+    - python: 3.5
+      env: TOXENV=doc
+    - python: 3.5
+      env: TOXENV=lint
+    - python: 2.7
+      env: TOXENV=pep8py2
+    - python: 3.5
+      env: TOXENV=pep8py3
+
+before_install:
+  - sudo apt-get -qq update
+  - sudo apt-get install -y python-dev libkrb5-dev libffi-dev libnss3-dev libldap2-dev libsasl2-dev libssl-dev libini-config-dev libxmlrpc-core-c3-dev libgettextpo-dev
+
+install:
+  - pip install --upgrade pip setuptools
+  - pip --version
+  - pip install tox
+  - tox --version
+
+script:
+  - tox -v

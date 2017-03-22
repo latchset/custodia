@@ -1,17 +1,16 @@
 # Copyright (C) 2016  Custodia Project Contributors - see LICENSE file
 """FreeIPA vault store (PoC)
 """
+import configparser
 import os
 
-import configparser
-
-from custodia.plugin import CSStore, PluginOption
-
-from ipalib import api
-from ipalib.errors import DuplicateEntry, NotFound
+import ipalib
 from ipalib.constants import FQDN
+from ipalib.errors import DuplicateEntry, NotFound
 
 import six
+
+from custodia.plugin import CSStore, PluginOption
 
 
 class FreeIPA(object):
@@ -20,12 +19,15 @@ class FreeIPA(object):
     Custodia uses a forking server model. We can bootstrap FreeIPA API in
     the main process. Connections must be created in the client process.
     """
-    def __init__(self, krb5config=None, keytab=None, ccache=None, api=api,
+    def __init__(self, krb5config=None, keytab=None, ccache=None, api=None,
                  ipa_context='cli', ipa_confdir=None, ipa_debug=False):
         self._krb5config = krb5config
         self._keytab = keytab
         self._ccache = ccache
-        self._api = api
+        if api is None:
+            self._api = ipalib.api
+        else:
+            self._api = api
         self._ipa_config = dict(
             context=ipa_context,
             debug=ipa_debug
@@ -36,7 +38,7 @@ class FreeIPA(object):
 
     @property
     def Command(self):
-        return self._api.Command
+        return self._api.Command  # pylint: disable=no-member
 
     def _bootstrap(self):
         if not self._api.isdone('bootstrap'):
@@ -54,13 +56,17 @@ class FreeIPA(object):
             self._api.finalize()
 
     def __enter__(self):
+        # pylint: disable=no-member
         if not self._api.Backend.rpcclient.isconnected():
             self._api.Backend.rpcclient.connect()
+        # pylint: enable=no-member
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
+        # pylint: disable=no-member
         if self._api.Backend.rpcclient.isconnected():
             self._api.Backend.rpcclient.disconnect()
+        # pylint: enable=no-member
 
 
 class IPAVault(CSStore):
