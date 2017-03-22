@@ -4,6 +4,13 @@ import logging
 import os
 import time
 
+try:
+    # pylint: disable=import-error
+    from urllib import unquote
+except ImportError:
+    # pylint: disable=no-name-in-module,import-error
+    from urllib.parse import unquote
+
 from jwcrypto.common import json_decode
 from jwcrypto.common import json_encode
 from jwcrypto.jwe import JWE
@@ -98,9 +105,11 @@ class KEMKeysStore(SimplePathAuthz):
 def check_kem_claims(claims, name):
     if 'sub' not in claims:
         raise InvalidMessage('Missing subject in payload')
-    if claims['sub'] != name:
-        raise InvalidMessage('Key name %s does not match subject %s' % (
-            name, claims['sub']))
+    # unquote both ways
+    # The server sends back a claim with quoted name, too.
+    if unquote(name) != unquote(claims['sub']):
+        raise InvalidMessage("Key name '%s' does not match subject '%s'" % (
+            unquote(name), unquote(claims['sub'])))
     if 'exp' not in claims:
         raise InvalidMessage('Missing expiration time in payload')
     if claims['exp'] - (10 * 60) > int(time.time()):

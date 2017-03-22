@@ -405,7 +405,7 @@ class CustodiaTests(unittest.TestCase):
         self.assertEqual(cl, [])
         self.kem.set_secret('kem/key with space', 'Protected Space')
         cl = self.kem.list_container('kem')
-        self.assertEqual(cl, ['key with space'])
+        self.assertEqual(cl, ['key%20with%20space'])
         value = self.kem.get_secret('kem/key with space')
         self.assertEqual(value, 'Protected Space')
         self.kem.del_secret('kem/key with space')
