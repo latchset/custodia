@@ -2,12 +2,11 @@
 
 from __future__ import absolute_import
 
-import configparser
-
 import grp
 import pwd
 import unittest
 
+from custodia.compat import configparser
 from custodia.httpd import authenticators
 
 CONFIG = u"""

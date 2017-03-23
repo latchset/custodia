@@ -1,7 +1,6 @@
 # Copyright (C) 2016  Custodia Project Contributors - see LICENSE file
 
 import abc
-import configparser
 import grp
 import inspect
 import json
@@ -14,6 +13,7 @@ from jwcrypto.common import json_encode
 
 import six
 
+from .compat import configparser
 from .log import auditlog
 
 

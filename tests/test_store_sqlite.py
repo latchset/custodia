@@ -1,11 +1,11 @@
 # Copyright (C) 2015  Custodia Project Contributors - see LICENSE file
 from __future__ import print_function
 
-import configparser
 import shutil
 import tempfile
 import unittest
 
+from custodia.compat import configparser
 from custodia.plugin import CSStoreExists
 from custodia.store.sqlite import SqliteStore
 

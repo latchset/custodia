@@ -2,7 +2,6 @@
 
 from __future__ import absolute_import
 
-import configparser
 import os
 import shutil
 import socket
@@ -11,13 +10,6 @@ import sys
 import time
 import unittest
 from string import Template
-
-try:
-    # pylint: disable=import-error
-    from urllib import quote_plus
-except ImportError:
-    # pylint: disable=import-error,no-name-in-module
-    from urllib.parse import quote_plus
 
 from jwcrypto import jwk
 
@@ -28,6 +20,7 @@ from requests.exceptions import HTTPError, SSLError
 import six
 
 from custodia.client import CustodiaKEMClient, CustodiaSimpleClient
+from custodia.compat import configparser, quote_plus
 from custodia.store.sqlite import SqliteStore
 
 

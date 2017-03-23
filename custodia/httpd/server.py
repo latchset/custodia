@@ -13,17 +13,18 @@ import warnings
 
 import six
 
-try:
-    # pylint: disable=import-error
+from custodia import log
+from custodia.compat import parse_qs, unquote, urlparse
+from custodia.plugin import HTTPError
+
+# pylint: disable=import-error,no-name-in-module
+if six.PY2:
     from BaseHTTPServer import BaseHTTPRequestHandler
     from SocketServer import ForkingTCPServer, BaseServer
-    from urlparse import urlparse, parse_qs
-    from urllib import unquote
-except ImportError:
-    # pylint: disable=import-error,no-name-in-module
+else:
     from http.server import BaseHTTPRequestHandler
     from socketserver import ForkingTCPServer, BaseServer
-    from urllib.parse import urlparse, parse_qs, unquote
+# pylint: enable=import-error,no-name-in-module
 
 try:
     from systemd import daemon as sd  # pylint: disable=import-error
@@ -42,9 +43,6 @@ except ImportError:
             category=RuntimeWarning
         )
 
-
-from custodia import log
-from custodia.plugin import HTTPError
 
 logger = logging.getLogger(__name__)
 
