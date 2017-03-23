@@ -40,6 +40,24 @@ class TestsCommandLine(unittest.TestCase):
         output = self._custodia_cli('--help')
         self.assertIn(u'Custodia command line interface', output)
 
+    def test_connection_error_with_server_option(self):
+        invalid_server_name = 'http://custodia.invalid/secrets/key'
+        with self.assertRaises(subprocess.CalledProcessError) as cm:
+            self._custodia_cli('--server',
+                               invalid_server_name,
+                               'ls',
+                               '/')
+        self.assertIn(invalid_server_name, cm.exception.output)
+
+    def test_connection_error_with_uds_urlpath_option(self):
+        invalid_path_name = 'path/to/file'
+        with self.assertRaises(subprocess.CalledProcessError) as cm:
+            self._custodia_cli('--uds-urlpath',
+                               invalid_path_name,
+                               'ls',
+                               '/')
+        self.assertIn(invalid_path_name, cm.exception.output)
+
     def test_plugins(self):
         output = self._custodia_cli('plugins')
         self.assertIn(u'[custodia.authenticators]', output)

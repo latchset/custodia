@@ -15,6 +15,8 @@ except ImportError:
 
 import pkg_resources
 
+
+from requests.exceptions import ConnectionError
 from requests.exceptions import HTTPError as RequestsHTTPError
 
 from custodia import log
@@ -204,11 +206,14 @@ def main():
     if args.certfile:
         args.client_conn.set_client_cert(args.certfile, args.keyfile)
         args.client_conn.headers['CUSTODIA_CERT_AUTH'] = 'true'
-
     try:
         result = args.func(args)
     except RequestsHTTPError as e:
         return main_parser.exit(1, str(e))
+    except ConnectionError:
+        connection_error_msg = "Unable to connect to the server via " \
+                               "{}".format(args.server)
+        return main_parser.exit(2, connection_error_msg)
     except Exception as e:  # pylint: disable=broad-except
         if args.verbose:
             traceback.print_exc(file=sys.stderr)
