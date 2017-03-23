@@ -305,11 +305,11 @@ class CustodiaTests(unittest.TestCase):
 
     def test_3_list_container(self):
         cl = self.client.list_container('test')
-        self.assertEqual(cl, ["cli", "http%3A%2F%2Flocalhost%3A5000", "key"])
+        self.assertEqual(cl, ["cli", "http://localhost:5000", "key"])
 
     def test_3_list_container_cli(self):
         cl = self._custoda_cli('ls', 'test', split=True)
-        self.assertEqual(cl, ["cli", "http%3A%2F%2Flocalhost%3A5000", "key"])
+        self.assertEqual(cl, ["cli", "http://localhost:5000", "key"])
 
     def test_4_del_simple_key(self):
         self.client.del_secret('test/key')

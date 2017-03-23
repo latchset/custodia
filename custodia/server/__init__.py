@@ -161,7 +161,10 @@ def parse_config(args):
 
         if s.startswith('/'):
             menu = 'consumers'
-            name = s
+            path_chain = s.split('/')
+            if path_chain[-1] == '':
+                path_chain = path_chain[:-1]
+            name = tuple(path_chain)
         else:
             if s.startswith('auth:'):
                 menu = 'authenticators'
