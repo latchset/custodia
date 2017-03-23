@@ -1,24 +1,17 @@
 # Copyright (C) 2015  Custodia Project Contributors - see LICENSE file
-try:
-    # pylint: disable=import-error
-    from urllib import quote as url_escape
-except ImportError:
-    # pylint: disable=no-name-in-module,import-error
-    from urllib.parse import quote as url_escape
 import argparse
 import importlib
 import logging
 import os
 import socket
 
-# use https://pypi.python.org/pypi/configparser/ on Python 2
-from configparser import ConfigParser, ExtendedInterpolation
-
 import pkg_resources
 
 import six
 
 from custodia import log
+from custodia.compat import configparser
+from custodia.compat import url_escape
 from custodia.httpd.server import HTTPServer
 
 
@@ -107,8 +100,8 @@ def parse_config(args):
         'hostname': socket.gethostname(),
     }
 
-    parser = ConfigParser(
-        interpolation=ExtendedInterpolation(),
+    parser = configparser.ConfigParser(
+        interpolation=configparser.ExtendedInterpolation(),
         defaults=defaults
     )
     parser.optionxform = str

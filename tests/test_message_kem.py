@@ -1,6 +1,5 @@
 # Copyright (C) 2015  Custodia Project Contributors - see LICENSE file
 
-import configparser
 import os
 import time
 import unittest
@@ -11,6 +10,7 @@ from jwcrypto.jwk import JWK
 from jwcrypto.jws import JWS
 from jwcrypto.jwt import JWT
 
+from custodia.compat import configparser
 from custodia.message import kem
 from custodia.store.sqlite import SqliteStore
 

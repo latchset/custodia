@@ -1,6 +1,5 @@
 # Copyright (C) 2015  Custodia Project Contributors - see LICENSE file
 
-import configparser
 import logging
 import os
 import unittest
@@ -8,6 +7,7 @@ import unittest
 from base64 import b64encode
 
 from custodia import log
+from custodia.compat import configparser
 from custodia.httpd.authorizers import UserNameSpace
 from custodia.plugin import HTTPError
 from custodia.secrets import Secrets

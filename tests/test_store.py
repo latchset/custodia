@@ -1,12 +1,12 @@
 # Copyright (C) 2016  Custodia Project Contributors - see LICENSE file
 from __future__ import print_function
 
-import configparser
 import os
 import shutil
 import tempfile
 import unittest
 
+from custodia.compat import configparser
 from custodia.plugin import CSStoreError
 from custodia.store.encgen import EncryptedOverlay
 from custodia.store.sqlite import SqliteStore

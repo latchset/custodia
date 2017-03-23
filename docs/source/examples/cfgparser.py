@@ -2,14 +2,14 @@
 
 import collections
 import json
-from configparser import ConfigParser, ExtendedInterpolation, SectionProxy
 
 from custodia.client import CustodiaSimpleClient
+from custodia.compat import configparser
 
 from requests.exceptions import HTTPError
 
 
-class CustodiaSectionProxy(SectionProxy):
+class CustodiaSectionProxy(configparser.SectionProxy):
     """A section proxy that supports getsecret()
     """
     def getsecret(self, option, fallback=None, **kwargs):
@@ -45,7 +45,7 @@ class CustodiaMapping(collections.Mapping):
         return {}.__iter__()
 
 
-class CustodiaConfigParser(ConfigParser):
+class CustodiaConfigParser(configparser.ConfigParser):
     """Python 3 like config parser with Custodia support.
 
     Example config::
@@ -65,7 +65,7 @@ class CustodiaConfigParser(ConfigParser):
     or loaded from the [custodia_client] section.
 
     """
-    _DEFAULT_INTERPOLATION = ExtendedInterpolation()
+    _DEFAULT_INTERPOLATION = configparser.ExtendedInterpolation()
     custodia_client_section = 'custodia_client'
     custodia_section = 'CUSTODIA'
 
