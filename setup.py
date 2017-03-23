@@ -22,9 +22,9 @@ with open('README') as f:
 
 setup(
     name='custodia.ipa',
-    descricription='FreeIPA Vault plugin for Custodia',
+    description='FreeIPA Vault plugin for Custodia',
     long_description=long_description,
-    version='0.1.dev',
+    version='0.1.dev1',
     license='GPLv3+',
     maintainer='Custodia project Contributors',
     maintainer_email='cheimes@redhat.com',
