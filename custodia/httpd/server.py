@@ -193,7 +193,8 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
         self.command = ''
         self.raw_requestline = None
         self.close_connection = 0
-        self.path = None
+        self.path = None  # quoted, raw path
+        self.path_chain = None  # tuple of unquoted segments
         self.query = None
         self.url = None
         self.body = None
@@ -273,6 +274,7 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
 
         # Yes, override path with the path part only
         self.path = url.path
+        self.path_chain = self._parse_path(url)
 
         # Create dict out of query
         self.query = parse_qs(url.query)
@@ -281,6 +283,14 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
         self.url = url
 
         return True
+
+    def _parse_path(self, url):
+        path_chain = []
+        for segment in url.path.split('/'):
+            # unquote URL path encoding
+            segment = unquote(segment)
+            path_chain.append(segment)
+        return tuple(path_chain)
 
     def parse_body(self):
         length = int(self.headers.get('content-length', 0))
@@ -324,6 +334,7 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
                        'client_id': self.peer_info,
                        'command': self.command,
                        'path': self.path,
+                       'path_chain': self.path_chain,
                        'query': self.query,
                        'url': self.url,
                        'version': self.request_version,
@@ -332,7 +343,7 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
             logger.debug(
                 "REQUEST: %s %s, query: %r, cred: %r, client_id: %s, "
                 "headers: %r, body: %r",
-                request['command'], request['path'], request['query'],
+                request['command'], request['path_chain'], request['query'],
                 request['creds'], request['client_id'],
                 dict(request['headers']), request['body']
             )
@@ -407,6 +418,10 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
         an ordered list of the path components below the consumer entry
         point.
         """
+        path_chain = request['path_chain']
+        if not path_chain or path_chain[0] != '':
+            # no path or not an absolute path
+            raise HTTPError(400)
 
         # auth framework here
         authers = config.get('authenticators')
@@ -441,27 +456,19 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
             self.server.auditlog.svc_access(self.__class__.__name__,
                                             log.AUDIT_SVC_AUTHZ_FAIL,
                                             request['client_id'],
-                                            request.get('path', '/'))
+                                            path_chain)
             raise HTTPError(403)
 
         # Select consumer
-        path = request.get('path', '')
-        if not os.path.isabs(path):
-            raise HTTPError(400)
-
         trail = []
-        while path != '':
-            if path in config['consumers']:
-                con = config['consumers'][path]
+        while path_chain:
+            if path_chain in config['consumers']:
+                con = config['consumers'][path_chain]
                 if len(trail) != 0:
                     request['trail'] = trail
                 return con.handle(request)
-            if path == '/':
-                path = ''
-            else:
-                head, tail = os.path.split(path)
-                trail.insert(0, tail)
-                path = head
+            trail.insert(0, path_chain[-1])
+            path_chain = path_chain[:-1]
 
         raise HTTPError(404)
 
