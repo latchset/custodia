@@ -1,6 +1,7 @@
 # Copyright (C) 2016  Custodia Project Contributors - see LICENSE file
 import argparse
 import logging
+import operator
 import os
 import sys
 import traceback
@@ -161,7 +162,8 @@ def handle_plugins(args):
     result = []
     for plugin in PLUGINS:
         result.append('[{}]'.format(plugin))
-        eps = sorted(pkg_resources.iter_entry_points(plugin))
+        eps = pkg_resources.iter_entry_points(plugin)
+        eps = sorted(eps, key=operator.attrgetter('name'))
         for ep in eps:
             result.append(str(ep))
         result.append('')
