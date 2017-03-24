@@ -4,12 +4,31 @@
 import os
 
 import ipalib
-from ipalib.constants import FQDN
 from ipalib.errors import DuplicateEntry, NotFound
+from ipalib.krb_utils import get_principal
 
 import six
 
 from custodia.plugin import CSStore, CSStoreError, CSStoreExists, PluginOption
+
+
+def krb5_unparse_principal_name(name):
+    """Split a Kerberos principal name into parts
+
+    Returns:
+       * ('host', hostname, realm) for a host principal
+       * (servicename, hostname, realm) for a service principal
+       * (None, username, realm) for a user principal
+
+    :param text name: Kerberos principal name
+    :return: (service, host, realm) or (None, username, realm)
+    """
+    prefix, realm = name.split(u'@')
+    if u'/' in prefix:
+        service, host = prefix.rsplit(u'/', 1)
+        return service, host, realm
+    else:
+        return None, prefix, realm
 
 
 class FreeIPA(object):
@@ -39,6 +58,10 @@ class FreeIPA(object):
     @property
     def Command(self):
         return self._api.Command  # pylint: disable=no-member
+
+    @property
+    def env(self):
+        return self._api.env  # pylint: disable=no-member
 
     def _bootstrap(self):
         if not self._api.isdone('bootstrap'):
@@ -70,17 +93,36 @@ class FreeIPA(object):
 
 
 class IPAVault(CSStore):
-    principal = PluginOption(str, 'custodia/' + FQDN, "Principal for auth")
+    # vault arguments
+    principal = PluginOption(
+        str, None,
+        "Service principal for service vault (auto-discovered from GSSAPI)"
+    )
+    user = PluginOption(
+        str, None,
+        "User name for user vault (auto-discovered from GSSAPI)"
+    )
+    vault_type = PluginOption(
+        str, None,
+        "vault type, one of 'user', 'service', 'shared', or "
+        "auto-discovered from GSSAPI"
+    )
+
+    # Kerberos flags
     krb5config = PluginOption(str, None, "Kerberos krb5.conf override")
     keytab = PluginOption(str, None, "Kerberos keytab for auth")
     ccache = PluginOption(
         str, None, "Kerberos ccache, e,g. FILE:/path/to/ccache")
+
+    # ipalib.api arguments
     ipa_confdir = PluginOption(str, None, "IPA confdir override")
     ipa_context = PluginOption(str, "cli", "IPA bootstrap context")
     ipa_debug = PluginOption(bool, False, "debug mode for ipalib")
 
     def __init__(self, config, section=None):
         super(IPAVault, self).__init__(config, section)
+
+        # bootstrap first to set KRB5 settings and acquire TGT
         self.ipa = FreeIPA(
             keytab=self.keytab,
             ccache=self.ccache,
@@ -88,14 +130,67 @@ class IPAVault(CSStore):
             ipa_debug=self.ipa_debug,
             ipa_context=self.ipa_context,
         )
-        if six.PY2 and isinstance(self.principal, str):
-            self.principal = self.principal.decode('utf-8')
+
         with self.ipa:
-            self.logger.info(repr(self.ipa.Command.ping()))
+            try:
+                gssapi_principal = get_principal()
+            except Exception:
+                self.logger.error(
+                    "Unable to get principal from GSSAPI. Are you missing a "
+                    "TGT or Kerberos keytab?"
+                )
+                raise
+            else:
+                self.logger.info(u"Vault uses Kerberos principal '%s'",
+                                 gssapi_principal)
+
+            self.logger.info("IPA server '%s': %s",
+                             self.ipa.env.server,
+                             self.ipa.Command.ping()[u'summary'])
             # retrieve and cache KRA transport cert
             response = self.ipa.Command.vaultconfig_show()
             servers = response[u'result'][u'kra_server_server']
             self.logger.info("KRA server(s) %s", ', '.join(servers))
+
+        service, user_host, realm = krb5_unparse_principal_name(
+            gssapi_principal)
+        self._init_vault_args(service, user_host, realm)
+
+    def _init_vault_args(self, service, user_host, realm):
+        if self.vault_type is None:
+            self.vault_type = 'user' if service is None else 'service'
+            self.logger.info("Setting vault type to '%s' from Kerberos",
+                             self.vault_type)
+
+        if self.vault_type == 'shared':
+            self._vault_args = {'shared': True}
+        elif self.vault_type == 'user':
+            if self.user is None:
+                if service is not None:
+                    msg = "{!r}: User vault requires 'user' parameter"
+                    raise ValueError(msg.format(self))
+                else:
+                    self.user = user_host
+                    self.logger.info(u"Setting username '%s' from Kerberos",
+                                     self.user)
+            if six.PY2 and isinstance(self.user, str):
+                self.user = self.user.decode('utf-8')
+            self._vault_args = {'username': self.user}
+        elif self.vault_type == 'service':
+            if self.principal is None:
+                if service is None:
+                    msg = "{!r}: Service vault requires 'principal' parameter"
+                    raise ValueError(msg.format(self))
+                else:
+                    self.principal = u'/'.join((service, user_host))
+                    self.logger.info(u"Setting principal '%s' from Kerberos",
+                                     self.principal)
+            if six.PY2 and isinstance(self.principal, str):
+                self.principal = self.principal.decode('utf-8')
+            self._vault_args = {'service': self.principal}
+        else:
+            msg = '{!r}: Invalid vault type {}'
+            raise ValueError(msg.format(self, self.vault_type))
 
     def _mangle_key(self, key):
         if '__' in key:
@@ -109,8 +204,8 @@ class IPAVault(CSStore):
         key = self._mangle_key(key)
         with self.ipa as ipa:
             try:
-                result = ipa.Command.vault_retrieve(key,
-                                                    service=self.principal)
+                result = ipa.Command.vault_retrieve(
+                    key, **self._vault_args)
             except NotFound as e:
                 self.logger.info(str(e))
                 return None
@@ -127,9 +222,8 @@ class IPAVault(CSStore):
             value = value.encode('utf-8')
         with self.ipa as ipa:
             try:
-                ipa.Command.vault_add(key,
-                                      service=self.principal,
-                                      ipavaulttype=u"standard")
+                ipa.Command.vault_add(
+                    key, ipavaulttype=u"standard", **self._vault_args)
             except DuplicateEntry:
                 if not replace:
                     raise CSStoreExists(key)
@@ -138,9 +232,8 @@ class IPAVault(CSStore):
                 self.logger.exception(msg)
                 raise CSStoreError(msg)
             try:
-                ipa.Command.vault_archive(key,
-                                          data=value,
-                                          service=self.principal)
+                ipa.Command.vault_archive(
+                    key, data=value, **self._vault_args)
             except Exception:
                 msg = "Failed to archive entry {}".format(key)
                 self.logger.exception(msg)
@@ -153,7 +246,7 @@ class IPAVault(CSStore):
         with self.ipa as ipa:
             try:
                 result = ipa.Command.vault_find(
-                    service=self.principal, ipavaulttype=u"standard")
+                    ipavaulttype=u"standard", **self._vault_args)
             except Exception:
                 msg = "Failed to list entries"
                 self.logger.exception(msg)
@@ -172,7 +265,7 @@ class IPAVault(CSStore):
         key = self._mangle_key(key)
         with self.ipa as ipa:
             try:
-                ipa.Command.vault_del(key, service=self.principal)
+                ipa.Command.vault_del(key, **self._vault_args)
             except NotFound:
                 return False
             except Exception:
