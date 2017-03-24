@@ -10,7 +10,7 @@ from ipalib.errors import DuplicateEntry, NotFound
 
 import six
 
-from custodia.plugin import CSStore, PluginOption
+from custodia.plugin import CSStore, CSStoreError, CSStoreExists, PluginOption
 
 
 class FreeIPA(object):
@@ -115,7 +115,12 @@ class IPAVault(CSStore):
             except NotFound as e:
                 self.logger.info(str(e))
                 return None
-        return result[u'result'][u'data']
+            except Exception:
+                msg = "Failed to retrieve entry {}".format(key)
+                self.logger.exception(msg)
+                raise CSStoreError(msg)
+            else:
+                return result[u'result'][u'data']
 
     def set(self, key, value, replace=False):
         key = self._mangle_key(key)
@@ -128,19 +133,33 @@ class IPAVault(CSStore):
                                       ipavaulttype=u"standard")
             except DuplicateEntry:
                 if not replace:
-                    raise
-
-            ipa.Command.vault_archive(key,
-                                      data=value,
-                                      service=self.principal)
+                    raise CSStoreExists(key)
+            except Exception:
+                msg = "Failed to add entry {}".format(key)
+                self.logger.exception(msg)
+                raise CSStoreError(msg)
+            try:
+                ipa.Command.vault_archive(key,
+                                          data=value,
+                                          service=self.principal)
+            except Exception:
+                msg = "Failed to archive entry {}".format(key)
+                self.logger.exception(msg)
+                raise CSStoreError(msg)
 
     def span(self, key):
-        raise NotImplementedError
+        raise CSStoreError("span is not implemented")
 
     def list(self, keyfilter=None):
         with self.ipa as ipa:
-            result = ipa.Command.vault_find(service=self.principal,
-                                            ipavaulttype=u"standard")
+            try:
+                result = ipa.Command.vault_find(
+                    service=self.principal, ipavaulttype=u"standard")
+            except Exception:
+                msg = "Failed to list entries"
+                self.logger.exception(msg)
+                raise CSStoreError(msg)
+
         names = []
         for entry in result[u'result']:
             cn = entry[u'cn'][0]
@@ -157,6 +176,10 @@ class IPAVault(CSStore):
                 ipa.Command.vault_del(key, service=self.principal)
             except NotFound:
                 return False
+            except Exception:
+                msg = "Failed to delete entry {}".format(key)
+                self.logger.exception(msg)
+                raise CSStoreError(msg)
             else:
                 return True
 
