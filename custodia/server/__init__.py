@@ -98,7 +98,9 @@ def _create_plugin(parser, section, menu):
         return handler(hconf)
 
 
-def parse_config(args):
+def _parse_config(args, config):
+    """Parse arguments and create basic configuration
+    """
     defaults = {
         # Do not use getfqdn(). Internaly it calls gethostbyaddr which might
         # perform a DNS query.
@@ -114,7 +116,6 @@ def parse_config(args):
     with args.configfile as f:
         parser.read_file(f)
 
-    config = dict()
     for s in CONFIG_SPECIALS:
         config[s] = dict()
 
@@ -151,6 +152,12 @@ def parse_config(args):
             config['server_url'] = 'http+unix://{}/'.format(
                 url_escape(server_socket, ''))
 
+    return parser
+
+
+def _load_plugins(config, parser):
+    """Load and initialize plugins
+    """
     # set umask before any plugin gets a chance to create a file
     os.umask(config['umask'])
 
@@ -189,15 +196,19 @@ def parse_config(args):
     attach_store('', config['consumers'], config['stores'])
     attach_store('store:', config['stores'], config['stores'])
 
-    return config
-
 
 def main(argparser=None):
     if argparser is None:
         argparser = default_argparser
     args = argparser.parse_args()
-    config = parse_config(args)
+    # parse arguments and populate config with basic settings
+    config = {}
+    cfgparser = _parse_config(args, config)
+    # initialize logging
     log.setup_logging(config['debug'], config['auditlog'])
     logger.debug('Config file %s loaded', args.configfile)
+    # load plugins after logging
+    _load_plugins(config, cfgparser)
+    # create and run server
     httpd = HTTPServer(config['server_url'], config)
     httpd.serve()
