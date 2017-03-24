@@ -41,7 +41,7 @@ class TestsCommandLine(unittest.TestCase):
         self.assertIn(u'Custodia command line interface', output)
 
     def test_connection_error_with_server_option(self):
-        invalid_server_name = 'http://custodia.invalid/secrets/key'
+        invalid_server_name = 'http://localhost:4/secrets/key'
         with self.assertRaises(subprocess.CalledProcessError) as cm:
             self._custodia_cli('--server',
                                invalid_server_name,
