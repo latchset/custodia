@@ -1,29 +1,42 @@
 # Copyright (C) 2016  Custodia Project Contributors - see LICENSE file
+from __future__ import absolute_import, print_function
+
 import argparse
 import logging
 import operator
 import os
-import sys
 import traceback
 
-try:
-    # pylint: disable=import-error
-    from urllib import quote as url_escape
-except ImportError:
-    # pylint: disable=import-error,no-name-in-module
-    from urllib.parse import quote as url_escape
-
 import pkg_resources
-
 
 from requests.exceptions import ConnectionError
 from requests.exceptions import HTTPError as RequestsHTTPError
 
+import six
+
 from custodia import log
 from custodia.client import CustodiaSimpleClient
+from custodia.compat import unquote, url_escape, urlparse
+
+if six.PY2:
+    from StringIO import StringIO
+else:
+    from io import StringIO
+
+try:
+    from json import JSONDecodeError
+except ImportError:
+    # Python <= 3.4 has no JSONDecodeError
+    JSONDecodeError = ValueError
 
 
 log.warn_provisional(__name__)
+
+# exit codes
+E_HTTP_ERROR = 1
+E_CONNECTION_ERROR = 2
+E_JSON_ERROR = 3
+E_OTHER = 100
 
 
 main_parser = argparse.ArgumentParser(
@@ -113,7 +126,9 @@ parser_create_container = subparsers.add_parser(
 parser_create_container.add_argument('name', type=str, help='key')
 parser_create_container.set_defaults(
     func=handle_name,
-    command='create_container')
+    command='create_container',
+    sub='mkdir',
+)
 
 parser_delete_container = subparsers.add_parser(
     'rmdir',
@@ -121,21 +136,27 @@ parser_delete_container = subparsers.add_parser(
 parser_delete_container.add_argument('name', type=str, help='key')
 parser_delete_container.set_defaults(
     func=handle_name,
-    command='delete_container')
+    command='delete_container',
+    sub='rmdir',
+)
 
 parser_list_container = subparsers.add_parser(
     'ls', help='List content of a container')
 parser_list_container.add_argument('name', type=str, help='key')
 parser_list_container.set_defaults(
     func=handle_name,
-    command='list_container')
+    command='list_container',
+    sub='ls',
+)
 
 parser_get_secret = subparsers.add_parser(
     'get', help='Get secret')
 parser_get_secret.add_argument('name', type=str, help='key')
 parser_get_secret.set_defaults(
     func=handle_name,
-    command='get_secret')
+    command='get_secret',
+    sub='get',
+)
 
 parser_set_secret = subparsers.add_parser(
     'set', help='Set secret')
@@ -143,14 +164,18 @@ parser_set_secret.add_argument('name', type=str, help='key')
 parser_set_secret.add_argument('value', type=str, help='value')
 parser_set_secret.set_defaults(
     command='set_secret',
-    func=handle_name_value)
+    func=handle_name_value,
+    sub='set'
+)
 
 parser_del_secret = subparsers.add_parser(
     'del', help='Delete a secret')
 parser_del_secret.add_argument('name', type=str, help='key')
 parser_del_secret.set_defaults(
     func=handle_name,
-    command='del_secret')
+    command='del_secret',
+    sub='del',
+)
 
 
 # plugins
@@ -176,7 +201,49 @@ parser_plugins = subparsers.add_parser(
     'plugins', help='List plugins')
 parser_plugins.set_defaults(
     func=handle_plugins,
-    command='plugins')
+    command='plugins',
+    sub='plugins',
+    name=None,
+)
+
+
+def error_message(args, exc):
+    out = StringIO()
+    parts = urlparse(args.server)
+
+    if args.debug:
+        traceback.print_exc(file=out)
+        out.write('\n')
+
+    out.write("ERROR: Custodia command '{args.sub} {args.name}' failed.\n")
+    if args.verbose:
+        out.write("Custodia server '{args.server}'.\n")
+
+    if isinstance(exc, RequestsHTTPError):
+        errcode = E_HTTP_ERROR
+        out.write("{exc.__class__.__name__}: {exc}\n")
+    elif isinstance(exc, ConnectionError):
+        errcode = E_CONNECTION_ERROR
+        if parts.scheme == 'http+unix':
+            out.write("Failed to connect to Unix socket '{unix_path}':\n")
+        else:
+            out.write("Failed to connect to '{parts.netloc}' "
+                      "({parts.scheme}):\n")
+        # ConnectionError always contains an inner exception
+        out.write("    {exc.args[0]}\n")
+    elif isinstance(exc, JSONDecodeError):
+        errcode = E_JSON_ERROR
+        out.write("Server returned invalid JSON response:\n")
+        out.write("    {exc}\n")
+    else:
+        errcode = E_OTHER
+        out.write("{exc.__class__.__name__}: {exc}\n")
+
+    msg = out.getvalue()
+    if not msg.endswith('\n'):
+        msg += '\n'
+    return errcode, msg.format(args=args, exc=exc, parts=parts,
+                               unix_path=unquote(parts.netloc))
 
 
 def main():
@@ -206,23 +273,18 @@ def main():
     if args.certfile:
         args.client_conn.set_client_cert(args.certfile, args.keyfile)
         args.client_conn.headers['CUSTODIA_CERT_AUTH'] = 'true'
+
     try:
         result = args.func(args)
-    except RequestsHTTPError as e:
-        return main_parser.exit(1, str(e))
-    except ConnectionError:
-        connection_error_msg = "Unable to connect to the server via " \
-                               "{}".format(args.server)
-        return main_parser.exit(2, connection_error_msg)
-    except Exception as e:  # pylint: disable=broad-except
-        if args.verbose:
-            traceback.print_exc(file=sys.stderr)
-        return main_parser.exit(100, str(e))
-    if result is not None:
-        if isinstance(result, list):
-            print('\n'.join(result))
-        else:
-            print(result)
+    except BaseException as e:
+        errcode, msg = error_message(args, e)
+        main_parser.exit(errcode, msg)
+    else:
+        if result is not None:
+            if isinstance(result, list):
+                print('\n'.join(result))
+            else:
+                print(result)
 
 
 if __name__ == '__main__':
