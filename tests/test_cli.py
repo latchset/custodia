@@ -1,11 +1,40 @@
 # Copyright (C) 2015  Custodia Project Contributors - see LICENSE file
 
 import os
+import socket
 import subprocess
 import sys
 import unittest
 
 import six
+
+
+def find_free_address():
+    """Bind to None, 0 to find an unused port on localhost (IPv4 or IPv6)
+
+    :return:
+    """
+    err = None
+    for info in socket.getaddrinfo(None, 0, socket.AF_UNSPEC,
+                                   socket.SOCK_STREAM):
+        family, stype, proto, _, addr = info
+        sock = None
+        try:
+            sock = socket.socket(family, stype, proto)
+            sock.bind(addr)
+            if family == socket.AF_INET:
+                return "{}:{}".format(*sock.getsockname())
+            elif family == socket.AF_INET6:
+                return "[{}]:{}".format(*sock.getsockname()[:2])
+        except socket.error as e:
+            err = e
+        finally:
+            if sock is not None:
+                sock.close()
+    if err is not None:
+        raise err
+    else:
+        raise socket.error("getaddrinfo returns an empty list")
 
 
 class TestsCommandLine(unittest.TestCase):
@@ -41,7 +70,8 @@ class TestsCommandLine(unittest.TestCase):
         self.assertIn(u'Custodia command line interface', output)
 
     def test_connection_error_with_server_option(self):
-        invalid_server_name = 'http://localhost:4/secrets/key'
+        host_port = find_free_address()
+        invalid_server_name = 'http://{}/secrets/key'.format(host_port)
         with self.assertRaises(subprocess.CalledProcessError) as cm:
             self._custodia_cli('--server',
                                invalid_server_name,
