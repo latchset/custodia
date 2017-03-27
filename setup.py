@@ -5,9 +5,9 @@
 from setuptools import setup
 
 requirements = [
-    'custodia >= 0.3',
-    'ipalib',
-    'ipaclient',
+    'custodia >= 0.3.1',
+    'ipalib >= 4.5.0',
+    'ipaclient >= 4.5.0',
     'six',
 ]
 # test requirements
@@ -39,9 +39,11 @@ setup(
         ],
     },
     classifiers=[
+        'Development Status :: 4 - Beta',
         'Programming Language :: Python :: 2.7',
         'Programming Language :: Python :: 3.4',
         'Programming Language :: Python :: 3.5',
+        'Programming Language :: Python :: 3.6',
         'Intended Audience :: Developers',
         'Topic :: Security',
         'Topic :: Software Development :: Libraries :: Python Modules'

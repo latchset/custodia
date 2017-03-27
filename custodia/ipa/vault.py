@@ -1,7 +1,6 @@
 # Copyright (C) 2016  Custodia Project Contributors - see LICENSE file
 """FreeIPA vault store (PoC)
 """
-import configparser
 import os
 
 import ipalib
@@ -185,14 +184,16 @@ class IPAVault(CSStore):
 
 
 if __name__ == '__main__':
+    from custodia.compat import configparser
+
     parser = configparser.ConfigParser(
         interpolation=configparser.ExtendedInterpolation()
     )
     parser.read_string(u"""
-    [vault]
+    [store:ipa_vault]
     """)
 
-    v = IPAVault(parser, "vault")
+    v = IPAVault(parser, "store:ipa_vault")
     v.set('foo', 'bar', replace=True)
     print(v.get('foo'))
     print(v.list())

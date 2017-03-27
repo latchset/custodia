@@ -3,7 +3,7 @@ PYTHON := python3
 .NOTPARALLEL:
 .PHONY: all clean egg_info release
 
-all:
+all: README
 
 clean:
 	rm -fr build dist *.egg-info .tox MANIFEST .coverage .cache
