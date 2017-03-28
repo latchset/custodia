@@ -24,7 +24,7 @@ setup(
     name='custodia.ipa',
     description='FreeIPA Vault plugin for Custodia',
     long_description=long_description,
-    version='0.1.0',
+    version='0.2.dev1',
     license='GPLv3+',
     maintainer='Custodia project Contributors',
     maintainer_email='cheimes@redhat.com',
