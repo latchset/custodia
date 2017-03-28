@@ -37,11 +37,8 @@ class FreeIPA(object):
     Custodia uses a forking server model. We can bootstrap FreeIPA API in
     the main process. Connections must be created in the client process.
     """
-    def __init__(self, krb5config=None, keytab=None, ccache=None, api=None,
-                 ipa_context='cli', ipa_confdir=None, ipa_debug=False):
-        self._krb5config = krb5config
-        self._keytab = keytab
-        self._ccache = ccache
+    def __init__(self, api=None, ipa_context='cli', ipa_confdir=None,
+                 ipa_debug=False):
         if api is None:
             self._api = ipalib.api
         else:
@@ -65,13 +62,6 @@ class FreeIPA(object):
 
     def _bootstrap(self):
         if not self._api.isdone('bootstrap'):
-            # set client keytab env var for authentication
-            if self._keytab is not None:
-                os.environ['KRB5_CLIENT_KTNAME'] = self._keytab
-            if self._ccache is not None:
-                os.environ['KRB5CCNAME'] = self._ccache
-            if self._krb5config is not None:
-                os.environ['KRB5_CONFIG'] = self._krb5config
             # TODO: bandaid for "A PKCS #11 module returned CKR_DEVICE_ERROR"
             # https://github.com/avocado-framework/avocado/issues/1112#issuecomment-206999400
             os.environ['NSS_STRICT_NOFORK'] = 'DISABLED'
@@ -121,29 +111,19 @@ class IPAVault(CSStore):
 
     def __init__(self, config, section=None):
         super(IPAVault, self).__init__(config, section)
+        # configure Kerberos / GSSAPI and acquire principal
+        gssapi_principal = self._gssapi()
+        self.logger.info(u"Vault uses Kerberos principal '%s'",
+                         gssapi_principal)
 
-        # bootstrap first to set KRB5 settings and acquire TGT
+        # bootstrap FreeIPA API
         self.ipa = FreeIPA(
-            keytab=self.keytab,
-            ccache=self.ccache,
             ipa_confdir=self.ipa_confdir,
             ipa_debug=self.ipa_debug,
             ipa_context=self.ipa_context,
         )
-
+        # connect
         with self.ipa:
-            try:
-                gssapi_principal = get_principal()
-            except Exception:
-                self.logger.error(
-                    "Unable to get principal from GSSAPI. Are you missing a "
-                    "TGT or Kerberos keytab?"
-                )
-                raise
-            else:
-                self.logger.info(u"Vault uses Kerberos principal '%s'",
-                                 gssapi_principal)
-
             self.logger.info("IPA server '%s': %s",
                              self.ipa.env.server,
                              self.ipa.Command.ping()[u'summary'])
@@ -155,6 +135,23 @@ class IPAVault(CSStore):
         service, user_host, realm = krb5_unparse_principal_name(
             gssapi_principal)
         self._init_vault_args(service, user_host, realm)
+
+    def _gssapi(self):
+        # set client keytab env var for authentication
+        if self.keytab is not None:
+            os.environ['KRB5_CLIENT_KTNAME'] = self.keytab
+        if self.ccache is not None:
+            os.environ['KRB5CCNAME'] = self.ccache
+        if self.krb5config is not None:
+            os.environ['KRB5_CONFIG'] = self.krb5config
+        try:
+            return get_principal()
+        except Exception:
+            self.logger.error(
+                "Unable to get principal from GSSAPI. Are you missing a "
+                "TGT or valid Kerberos keytab?"
+            )
+            raise
 
     def _init_vault_args(self, service, user_host, realm):
         if self.vault_type is None:

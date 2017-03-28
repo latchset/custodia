@@ -1,6 +1,7 @@
 # Copyright (C) 2017  Custodia project Contributors, for licensee see COPYING
 
 import configparser
+import os
 
 import ipalib
 
@@ -27,6 +28,11 @@ vault_type = shared
 vault_type = invalid
 
 [store:ipa_autodiscover]
+
+[store:ipa_environ]
+krb5config = /path/to/krb5.conf
+keytab = /path/to/custodia.keytab
+ccache = FILE:/path/to/ccache
 """
 
 vault_parametrize = pytest.mark.parametrize(
@@ -45,8 +51,10 @@ class TestCustodiaIPA:
             interpolation=configparser.ExtendedInterpolation(),
         )
         self.parser.read_string(CONFIG)
+        # mocked ipalib.api
         self.p_api = mock.patch('ipalib.api', autospec=ipalib.api)
         self.m_api = self.p_api.start()
+        self.m_api.isdone.return_value = False
         self.m_api.env = mock.Mock()
         self.m_api.env.server = 'server.ipa.example'
         self.m_api.Backend = mock.Mock()
@@ -59,17 +67,21 @@ class TestCustodiaIPA:
                 u'kra_server_server': [u'ipa.example'],
             }
         }
+        # mocked get_principal
         self.p_get_principal = mock.patch('custodia.ipa.vault.get_principal')
         self.m_get_principal = self.p_get_principal.start()
         self.m_get_principal.return_value = 'custodia/ipa.example@IPA.EXAMPLE'
+        # mocked environ (empty dict)
+        self.p_env = mock.patch.dict('os.environ', clear=True)
+        self.p_env.start()
 
     def teardown_method(self, method):
         self.p_api.stop()
         self.p_get_principal.stop()
+        self.p_env.stop()
 
     def test_api_init(self):
         m_api = self.m_api
-        m_api.isdone.return_value = False
         freeipa = FreeIPA(api=m_api)
         m_api.isdone.assert_called_once_with('bootstrap')
         m_api.bootstrap.assert_called_once_with(
@@ -83,6 +95,18 @@ class TestCustodiaIPA:
             m_api.Backend.rpcclient.connect.assert_called_once()
             m_api.Backend.rpcclient.isconnected.return_value = True
         m_api.Backend.rpcclient.disconnect.assert_called_once()
+
+        assert os.environ == dict(NSS_STRICT_NOFORK='DISABLED')
+
+    def test_api_environ(self):
+        assert os.environ == {}
+        IPAVault(self.parser, 'store:ipa_environ')
+        assert os.environ == dict(
+            NSS_STRICT_NOFORK='DISABLED',
+            KRB5_CONFIG='/path/to/krb5.conf',
+            KRB5_CLIENT_KTNAME='/path/to/custodia.keytab',
+            KRB5CCNAME='FILE:/path/to/ccache',
+        )
 
     def test_invalid_vault_type(self):
         pytest.raises(ValueError, IPAVault, self.parser, 'store:ipa_invalid')
