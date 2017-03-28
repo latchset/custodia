@@ -27,7 +27,7 @@ matrix:
 
 before_install:
   - sudo apt-get -qq update
-  - sudo apt-get install -y python-dev libkrb5-dev libffi-dev libnss3-dev libldap2-dev libsasl2-dev libssl-dev libini-config-dev libxmlrpc-core-c3-dev libgettextpo-dev
+  - sudo apt-get install -y python-pip python-virtualenv python-dev gcc krb5-user libkrb5-dev libffi-dev libnss3-dev libldap2-dev libsasl2-dev libssl-dev
 
 install:
   - pip install --upgrade pip setuptools
