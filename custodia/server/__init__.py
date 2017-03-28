@@ -188,6 +188,7 @@ def _load_plugins(config, parser):
         try:
             config[menu][name] = _create_plugin(parser, s, menu)
         except Exception as e:
+            logger.debug("Plugin '%s' failed to load.", name, exc_info=True)
             raise RuntimeError(menu, name, e)
 
     # Attach stores to other plugins
