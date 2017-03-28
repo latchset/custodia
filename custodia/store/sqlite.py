@@ -91,7 +91,7 @@ class SqliteStore(CSStore):
         path = keyfilter.rstrip('/')
         self.logger.debug("Listing keys matching %s", path)
         child_prefix = path if path == '' else path + '/'
-        search = "SELECT key FROM %s WHERE key LIKE ?" % self.table
+        search = "SELECT key, value FROM %s WHERE key LIKE ?" % self.table
         key = "%s%%" % (path,)
         try:
             conn = sqlite3.connect(self.dburi)
@@ -103,18 +103,21 @@ class SqliteStore(CSStore):
         self.logger.debug("Searched for %s got result: %r", path, rows)
         if len(rows) > 0:
             parent_exists = False
-            value = list()
-            for row in rows:
-                if row[0] == path or row[0] == child_prefix:
+            result = list()
+            for key, value in rows:
+                if key == path or key == child_prefix:
                     parent_exists = True
                     continue
-                if not row[0].startswith(child_prefix):
+                if not key.startswith(child_prefix):
                     continue
-                value.append(row[0][len(child_prefix):].lstrip('/'))
-
-            if value:
-                self.logger.debug("Returning sorted values %r", value)
-                return sorted(value)
+                result_value = key[len(child_prefix):].lstrip('/')
+                if not value:
+                    result.append(result_value + '/')
+                else:
+                    result.append(result_value)
+            if result:
+                self.logger.debug("Returning sorted values %r", result)
+                return sorted(result)
             elif parent_exists:
                 self.logger.debug("Returning empty list")
                 return []

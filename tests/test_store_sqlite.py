@@ -116,9 +116,9 @@ class SqliteStoreTests(unittest.TestCase):
         self.store.span('/span/2')
         self.store.span('/span/2/span')
         value = self.store.list('/span')
-        self.assertEqual(value, ['2', '2/span'])
+        self.assertEqual(value, ['2/', '2/span/'])
         value = self.store.list('/span/2')
-        self.assertEqual(value, ['span'])
+        self.assertEqual(value, ['span/'])
         value = self.store.list('/span/2/span')
         self.assertEqual(value, [])
 
