@@ -367,7 +367,7 @@ class SecretsTests(unittest.TestCase):
                'trail': ['test', 'container_a', '']}
         rep = {'headers': {}}
         self.GET(req, rep)
-        # Verify that we can now distigish between a subcontainer
+        # Verify that we can now distinguish between a subcontainer
         # and a key
         self.assertEqual(rep['output'], ['key2', 'subcontainer/'])
         # Clean up
@@ -380,6 +380,32 @@ class SecretsTests(unittest.TestCase):
                'trail': ['test', 'container_a', 'subcontainer', '']}
         self.DELETE(req, rep)
         self.assertEqual(rep['code'], 204)
+
+        req = {'remote_user': 'test',
+               'trail': ['test', 'container_a', '']}
+        self.DELETE(req, rep)
+        self.assertEqual(rep['code'], 204)
+
+    def test_11_GET_container(self):
+        # Create a container
+        req = {'remote_user': 'test',
+               'trail': ['test', 'container_a', '']}
+        rep = {'headers': {}}
+        self.POST(req, rep)
+        self.assertEqual(rep['code'], 201)
+
+        req = {'remote_user': 'test',
+               'trail': ['test', 'container_a', '']}
+        rep = {'headers': {}}
+        self.GET(req, rep)
+        self.assertEqual(rep['output'], [])
+
+        req = {'remote_user': 'test',
+               'trail': ['test', 'container_a']}
+        rep = {'headers': {}}
+        with self.assertRaises(HTTPError) as err:
+            self.GET(req, rep)
+            self.assertEqual(err.exception.code, 406)
 
         req = {'remote_user': 'test',
                'trail': ['test', 'container_a', '']}

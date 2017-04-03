@@ -260,6 +260,8 @@ class Secrets(HTTPConsumer):
             output = self.root.store.get(key)
             if output is None:
                 raise HTTPError(404)
+            elif len(output) == 0:
+                raise HTTPError(406)
             self._format_reply(request, response, handler, output)
         except CSStoreError:
             raise HTTPError(500)
