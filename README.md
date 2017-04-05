@@ -100,8 +100,8 @@ auditlog = ${logdir}/audit.log
 
 [store:vault]
 handler = IPAVault
-keytab = {confdir}/custodia.keytab
-ccache = FILE:{rundir}/ccache
+keytab = ${confdir}/custodia.keytab
+ccache = FILE:${rundir}/ccache
 
 [auth:creds]
 handler = SimpleCredsAuth
