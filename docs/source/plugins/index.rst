@@ -19,7 +19,7 @@ Authentication is handled by a stackable set of arbitrary plugins (python
 modules referenced in the configuration file). If any of the authentication
 plugins returns a negative answer the request is aborted with a 403 error. If
 any returns a positive answer then the request is allowed to proceed to the
-next phase. If none of the aplugins returns either a positive or negative
+next phase. If none of the plugins returns either a positive or negative
 answer the request fails, as by default access is denied.
 
 Authorization

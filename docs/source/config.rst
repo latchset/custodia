@@ -101,7 +101,14 @@ The :const:`DEFAULT` section contains default values for all sections.
 ENV
 ---
 
-The :const:`ENV` is populated with all enviroment variables. To reference
+The :const:`ENV` is populated with all environment variables. To reference
 :const:`HOME` variable::
 
    server_socket = ${ENV:HOME}/server_socket
+
+
+.. spelling::
+
+    Fpath
+    Fto
+    Fserver

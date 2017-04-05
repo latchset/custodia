@@ -35,10 +35,10 @@ class KEMKeysStore(SimplePathAuthz):
     clients allowed to use KEM messages. It takes the form
     of an authorizer merely for the purpose of attaching
     itself to a 'request' so that later on the KEM Parser
-    can fetch the appropariate key to verify/decrypt an
+    can fetch the appropriate key to verify/decrypt an
     incoming request and make the payload available.
 
-    The KEM Parser will actually pergorm additional
+    The KEM Parser will actually perform additional
     authorization checks in this case.
 
     SimplePathAuthz is extended here as we ant to attach the

@@ -58,8 +58,8 @@ We do that with the following command::
 
    $ python -m custodia.server quick.conf
 
-The server will output to the terminal logs about the operations being peformed
-against it.
+The server will output to the terminal logs about the operations being
+performed against it.
 
 
 Testing
@@ -89,7 +89,7 @@ Let's now create a new container for our secrets
 
    $ curls -X POST http://localhost/secrets/bucket/
 
-Be sure to always pass the trailing '/' chracter, or the server will assume you
+Be sure to always pass the trailing '/' character, or the server will assume you
 are trying to operate on a key rather than a container and will return you an
 error.
 
@@ -221,9 +221,9 @@ It will fail::
    $ curlq http://localhost/
 
 It fails because we change authorization and we do not allow '/' anymore, only
-pths under /secrets/ are now allowed. However if you try to fetch any random
+paths under /secrets/ are now allowed. However if you try to fetch any random
 path under /secrets that will also fail! This is because the UserNameSpace
-handler allows to access only containers under the specified paththat are named
+handler allows to access only containers under the specified path that are named
 exactly as the authenticating user.
 
 So try this::
@@ -294,10 +294,19 @@ Closing
 
 In this Quick Start Guide you've seen how to create and fetch secrets with the
 Custodia API and a few of the simple authentication and authorization plugins
-available. Other plugins are vailable, and custom ones are rather simple to
+available. Other plugins are available, and custom ones are rather simple to
 build.
 
 Have Fun!
 
 .. _JWK: https://tools.ietf.org/html/rfc7517
 .. _JWE: https://tools.ietf.org/html/rfc7516
+
+.. spelling::
+
+    Quis
+    custodiet
+    ipsos
+    custodes
+    qid
+    mykey
