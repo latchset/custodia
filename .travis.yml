@@ -4,6 +4,11 @@ language: python
 
 cache: pip
 
+addons:
+  apt:
+    packages:
+    - enchant
+
 matrix:
   include:
     - python: 2.7
@@ -16,8 +21,6 @@ matrix:
       env: TOXENV=py36
     - python: 3.5
       env: TOXENV=doc
-    - python: 3.5
-      env: TOXENV=sphinx
     - python: 3.5
       env: TOXENV=lint
     - python: 2.7

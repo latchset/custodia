@@ -26,7 +26,7 @@ Format: ``{ type: "simple", value: }``
 The Simple type is an arbitrary value holder. It is recommended, but not
 required to base64 encode binary values or non-string values.
 
-The value must be representable as a valid JSON string. Keys are
+The value must be presentable as a valid JSON string. Keys are
 validated before being stored. Unknown key types or invalid JSON values
 are refused and an error is returned.
 
@@ -61,7 +61,7 @@ Attributes:
   be known to the Custodia service. If opportunistic encryption is
   desired and the requesting client is authenticated in other ways, a
   "jku" header could be used instead and a key fetched on the fly. This
-  is not recommended for the gneral case and is not currently supported by
+  is not recommended for the general case and is not currently supported by
   the implementation.
 - name-of-secret: this repeats the name of the secret embedded in the GET.
   This is used to prevent substitution attacks where a client is intercepted
@@ -153,7 +153,7 @@ Listing containers
 A GET operation on a path that ends in a '/' translates into a listing
 for a container: ``GET /secrets/container/``
 
-Implementations may assume a default container if none is excplicitly
+Implementations may assume a default container if none is explicitly
 provided: GET /secrets/ may return only keys under //\*
 
 Returns:
@@ -181,7 +181,7 @@ Returns:
 - 403 if access to the key is forbidden
 - 404 one of the elements of the path is not a valid container
 - 406 not acceptable, type unknown/not permitted
-- 409 if the container already exsts
+- 409 if the container already exists
 
 Deleting containers
 -------------------

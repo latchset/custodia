@@ -71,6 +71,10 @@ $(DOCS_DIR)/source/readme.rst: README
 	grep -ve '^|Build Status|' < $< | grep -v travis-ci.org > $@
 
 docs: $(DOCS_DIR)/source/readme.rst
+	sort $(DOCS_DIR)/source/spelling_wordlist.txt > \
+	    $(DOCS_DIR)/source/spelling_wordlist.txt.bak
+	mv $(DOCS_DIR)/source/spelling_wordlist.txt.bak \
+	    $(DOCS_DIR)/source/spelling_wordlist.txt
 	$(MAKE) -C $(DOCS_DIR) html SPHINXBUILD="$(PYTHON) -m sphinx"
 
 .PHONY: install egg_info run release

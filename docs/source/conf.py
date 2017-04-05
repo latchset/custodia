@@ -16,6 +16,13 @@ import sys
 import os
 import sphinx
 
+try:
+    import sphinxcontrib.spelling
+except ImportError:
+    HAS_SPELLING = False
+else:
+    HAS_SPELLING = True
+
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
@@ -38,6 +45,9 @@ extensions = [
     # sphinx-argparse
     'sphinxarg.ext',
 ]
+
+if HAS_SPELLING:
+    extensions.append('sphinxcontrib.spelling')
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']

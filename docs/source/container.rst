@@ -49,7 +49,7 @@ The Custodia container runs as a ``custodia`` user using the uid number
 ``447``.  To allow the Custodia service in the container to create the socket
 file on the host, we will create a local ``custodia`` user and group with the
 expected uid and gid numbers, then use it to create the volume mount point on
-the host with the prpoer permissions and ownership.  The commands to do this
+the host with the proper permissions and ownership.  The commands to do this
 are::
 
     $ sudo groupadd -r custodia -g 447
