@@ -84,6 +84,33 @@ $ mkdir -p /etc/custodia
 $ ipa-getkeytab -p custodia/client1.ipa.example -k /etc/custodia/custodia.keytab
 ```
 
+The IPA cert request plugin needs additional permissions
+
+```
+$ ipa privilege-add \
+    --desc="Create and request service certs with Custodia" \
+    "Custodia Service Certs"
+$ ipa privilege-add-permission \
+    --permissions="Retrieve Certificates from the CA" \
+    --permissions="Request Certificate" \
+    --permissions="Revoke Certificate" \
+    --permissions="System: Modify Services" \
+    "Custodia Service Certs"
+# for add_principal=True
+$ ipa privilege-add-permission \
+    --permissions="System: Add Services" \
+    "Custodia Service Certs"
+$ ipa role-add \
+    --desc="Create and request service certs with Custodia" \
+    "Custodia Service Cert Adminstrator"
+$ ipa role-add-privilege \
+    --privileges="Custodia Service Certs" \
+    "Custodia Service Cert Adminstrator"
+$ ipa role-add-member \
+    --services="custodia/client1.ipa.example" \
+    "Custodia Service Cert Adminstrator"
+```
+
 Create ```/etc/custodia/custodia.conf```
 
 ```
@@ -98,8 +125,8 @@ debug = true
 server_socket = ${rundir}/custodia.sock
 auditlog = ${logdir}/audit.log
 
-[store:vault]
-handler = IPAVault
+[auth:ipa]
+handler = IPAInterface
 keytab = ${confdir}/custodia.keytab
 ccache = FILE:${rundir}/ccache
 
@@ -112,12 +139,23 @@ gid = root
 handler = SimplePathAuthz
 paths = /. /secrets
 
+[store:vault]
+handler = IPAVault
+
+[store:cert]
+handler = IPACertRequest
+backing_store = vault
+
 [/]
 handler = Root
 
 [/secrets]
 handler = Secrets
 store = vault
+
+[/secrets/certs]
+handler = Secrets
+store = cert
 ```
 
 Run Custodia server
@@ -125,3 +163,19 @@ Run Custodia server
 ```
 $ custodia /etc/custodia/custodia.conf
 ```
+
+
+## IPA cert request
+
+The IPACertRequest store plugin generates or revokes certificates on the
+fly. It uses a backing store to cache certs and private keys. The plugin can
+create service principal automatically. However the host must already exist.
+
+The request ```GET /secrets/certs/HTTP/client1.ipa.example``` generates a
+private key and CSR for the service ```HTTP/client1.ipa.example``` with
+DNS subject alternative name ```client1.ipa.example```. A DELETE request
+removes the cert/key pair from the backing store and revokes the cert at
+the same time.
+
+Automatical renewal of revoked or expired certificates is not implemented yet.
+

@@ -3,15 +3,12 @@
 """
 from __future__ import absolute_import
 
-import os
-
-import ipalib
 from ipalib.errors import DuplicateEntry, NotFound
-from ipalib.krb_utils import get_principal
 
 import six
 
 from custodia.plugin import CSStore, CSStoreError, CSStoreExists, PluginOption
+from .interface import IPAInterface
 
 
 def krb5_unparse_principal_name(name):
@@ -33,57 +30,6 @@ def krb5_unparse_principal_name(name):
         return None, prefix, realm
 
 
-class FreeIPA(object):
-    """FreeIPA wrapper
-
-    Custodia uses a forking server model. We can bootstrap FreeIPA API in
-    the main process. Connections must be created in the client process.
-    """
-    def __init__(self, api=None, ipa_context='cli', ipa_confdir=None,
-                 ipa_debug=False):
-        if api is None:
-            self._api = ipalib.api
-        else:
-            self._api = api
-        self._ipa_config = dict(
-            context=ipa_context,
-            debug=ipa_debug,
-            log=None,  # disable logging to file
-        )
-        if ipa_confdir is not None:
-            self._ipa_config['confdir'] = ipa_confdir
-        self._bootstrap()
-
-    @property
-    def Command(self):
-        return self._api.Command  # pylint: disable=no-member
-
-    @property
-    def env(self):
-        return self._api.env  # pylint: disable=no-member
-
-    def _bootstrap(self):
-        if not self._api.isdone('bootstrap'):
-            # TODO: bandaid for "A PKCS #11 module returned CKR_DEVICE_ERROR"
-            # https://github.com/avocado-framework/avocado/issues/1112#issuecomment-206999400
-            os.environ['NSS_STRICT_NOFORK'] = 'DISABLED'
-            self._api.bootstrap(**self._ipa_config)
-            self._api.finalize()
-
-    def __enter__(self):
-        # pylint: disable=no-member
-        if not self._api.Backend.rpcclient.isconnected():
-            self._api.Backend.rpcclient.connect()
-        # pylint: enable=no-member
-        return self
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        # pylint: disable=no-member
-        if self._api.Backend.rpcclient.isconnected():
-            self._api.Backend.rpcclient.disconnect()
-        # pylint: enable=no-member
-
-
 class IPAVault(CSStore):
     # vault arguments
     principal = PluginOption(
@@ -100,60 +46,19 @@ class IPAVault(CSStore):
         "auto-discovered from GSSAPI"
     )
 
-    # Kerberos flags
-    krb5config = PluginOption(str, None, "Kerberos krb5.conf override")
-    keytab = PluginOption(str, None, "Kerberos keytab for auth")
-    ccache = PluginOption(
-        str, None, "Kerberos ccache, e,g. FILE:/path/to/ccache")
-
-    # ipalib.api arguments
-    ipa_confdir = PluginOption(str, None, "IPA confdir override")
-    ipa_context = PluginOption(str, "cli", "IPA bootstrap context")
-    ipa_debug = PluginOption(bool, False, "debug mode for ipalib")
-
     def __init__(self, config, section=None):
         super(IPAVault, self).__init__(config, section)
-        # configure Kerberos / GSSAPI and acquire principal
-        gssapi_principal = self._gssapi()
-        self.logger.info(u"Vault uses Kerberos principal '%s'",
-                         gssapi_principal)
-
-        # bootstrap FreeIPA API
-        self.ipa = FreeIPA(
-            ipa_confdir=self.ipa_confdir,
-            ipa_debug=self.ipa_debug,
-            ipa_context=self.ipa_context,
-        )
+        self.ipa = IPAInterface.get_instance()
         # connect
         with self.ipa:
-            self.logger.info("IPA server '%s': %s",
-                             self.ipa.env.server,
-                             self.ipa.Command.ping()[u'summary'])
             # retrieve and cache KRA transport cert
             response = self.ipa.Command.vaultconfig_show()
             servers = response[u'result'][u'kra_server_server']
             self.logger.info("KRA server(s) %s", ', '.join(servers))
 
         service, user_host, realm = krb5_unparse_principal_name(
-            gssapi_principal)
+            self.ipa.principal)
         self._init_vault_args(service, user_host, realm)
-
-    def _gssapi(self):
-        # set client keytab env var for authentication
-        if self.keytab is not None:
-            os.environ['KRB5_CLIENT_KTNAME'] = self.keytab
-        if self.ccache is not None:
-            os.environ['KRB5CCNAME'] = self.ccache
-        if self.krb5config is not None:
-            os.environ['KRB5_CONFIG'] = self.krb5config
-        try:
-            return get_principal()
-        except Exception:
-            self.logger.error(
-                "Unable to get principal from GSSAPI. Are you missing a "
-                "TGT or valid Kerberos keytab?"
-            )
-            raise
 
     def _init_vault_args(self, service, user_host, realm):
         if self.vault_type is None:
@@ -277,15 +182,21 @@ class IPAVault(CSStore):
 
 if __name__ == '__main__':
     from custodia.compat import configparser
+    from custodia.log import setup_logging
 
     parser = configparser.ConfigParser(
         interpolation=configparser.ExtendedInterpolation()
     )
     parser.read_string(u"""
+    [auth:ipa]
+    handler = IPAInterface
     [store:ipa_vault]
+    handler = IPAVault
     """)
 
-    v = IPAVault(parser, "store:ipa_vault")
+    setup_logging(debug=True, auditfile=None)
+    IPAInterface(parser, 'auth:ipa')
+    v = IPAVault(parser, 'store:ipa_vault')
     v.set('foo', 'bar', replace=True)
     print(v.get('foo'))
     print(v.list())
