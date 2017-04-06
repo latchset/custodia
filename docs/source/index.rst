@@ -23,6 +23,7 @@ Contents:
    readme.rst
    quick.rst
    config.rst
+   commands.rst
    api.rst
    examples/index.rst
    plugins/index.rst
