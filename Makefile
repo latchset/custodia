@@ -22,7 +22,7 @@ CONTAINER_CLI = $(CONTAINER_VOL)/custodia-cli
 define CUSTODIA_CLI_SCRIPT
 #!/bin/sh
 set -e
-PYTHONPATH=$(CURDIR) $(PYTHON) -Wignore -m custodia.cli \
+PYTHONPATH=$(CURDIR)/src $(PYTHON) -Wignore -m custodia.cli \
     --server $(CONTAINER_SOCKET) $$@
 endef
 export CUSTODIA_CLI_SCRIPT
@@ -79,8 +79,8 @@ docs: $(DOCS_DIR)/source/readme.rst
 	    $(DOCS_DIR)/source/spelling_wordlist.txt.bak
 	mv $(DOCS_DIR)/source/spelling_wordlist.txt.bak \
 	    $(DOCS_DIR)/source/spelling_wordlist.txt
-	$(MAKE) -C $(DOCS_DIR) html SPHINXBUILD="$(PYTHON) -m sphinx"
-	PYTHONPATH=$(CURDIR) $(MAKE) -C $(DOCS_DIR) html
+	PYTHONPATH=$(CURDIR)/src \
+	    $(MAKE) -C $(DOCS_DIR) html SPHINXBUILD="$(PYTHON) -m sphinx"
 
 .PHONY: install egg_info run packages release
 install: clean_socket egg_info
@@ -109,7 +109,7 @@ release: clean
 	@echo "  twine-3 upload dist/*.gz dist/*.whl"
 
 run: egg_info
-	$(PYTHON) -m custodia.server $(CONF)
+	PYTHONPATH=$(CURDIR)/src $(PYTHON) -m custodia.server $(CONF)
 
 
 .PHONY: rpmroot rpmfiles rpm

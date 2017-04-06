@@ -27,7 +27,7 @@ else:
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 HERE = os.path.dirname(os.path.abspath(__file__))
-SRCDIR = os.path.abspath(os.path.join(HERE, '..', '..'))
+SRCDIR = os.path.abspath(os.path.join(HERE, '..', '..', 'src'))
 sys.path.insert(0, SRCDIR)
 
 about = {}

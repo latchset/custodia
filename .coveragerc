@@ -6,7 +6,7 @@ source =
 
 [paths]
 source =
-   custodia
+   src/custodia
    .tox/*/lib/python*/site-packages/custodia
 
 [report]
