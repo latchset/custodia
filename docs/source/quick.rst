@@ -294,7 +294,7 @@ Closing
 
 In this Quick Start Guide you've seen how to create and fetch secrets with the
 Custodia API and a few of the simple authentication and authorization plugins
-available. Other plugins are vailable, and custom ones are rather simple to
+available. Other plugins are available, and custom ones are rather simple to
 build.
 
 Have Fun!
