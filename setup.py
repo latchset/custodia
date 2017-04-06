@@ -26,7 +26,7 @@ test_requires = ['coverage', 'pytest'] + etcd_requires
 extras_require = {
     'etcd_store': etcd_requires,
     'test': test_requires,
-    'test_docs': ['docutils', 'markdown'] + etcd_requires,
+    'test_docs': ['docutils', 'markdown', 'sphinx-argparse'] + etcd_requires,
     'test_pep8': ['flake8', 'flake8-import-order', 'pep8-naming'],
     'test_pylint': ['pylint'] + test_requires,
 }

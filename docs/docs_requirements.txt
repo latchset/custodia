@@ -3,3 +3,4 @@ docutils
 markdown
 docker-py
 python-etcd
+sphinx-argparse

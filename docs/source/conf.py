@@ -35,6 +35,8 @@ extensions = [
     'sphinx.ext.autosummary',
     # 'sphinx.ext.intersphinx',
     'sphinx.ext.viewcode',
+    # sphinx-argparse
+    'sphinxarg.ext',
 ]
 
 # Add any paths that contain templates here, relative to this directory.
