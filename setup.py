@@ -26,7 +26,7 @@ class Version(Command):
 
 
 about = {}
-with open(os.path.join('custodia', '__about__.py')) as f:
+with open(os.path.join('src', 'custodia', '__about__.py')) as f:
     exec(f.read(), about)
 
 
@@ -110,6 +110,7 @@ setup(
     maintainer=about['__author__'],
     maintainer_email=about['__email__'],
     namespace_packages=['custodia'],
+    package_dir={'': 'src'},
     packages=[
         'custodia',
         'custodia.cli',

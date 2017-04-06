@@ -2,7 +2,7 @@
 /dist/
 /docs/build
 /tests/tmp
-/*.egg-info
+/src/*.egg-info
 __pycache__
 *.pyc
 *.pyo
