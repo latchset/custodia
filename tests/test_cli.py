@@ -41,7 +41,6 @@ def find_free_address():
 class TestsCommandLine(unittest.TestCase):
     def _custodia_cli(self, *args):
         env = os.environ.copy()
-        env['PYTHONPATH'] = './'
         pexec = env.get('CUSTODIAPYTHON', sys.executable)
         cli = [
             pexec,

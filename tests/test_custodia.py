@@ -176,7 +176,6 @@ class CustodiaTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         env = os.environ.copy()
-        env['PYTHONPATH'] = './'
         cls.pexec = env.get('CUSTODIAPYTHON', sys.executable)
 
         if os.path.isdir(cls.test_dir):
