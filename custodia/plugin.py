@@ -48,6 +48,10 @@ class CSStoreExists(CustodiaException):
     pass
 
 
+class CSStoreUnsupported(CustodiaException):
+    pass
+
+
 class OptionHandler(object):
     """Handler and parser for plugin options
     """

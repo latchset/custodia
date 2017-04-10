@@ -126,6 +126,7 @@ Returns:
 - 403 if access to the key is forbidden
 - 404 if no key was found
 - 406 not acceptable, key type unknown/not permitted
+- 501 if the API is not supported
 
 
 Storing keys
@@ -147,6 +148,7 @@ Returns:
 - 405 if the target is a directory instead of a key (path ends in '/')
 - 406 not acceptable, key type unknown/not permitted
 - 409 if the key already exists
+- 501 if the API is not supported
 
 
 Deleting keys
@@ -161,6 +163,7 @@ Returns:
 - 403 if access to the key is forbidden
 - 404 if no key was found
 - 406 not acceptable, type unknown/not permitted
+- 501 if the API is not supported
 
 
 Listing containers
@@ -180,6 +183,7 @@ Returns:
 - 403 if access to the key is forbidden
 - 404 if no key was found
 - 406 not acceptable, type unknown/not permitted
+- 501 if the API is not supported
 
 
 Creating containers
@@ -198,7 +202,8 @@ Returns:
 - 403 if access to the key is forbidden
 - 404 one of the elements of the path is not a valid container
 - 406 not acceptable, type unknown/not permitted
-- 409 if the container already exsts
+- 409 if the container already exists
+- 501 if the API is not supported
 
 
 Deleting containers
@@ -214,3 +219,4 @@ Returns:
 - 404 if no container was found
 - 406 not acceptable, type unknown/not permitted
 - 409 if the container is not empty
+- 501 if the API is not supported
