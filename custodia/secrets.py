@@ -10,7 +10,7 @@ from custodia import log
 from custodia.message.common import UnallowedMessage
 from custodia.message.common import UnknownMessageType
 from custodia.message.formats import Validator
-from custodia.plugin import CSStoreError, CSStoreExists
+from custodia.plugin import CSStoreError, CSStoreExists, CSStoreUnsupported
 from custodia.plugin import HTTPConsumer, HTTPError, PluginOption
 
 
@@ -174,7 +174,11 @@ class Secrets(HTTPConsumer):
                 'Content-Type'] = 'application/json; charset=utf-8'
             response['output'] = msg.reply(keylist)
         except CSStoreError:
+            self.logger.exception('List: Internal server error')
             raise HTTPError(500)
+        except CSStoreUnsupported:
+            self.logger.exception('List: Unsupported operation')
+            raise HTTPError(501)
 
     def _create(self, trail, request, response):
         try:
@@ -192,9 +196,14 @@ class Secrets(HTTPConsumer):
 
             self.root.store.span(basename)
         except CSStoreExists:
+            self.logger.exception('Create: Key already exists')
             raise HTTPError(409)
         except CSStoreError:
+            self.logger.exception('Create: Internal server error')
             raise HTTPError(500)
+        except CSStoreUnsupported:
+            self.logger.exception('Create: Unsupported operation')
+            raise HTTPError(501)
 
         output = msg.reply(None)
         if output is not None:
@@ -218,7 +227,11 @@ class Secrets(HTTPConsumer):
                 raise HTTPError(409)
             ret = self.root.store.cut(basename.rstrip('/'))
         except CSStoreError:
+            self.logger.exception('Delete: Internal server error')
             raise HTTPError(500)
+        except CSStoreUnsupported:
+            self.logger.exception('Delete: Unsupported operation')
+            raise HTTPError(501)
 
         if ret is False:
             raise HTTPError(404)
@@ -270,7 +283,11 @@ class Secrets(HTTPConsumer):
                 raise HTTPError(406)
             self._format_reply(request, response, handler, output)
         except CSStoreError:
+            self.logger.exception('Get: Internal server error')
             raise HTTPError(500)
+        except CSStoreUnsupported:
+            self.logger.exception('Get: Unsupported operation')
+            raise HTTPError(501)
 
     def _set_key(self, trail, request, response):
         self._audit(log.AUDIT_SET_ALLOWED, log.AUDIT_SET_DENIED,
@@ -308,9 +325,14 @@ class Secrets(HTTPConsumer):
 
             ok = self.root.store.set(key, msg.payload)
         except CSStoreExists:
+            self.logger.exception('Set: Key already exist')
             raise HTTPError(409)
         except CSStoreError:
+            self.logger.exception('Set: Internal Server Error')
             raise HTTPError(500)
+        except CSStoreUnsupported:
+            self.logger.exception('Set: Unsupported operation')
+            raise HTTPError(501)
 
         output = msg.reply(None)
         if output is not None:
@@ -333,7 +355,11 @@ class Secrets(HTTPConsumer):
         try:
             ret = self.root.store.cut(key)
         except CSStoreError:
+            self.logger.exception('Delete: Internal Server Error')
             raise HTTPError(500)
+        except CSStoreUnsupported:
+            self.logger.exception('Delete: Unsupported operation')
+            raise HTTPError(501)
 
         if ret is False:
             raise HTTPError(404)
