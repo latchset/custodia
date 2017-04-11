@@ -32,7 +32,7 @@ def find_free_address():
             if sock is not None:
                 sock.close()
     if err is not None:
-        raise err
+        raise err  # pylint: disable=raising-bad-type
     else:
         raise socket.error("getaddrinfo returns an empty list")
 
