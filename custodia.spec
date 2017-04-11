@@ -2,9 +2,11 @@
 %global with_python3 1
 %endif
 
+%{!?version: %define version 0.3.1}
+
 Name:           custodia
-Version:        0.3.1
-Release:        2%{?dist}
+Version:        %{version}
+Release:        3%{?dist}
 Summary:        A service to manage, retrieve and store secrets for other processes
 
 License:        GPLv3+
@@ -147,7 +149,8 @@ export PIP_NO_DEPS=yes
 
 tox --sitepackages -e py27 -- --skip-servertests
 %if 0%{?with_python3}
-tox --sitepackages -e py35 -- --skip-servertests
+TOXENV=$(%{__python3} -c 'import sys; print("py{0.major}{0.minor}".format(sys.version_info))')
+tox --sitepackages -e $TOXENV -- --skip-servertests
 %endif
 
 
@@ -223,35 +226,4 @@ cp %{buildroot}/%{_bindir}/custodia-cli %{buildroot}/%{_bindir}/custodia-cli-3
 %{python3_sitelib}/custodia/store/etcdstore.py
 %{python3_sitelib}/custodia/store/__pycache__/etcdstore.*
 %endif
-
-
-%changelog
-* Fri Apr 07 2017 Christian Heimes <cheimes@redhat.com> - 0.3.1-2
-- Add conflict with FreeIPA < 4.5
-
-* Mon Mar 27 2017 Christian Heimes <cheimes@redhat.com> - 0.3.1-1
-- Upstream release 0.3.1
-
-* Thu Mar 16 2017 Christian Heimes <cheimes@redhat.com> - 0.3.0-3
-- Provide custodia-2 and custodia-3 scripts
-
-* Thu Mar 02 2017 Christian Heimes <cheimes@redhat.com> - 0.3.0-2
-- Run Custodia daemon with Python 3
-- Resolves: Bug 1426737 - custodia: Provide a Python 3 subpackage
-
-* Wed Mar 01 2017 Christian Heimes <cheimes@redhat.com> - 0.3.0-1
-- Update to custodia 0.3.0
-- Run tests with global site packages
-- Add tmpfiles.d config for /run/custodia
-
-* Wed Feb 22 2017 Christian Heimes <cheimes@redhat.com> - 0.2.0-4
-- Add missing runtime requirement on python[23]-systemd.
-- Drop unnecesary build dependency on python3-configparser.
-- Fix tests, don't try to download dnspython3.
-
-* Fri Feb 10 2017 Fedora Release Engineering <releng@fedoraproject.org> - 0.2.0-3
-- Rebuilt for https://fedoraproject.org/wiki/Fedora_26_Mass_Rebuild
-
-* Thu Dec 22 2016 Miro Hrončok <mhroncok@redhat.com> - 0.2.0-2
-- Rebuild for Python 3.6
 
