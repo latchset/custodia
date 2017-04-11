@@ -1,13 +1,27 @@
 #!/usr/bin/python
 #
 # Copyright (C) 2015  Custodia project Contributors, for licensee see COPYING
+from __future__ import print_function
 
 import sys
 
 import setuptools
-from setuptools import setup
+from setuptools import Command, setup
 
 SETUPTOOLS_VERSION = tuple(int(v) for v in setuptools.__version__.split("."))
+
+
+class Version(Command):
+    user_options = []
+
+    def initialize_options(self):
+        pass
+
+    def finalize_options(self):
+        pass
+
+    def run(self):
+        print(self.distribution.metadata.version)
 
 
 requirements = [
@@ -107,6 +121,7 @@ setup(
         'custodia.consumers': custodia_consumers,
         'custodia.stores': custodia_stores,
     },
+    cmdclass={'version': Version},
     classifiers=[
         'Programming Language :: Python :: 2.7',
         'Programming Language :: Python :: 3.4',

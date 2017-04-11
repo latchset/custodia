@@ -5,6 +5,10 @@ TOX := $(PYTHON) -m tox --sitepackages
 DOCS_DIR = docs
 SERVER_SOCKET = $(CURDIR)/server_socket
 
+RPMBUILD = $(CURDIR)/dist/rpmbuild
+
+VERSION ?= $(shell $(PYTHON) setup.py --quiet version)
+
 DOCKER_CMD = docker
 DOCKER_IMAGE = latchset/custodia
 DOCKER_RELEASE_ARGS = --no-cache=true --pull=true
@@ -77,7 +81,7 @@ docs: $(DOCS_DIR)/source/readme.rst
 	    $(DOCS_DIR)/source/spelling_wordlist.txt
 	$(MAKE) -C $(DOCS_DIR) html SPHINXBUILD="$(PYTHON) -m sphinx"
 
-.PHONY: install egg_info run release
+.PHONY: install egg_info run packages release
 install: clean_socket egg_info
 	$(PYTHON) setup.py install --root "$(PREFIX)"
 	install -d "$(PREFIX)/share/man/man7"
@@ -89,10 +93,13 @@ install: clean_socket egg_info
 egg_info:
 	$(PYTHON) setup.py egg_info
 
-release: clean egg_info README
-	@echo "dnf install python3-wheel python3-twine"
+packages: egg_info README
 	$(PYTHON) setup.py packages
 	cd dist && for F in *.gz; do sha512sum $${F} > $${F}.sha512sum.txt; done
+
+release: clean
+	@echo "dnf install python3-wheel python3-twine"
+	$(MAKE) packages
 	@echo -e "\nCustodia release"
 	@echo -e "----------------\n"
 	@echo "* Upload all release files to github:"
@@ -102,6 +109,29 @@ release: clean egg_info README
 
 run: egg_info
 	$(PYTHON) -m custodia.server $(CONF)
+
+
+.PHONY: rpmroot rpmfiles rpm
+rpmroot:
+	mkdir -p $(RPMBUILD)/BUILD
+	mkdir -p $(RPMBUILD)/RPMS
+	mkdir -p $(RPMBUILD)/SOURCES
+	mkdir -p $(RPMBUILD)/SPECS
+	mkdir -p $(RPMBUILD)/SRPMS
+
+rpmfiles: rpmroot packages
+	mv dist/custodia-$(VERSION).tar.gz* $(RPMBUILD)/SOURCES
+	cp contrib/config/custodia/custodia.conf $(RPMBUILD)/SOURCES/custodia.conf
+	cp contrib/config/systemd/system/custodia.service $(RPMBUILD)/SOURCES/custodia.service
+	cp contrib/config/systemd/system/custodia.socket $(RPMBUILD)/SOURCES/custodia.socket
+	cp contrib/config/tmpfiles.d/custodia.conf $(RPMBUILD)/SOURCES/custodia.tmpfiles.conf
+
+rpm: clean rpmfiles egg_info
+	rpmbuild \
+	    --define "_topdir $(RPMBUILD)" \
+	    --define "version $(VERSION)" \
+	    -ba custodia.spec
+
 
 .PHONY: dockerbuild dockerdemo dockerdemoinit dockershell dockerreleasebuild
 dockerbuild:
@@ -137,9 +167,7 @@ dockershell:
 	$(DOCKER_CMD) exec -ti $(CONTAINER_NAME) /bin/bash
 
 dockerreleasebuild:
-	VERSION=$$($(PYTHON) -c \
-	    "import pkg_resources; print(pkg_resources.get_distribution('custodia').version)") && \
 	$(MAKE) dockerbuild \
 	    DOCKER_BUILD_ARGS="$(DOCKER_RELEASE_ARGS)" \
-	    DOCKER_IMAGE="$(DOCKER_IMAGE):$${VERSION}" && \
+	    DOCKER_IMAGE="$(DOCKER_IMAGE):$(VERSION)" && \
 	echo -e "\n\nRun: $(DOCKER_CMD) push $(DOCKER_IMAGE):$${VERSION}"
