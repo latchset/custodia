@@ -3,6 +3,7 @@
 # Copyright (C) 2015  Custodia project Contributors, for licensee see COPYING
 from __future__ import print_function
 
+import os
 import sys
 
 import setuptools
@@ -22,6 +23,11 @@ class Version(Command):
 
     def run(self):
         print(self.distribution.metadata.version)
+
+
+about = {}
+with open(os.path.join('custodia', '__about__.py')) as f:
+    exec(f.read(), about)
 
 
 requirements = [
@@ -93,14 +99,16 @@ custodia_stores = [
 
 
 setup(
-    name='custodia',
-    description='A service to manage, retrieve and store secrets',
+    name=about['__title__'],
+    version=about['__version__'],
+    description=about['__summary__'],
     long_description=long_description,
-    version='0.4.dev2',
-    license='GPLv3+',
-    maintainer='Custodia project Contributors',
-    maintainer_email='simo@redhat.com',
-    url='https://github.com/latchset/custodia',
+    license=about['__license__'],
+    url=about['__uri__'],
+    author=about['__author__'],
+    author_email=about['__email__'],
+    maintainer=about['__author__'],
+    maintainer_email=about['__email__'],
     namespace_packages=['custodia'],
     packages=[
         'custodia',
