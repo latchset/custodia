@@ -80,6 +80,7 @@ docs: $(DOCS_DIR)/source/readme.rst
 	mv $(DOCS_DIR)/source/spelling_wordlist.txt.bak \
 	    $(DOCS_DIR)/source/spelling_wordlist.txt
 	$(MAKE) -C $(DOCS_DIR) html SPHINXBUILD="$(PYTHON) -m sphinx"
+	PYTHONPATH=$(CURDIR) $(MAKE) -C $(DOCS_DIR) html
 
 .PHONY: install egg_info run packages release
 install: clean_socket egg_info
