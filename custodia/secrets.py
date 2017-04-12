@@ -24,6 +24,9 @@ class Secrets(HTTPConsumer):
 
     def _db_key(self, trail):
         if len(trail) < 2:
+            self.logger.debug(
+                "Forbidden action: Operation only permitted within a "
+                "container")
             raise HTTPError(403)
         return os.path.join('keys', *trail)
 
@@ -32,9 +35,12 @@ class Secrets(HTTPConsumer):
         if len(trail) > 1:
             f = self._db_key(trail)
         elif len(trail) == 1 and trail[0] != '':
+            self.logger.debug(
+                "Forbidden action: Wrong container path. Container names must "
+                "end with '/'")
             raise HTTPError(403)
         elif default is None:
-            # No dfault namespace, fail
+            self.logger.debug("Forbidden action: No default namespace")
             raise HTTPError(403)
         else:
             # Use the default namespace
