@@ -29,3 +29,8 @@ Authenticators
     :undoc-members:
     :show-inheritance:
 
+.. autoclass:: custodia.httpd.authenticators.OpenIDCTokenAuth
+    :members:
+    :undoc-members:
+    :show-inheritance:
+

@@ -4,6 +4,8 @@ import os
 
 from cryptography.hazmat.primitives import constant_time
 
+import requests
+
 from custodia import log
 from custodia.plugin import HTTPAuthenticator, PluginOption
 
@@ -131,3 +133,62 @@ class SimpleClientCertAuth(HTTPAuthenticator):
         self.audit_svc_access(log.AUDIT_SVC_AUTH_FAIL,
                               request['client_id'], dn)
         return False
+
+
+class OpenIDCTokenAuth(HTTPAuthenticator):
+    token_info_url = PluginOption(str, None,
+                                  'URL for getting token information')
+    client_id = PluginOption(str, None,
+                             'Client ID for verifying tokens')
+    client_secret = PluginOption(str, None,
+                                 'Client Secret for verifying tokens')
+    scope = PluginOption(str, 'custodia', 'OAuth2 scope to require')
+
+    def _get_token_info(self, token):
+        return requests.post(self.token_info_url,
+                             data={'client_id': self.client_id,
+                                   'client_secret': self.client_secret,
+                                   'token': token,
+                                   'token_type_hint': 'Bearer'}).json()
+
+    def handle(self, request):
+        token = None
+        if 'Authorization' in request['headers']:
+            hdr = request['headers']['Authorization']
+            if hdr.startswith('Bearer '):
+                self.logger.debug('Bearer token provided in header')
+                token = hdr[len('Bearer '):]
+            else:
+                self.logger.debug('Unrecognized Authorization header')
+                return False
+        elif request.get('access_token'):
+            self.logger.debug('Token provided in form')
+            token = request.get('access_token')
+        else:
+            self.logger.debug('Missing any credentials in request')
+            return False
+
+        if not token:
+            self.logger.debug('No token')
+            return False
+
+        try:
+            tokeninfo = self._get_token_info(token)
+        except:
+            self.logger.debug('Error getting token information',
+                              exc_info=True)
+            return False
+
+        aud = tokeninfo['aud']
+        if isinstance(aud, list) and self.client_id not in aud:
+            self.logger.debug('My client ID not in audience list')
+            return False
+        elif self.client_id != aud:
+            self.logger.debug('Client ID is not audience')
+            return False
+
+        if self.scope not in tokeninfo['scope'].split(' '):
+            self.logger.debug('Required scope not found')
+            return False
+
+        return True
