@@ -1,4 +1,5 @@
 # Copyright (C) 2015  Custodia Project Contributors - see LICENSE file
+from __future__ import absolute_import
 
 from custodia.message.common import InvalidMessage
 from custodia.message.common import UnallowedMessage

@@ -2,6 +2,8 @@
 """Python 2/3 compatibility
 """
 # pylint: disable=no-name-in-module,import-error
+from __future__ import absolute_import
+
 import six
 
 

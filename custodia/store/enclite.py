@@ -1,4 +1,5 @@
 # Copyright (C) 2015  Custodia Project Contributors - see LICENSE file
+from __future__ import absolute_import
 
 from jwcrypto.common import json_decode, json_encode
 from jwcrypto.jwe import JWE
