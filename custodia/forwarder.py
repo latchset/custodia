@@ -1,4 +1,5 @@
 # Copyright (C) 2015  Custodia Project Contributors - see LICENSE file
+from __future__ import absolute_import
 
 import uuid
 
@@ -25,6 +26,7 @@ class Forwarder(HTTPConsumer):
             self.client.set_ca_cert(self.tls_cafile)
         self.uuid = str(uuid.uuid4())
         # pylint: disable=unsubscriptable-object
+        # pylint: disable=unsupported-assignment-operation
         self.forward_headers['X-LOOP-CUSTODIA'] = self.uuid
 
     def _path(self, request):

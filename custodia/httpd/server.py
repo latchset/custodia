@@ -1,4 +1,5 @@
 # Copyright (C) 2015  Custodia Project Contributors - see LICENSE file
+from __future__ import absolute_import
 
 import atexit
 import errno
@@ -259,8 +260,8 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
             return None
         return self.request.getpeercert()
 
-    def parse_request(self, *args, **kwargs):
-        if not BaseHTTPRequestHandler.parse_request(self, *args, **kwargs):
+    def parse_request(self):
+        if not BaseHTTPRequestHandler.parse_request(self):
             return False
 
         # grab the loginuid from `/proc` as soon as possible
@@ -385,6 +386,7 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
             self.close_connection = 1
             return
 
+    # pylint: disable=arguments-differ
     def log_error(self, fmtstr, *args, **kwargs):
         logger.error(fmtstr, *args, **kwargs)
 

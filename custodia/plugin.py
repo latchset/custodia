@@ -1,4 +1,5 @@
 # Copyright (C) 2016  Custodia Project Contributors - see LICENSE file
+from __future__ import absolute_import
 
 import abc
 import grp
@@ -80,7 +81,7 @@ class OptionHandler(object):
         if handler is None:
             raise ValueError(typ)
         self.seen.add(name)
-        return handler(name, default)
+        return handler(name, default)  # pylint: disable=not-callable
 
     def check_surplus(self):
         surplus = []
