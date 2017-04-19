@@ -1,4 +1,5 @@
 # Copyright (C) 2017  Custodia project Contributors, for licensee see COPYING
+from __future__ import absolute_import
 
 import configparser
 import os

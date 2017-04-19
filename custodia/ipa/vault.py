@@ -1,6 +1,8 @@
 # Copyright (C) 2016  Custodia Project Contributors - see LICENSE file
 """FreeIPA vault store (PoC)
 """
+from __future__ import absolute_import
+
 import os
 
 import ipalib
