@@ -30,6 +30,7 @@ setup(
     maintainer_email='cheimes@redhat.com',
     url='https://github.com/latchset/custodia.ipa',
     namespace_packages=['custodia'],
+    package_dir={'': 'src'},
     packages=[
         'custodia.ipa',
     ],

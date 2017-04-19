@@ -1,6 +1,6 @@
 /build/
 /dist/
-/*.egg-info
+/src/*.egg-info
 __pycache__
 *.pyc
 *.pyo
