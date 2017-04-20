@@ -14,6 +14,8 @@ from ipalib.errors import NotFound
 
 import mock
 
+import pkg_resources
+
 import pytest
 
 from custodia.ipa.certrequest import IPACertRequest
@@ -346,6 +348,17 @@ class TestCustodiaIPACertRequests(BaseTest):
             'custodia/ipa.example@IPA.EXAMPLE', 'store:certreq')
         self.m_api.Command.vault_retrieve.side_effect = NotFound(reason=u'')
         certreq.get('keys/HTTP/client1.ipa.example')
+
+
+@pytest.mark.parametrize('group,name,cls', [
+    ('custodia.stores', 'IPAVault', IPAVault),
+    ('custodia.stores', 'IPACertRequest', IPACertRequest),
+    ('custodia.authenticators', 'IPAInterface', IPAInterface),
+])
+def test_plugins(group, name, cls, dist='custodia.ipa'):
+    ep = pkg_resources.get_entry_info(dist, group, name)
+    assert ep.dist.project_name == dist
+    assert ep.resolve() is cls
 
 
 @pytest.mark.parametrize('principal,result', [

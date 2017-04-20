@@ -37,7 +37,7 @@ setup(
     entry_points={
         'custodia.stores': [
             'IPAVault = custodia.ipa.vault:IPAVault',
-            'IPACertRequest = custodia.ipa.certreq:IPACertRequest'
+            'IPACertRequest = custodia.ipa.certrequest:IPACertRequest'
         ],
         'custodia.authenticators': [
             'IPAInterface = custodia.ipa.interface:IPAInterface',
