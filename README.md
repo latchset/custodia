@@ -2,12 +2,14 @@
 
 **WARNING** *custodia.ipa is a tech preview with a provisional API.*
 
-custodia.ipa is a storage plugin for
+custodia.ipa is a collection of plugins for
 [Custodia](https://custodia.readthedocs.io/). It provides integration with
-[FreeIPA](http://www.freeipa.org)'s
-[vault](https://www.freeipa.org/page/V4/Password_Vault) facility. Secrets are
+[FreeIPA](http://www.freeipa.org). The *IPAVault* plugin is an interface to
+[FreeIPA vault](https://www.freeipa.org/page/V4/Password_Vault). Secrets are
 encrypted and stored in [Dogtag](http://www.dogtagpki.org)'s Key Recovery
-Agent. 
+Agent. The *IPACertRequest* plugin creates private key and signed certificates
+on-demand. Finally the *IPAInterface* plugin is a helper plugin that wraps
+ipalib and GSSAPI authentication.
  
 
 ## Requirements
@@ -26,7 +28,8 @@ Agent.
 
 custodia.ipa requires an IPA-enrolled host and a Kerberos TGT for
 authentication. It is recommended to provide credentials with a keytab file or
-GSS-Proxy.
+GSS-Proxy. Furthermore *IPAVault* depends on Key Recovery Agent service
+(``ipa-kra-install``).
 
 ### Testing and development
 
