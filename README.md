@@ -170,9 +170,10 @@ $ custodia /etc/custodia/custodia.conf
 
 ## IPA cert request
 
-The IPACertRequest store plugin generates or revokes certificates on the
+The *IPACertRequest* store plugin generates or revokes certificates on the
 fly. It uses a backing store to cache certs and private keys. The plugin can
 create service principal automatically. However the host must already exist.
+The *IPACertRequest* does not create host entries on the fly. 
 
 The request ```GET /secrets/certs/HTTP/client1.ipa.example``` generates a
 private key and CSR for the service ```HTTP/client1.ipa.example``` with
@@ -182,3 +183,14 @@ the same time.
 
 Automatical renewal of revoked or expired certificates is not implemented yet.
 
+### FreeIPA 4.4 support
+
+The default settings and permissions are tuned for FreeIPA >= 4.5. For 4.4,
+the plugin must be configured with ```chain=False```. The additional
+permission ```Request Certificate with SubjectAltName``` is required, too.
+
+```
+ipa privilege-add-permission \
+    --permissions="Request Certificate with SubjectAltName" \
+    "Custodia Service Certs"
+```

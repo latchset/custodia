@@ -152,13 +152,15 @@ class _ServerCSRGenerator(_CSRGenerator):
 
     # pylint: disable=arguments-differ
     def _cert_request(self, pem_req, principal, **kwargs):
+        # FreeIPA 4.4 has no chain option, only pass kwarg when enabled
+        if self.plugin.chain:
+            kwargs['chain'] = True
         with self.plugin.ipa as ipa:
             return ipa.Command.cert_request(
                 pem_req,
                 profile_id=self.plugin.cert_profile,
                 add=self.plugin.add_principal,
                 principal=principal,
-                chain=self.plugin.chain,
                 **kwargs
             )
 
