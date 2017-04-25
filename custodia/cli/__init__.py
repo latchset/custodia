@@ -2,7 +2,6 @@
 from __future__ import absolute_import, print_function
 
 import argparse
-import logging
 import operator
 import os
 import traceback
@@ -249,13 +248,10 @@ def error_message(args, exc):
 def main():
     args = main_parser.parse_args()
 
+    log.setup_logging(debug=args.debug, auditfile=None)
+
     if args.debug:
         args.verbose = True
-        logdict = logging.Logger.manager.loggerDict
-        for obj in logdict.values():
-            if not isinstance(obj, logging.Logger):
-                continue
-            obj.setLevel(logging.DEBUG)
 
     if args.server.startswith('http+unix://'):
         # append uds-path
