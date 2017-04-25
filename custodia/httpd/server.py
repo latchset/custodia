@@ -3,7 +3,6 @@ from __future__ import absolute_import
 
 import atexit
 import errno
-import logging
 import os
 import shutil
 import socket
@@ -45,7 +44,7 @@ except ImportError:
         )
 
 
-logger = logging.getLogger(__name__)
+logger = log.getLogger(__name__)
 
 SO_PEERCRED = getattr(socket, 'SO_PEERCRED', 17)
 SO_PEERSEC = getattr(socket, 'SO_PEERSEC', 31)

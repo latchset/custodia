@@ -1,7 +1,6 @@
 # Copyright (C) 2015  Custodia Project Contributors - see LICENSE file
 from __future__ import absolute_import
 
-import logging
 import os
 import time
 
@@ -13,10 +12,11 @@ from jwcrypto.jws import JWS
 from jwcrypto.jwt import JWT
 
 from custodia.httpd.authorizers import SimplePathAuthz
+from custodia.log import getLogger
 from custodia.message.common import InvalidMessage
 from custodia.message.common import MessageHandler
 
-logger = logging.getLogger(__name__)
+logger = getLogger(__name__)
 
 KEY_USAGE_SIG = 0
 KEY_USAGE_ENC = 1

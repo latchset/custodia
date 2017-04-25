@@ -5,7 +5,6 @@ import abc
 import grp
 import inspect
 import json
-import logging
 import pwd
 import re
 import sys
@@ -15,10 +14,10 @@ from jwcrypto.common import json_encode
 import six
 
 from .compat import configparser
-from .log import auditlog
+from .log import CustodiaLoggingAdapter, auditlog, getLogger
 
 
-logger = logging.getLogger(__name__)
+logger = getLogger(__name__)
 
 
 class _Required(object):
@@ -38,20 +37,15 @@ class HTTPError(CustodiaException):
         self.code = code if code is not None else 500
         self.mesg = message
         errstring = '%d: %s' % (self.code, self.mesg)
-        logger.debug(errstring)
         super(HTTPError, self).__init__(errstring)
 
 
 class CSStoreError(CustodiaException):
-    def __init__(self, message=None):
-        logger.debug(message)
-        super(CSStoreError, self).__init__(message)
+    pass
 
 
 class CSStoreExists(CustodiaException):
-    def __init__(self, message=None):
-        logger.debug(message)
-        super(CSStoreExists, self).__init__(message)
+    pass
 
 
 class OptionHandler(object):
@@ -269,10 +263,7 @@ class CustodiaPlugin(object):
         origin, debug = self._configure(config, section)
         self._auditlog = auditlog
         self.origin = origin
-        l = logging.getLogger(
-            'custodia.plugins.%s' % self.__class__.__name__)
-        l.setLevel(logging.DEBUG if debug else logging.INFO)
-        self.logger = logging.LoggerAdapter(l, {'origin': self.origin})
+        self.logger = CustodiaLoggingAdapter(self, debug)
 
     def audit_key_access(self, *args, **kwargs):
         self._auditlog.key_access(self.origin, *args, **kwargs)
