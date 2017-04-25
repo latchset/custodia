@@ -186,12 +186,22 @@ PLUGINS = [
 
 def handle_plugins(args):
     result = []
+    errmsg = "**ERR** {0} ({1.__class__.__name__}: {1})"
     for plugin in PLUGINS:
         result.append('[{}]'.format(plugin))
         eps = pkg_resources.iter_entry_points(plugin)
         eps = sorted(eps, key=operator.attrgetter('name'))
         for ep in eps:
-            result.append(str(ep))
+            try:
+                if hasattr(ep, 'resolve'):
+                    ep.resolve()
+                else:
+                    ep.load(require=False)
+            except Exception as e:  # pylint: disable=broad-except
+                if args.verbose:
+                    result.append(errmsg.format(ep, e))
+            else:
+                result.append(str(ep))
         result.append('')
     return result[:-1]
 
@@ -203,6 +213,11 @@ parser_plugins.set_defaults(
     command='plugins',
     sub='plugins',
     name=None,
+)
+parser_plugins.add_argument(
+    '--verbose',
+    action='store_true',
+    help="Verbose mode, show failing plugins."
 )
 
 
