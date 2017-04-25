@@ -3,7 +3,6 @@ from __future__ import absolute_import
 
 import argparse
 import importlib
-import logging
 import os
 import socket
 
@@ -17,7 +16,7 @@ from custodia.compat import url_escape
 from custodia.httpd.server import HTTPServer
 
 
-logger = logging.getLogger('custodia')
+logger = log.getLogger('custodia')
 CONFIG_SPECIALS = ['authenticators', 'authorizers', 'consumers', 'stores']
 
 

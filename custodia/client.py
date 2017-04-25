@@ -1,7 +1,7 @@
 # Copyright (C) 2015  Custodia Project Contributors - see LICENSE file
 from __future__ import absolute_import
 
-import logging
+
 import socket
 
 from jwcrypto.common import json_decode
@@ -15,11 +15,13 @@ from requests.compat import unquote, urlparse
 from requests.packages.urllib3.connection import HTTPConnection
 from requests.packages.urllib3.connectionpool import HTTPConnectionPool
 
+from custodia.log import getLogger
 from custodia.message.kem import (
     check_kem_claims, decode_enc_kem, make_enc_kem
 )
 
-logger = logging.getLogger(__name__)
+
+logger = getLogger(__name__)
 
 
 class HTTPUnixConnection(HTTPConnection):
