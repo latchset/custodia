@@ -221,7 +221,7 @@ class CustodiaTests(unittest.TestCase):
             cls.pexec,
             '-Wignore',
             '-m', 'custodia.cli',
-            '--debug',
+            '--verbose',
             '--header', 'REMOTE_USER=test',
             '--server', cls.socket_url
         ]
@@ -427,7 +427,7 @@ class CustodiaHTTPSTests(CustodiaTests):
             cls.pexec,
             '-Wignore',
             '-m', 'custodia.cli',
-            '--debug',
+            '--verbose',
             '--cafile', cls.ca_cert,
             '--certfile', cls.client_cert,
             '--keyfile', cls.client_key,

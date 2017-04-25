@@ -47,7 +47,7 @@ class TestsCommandLine(unittest.TestCase):
             pexec,
             '-Wignore',
             '-m', 'custodia.cli',
-            '--debug'
+            '--verbose'
         ]
         cli.extend(args)
 
