@@ -101,7 +101,7 @@ class IPAInterface(HTTPAuthenticator):
         try:
             return get_principal()
         except Exception:
-            self.logger.error(
+            self.logger.exception(
                 "Unable to get principal from GSSAPI. Are you missing a "
                 "TGT or valid Kerberos keytab?"
             )

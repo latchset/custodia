@@ -111,7 +111,7 @@ class IPAVault(CSStore):
                 result = ipa.Command.vault_retrieve(
                     key, **self._vault_args)
             except NotFound as e:
-                self.logger.info(str(e))
+                self.logger.info("Key '%s' not found: %s", key, e)
                 return None
             except Exception:
                 msg = "Failed to retrieve entry {}".format(key)
@@ -128,7 +128,8 @@ class IPAVault(CSStore):
             try:
                 ipa.Command.vault_add(
                     key, ipavaulttype=u"standard", **self._vault_args)
-            except DuplicateEntry:
+            except DuplicateEntry as e:
+                self.logger.info("Vault '%s' already exists: %s", key, e)
                 if not replace:
                     raise CSStoreExists(key)
             except Exception:

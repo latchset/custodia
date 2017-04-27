@@ -229,19 +229,19 @@ class IPACertRequest(CSStore):
             msg = "Unauthorized request for '{}' ({})".format(
                 hostname, principal
             )
-            self.logger.info(msg, exc_info=True)
+            self.logger.exception(msg)
             raise CSStoreError(msg)
         except NotFound:
             msg = "Host '{}' or principal '{}' not found".format(
                 hostname, principal
             )
-            self.logger.info(msg, exc_info=True)
+            self.logger.exception(msg)
             raise CSStoreError(msg)
         except Exception:
             msg = "Failed to request cert '{}' ({})".format(
                 hostname, principal
             )
-            self.logger.error(msg, exc_info=True)
+            self.logger.exception(msg)
             raise CSStoreError(msg)
         self.store.set(key, data, replace=True)
         return data
