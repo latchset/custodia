@@ -10,7 +10,9 @@ from custodia import log
 from custodia.message.common import UnallowedMessage
 from custodia.message.common import UnknownMessageType
 from custodia.message.formats import Validator
-from custodia.plugin import CSStoreError, CSStoreExists, CSStoreUnsupported
+from custodia.plugin import (
+    CSStoreDenied, CSStoreError, CSStoreExists, CSStoreUnsupported
+)
 from custodia.plugin import HTTPConsumer, HTTPError, PluginOption
 
 
@@ -173,6 +175,10 @@ class Secrets(HTTPConsumer):
             response['headers'][
                 'Content-Type'] = 'application/json; charset=utf-8'
             response['output'] = msg.reply(keylist)
+        except CSStoreDenied:
+            self.logger.exception(
+                "List: Permission to perform this operation was denied")
+            raise HTTPError(403)
         except CSStoreError:
             self.logger.exception('List: Internal server error')
             raise HTTPError(500)
@@ -195,6 +201,10 @@ class Secrets(HTTPConsumer):
                     raise HTTPError(404)
 
             self.root.store.span(basename)
+        except CSStoreDenied:
+            self.logger.exception(
+                "Create: Permission to perform this operation was denied")
+            raise HTTPError(403)
         except CSStoreExists:
             self.logger.exception('Create: Key already exists')
             raise HTTPError(409)
@@ -226,6 +236,10 @@ class Secrets(HTTPConsumer):
             if len(keylist) != 0:
                 raise HTTPError(409)
             ret = self.root.store.cut(basename.rstrip('/'))
+        except CSStoreDenied:
+            self.logger.exception(
+                "Delete: Permission to perform this operation was denied")
+            raise HTTPError(403)
         except CSStoreError:
             self.logger.exception('Delete: Internal server error')
             raise HTTPError(500)
@@ -282,6 +296,10 @@ class Secrets(HTTPConsumer):
             elif len(output) == 0:
                 raise HTTPError(406)
             self._format_reply(request, response, handler, output)
+        except CSStoreDenied:
+            self.logger.exception(
+                "Get: Permission to perform this operation was denied")
+            raise HTTPError(403)
         except CSStoreError:
             self.logger.exception('Get: Internal server error')
             raise HTTPError(500)
@@ -324,6 +342,10 @@ class Secrets(HTTPConsumer):
                 raise HTTPError(404)
 
             ok = self.root.store.set(key, msg.payload)
+        except CSStoreDenied:
+            self.logger.exception(
+                "Set: Permission to perform this operation was denied")
+            raise HTTPError(403)
         except CSStoreExists:
             self.logger.exception('Set: Key already exist')
             raise HTTPError(409)
@@ -354,6 +376,10 @@ class Secrets(HTTPConsumer):
         key = self._db_key(trail)
         try:
             ret = self.root.store.cut(key)
+        except CSStoreDenied:
+            self.logger.exception(
+                "Delete: Permission to perform this operation was denied")
+            raise HTTPError(403)
         except CSStoreError:
             self.logger.exception('Delete: Internal Server Error')
             raise HTTPError(500)
