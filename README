@@ -184,14 +184,44 @@ IPA cert request
 The *IPACertRequest* store plugin generates or revokes certificates on
 the fly. It uses a backing store to cache certs and private keys. The
 plugin can create service principal automatically. However the host must
-already exist. The *IPACertRequest* does not create host entries on the
-fly.
+already exist. The *IPACertRequest* does not create host entries on
+demand.
 
-The request ``GET /secrets/certs/HTTP/client1.ipa.example`` generates a
-private key and CSR for the service ``HTTP/client1.ipa.example`` with
-DNS subject alternative name ``client1.ipa.example``. A DELETE request
-removes the cert/key pair from the backing store and revokes the cert at
-the same time.
+A request like ``GET /path/to/store/HTTP/client1.ipa.example`` generates
+a private key and CSR for the service ``HTTP/client1.ipa.example`` with
+DNS subject alternative name ``client1.ipa.example``. The CSR is then
+forwarded to IPA and signed by Dogtag. The resulting cert and its trust
+chain is returned together with the private key as a PEM bundle.
+
+::
+
+    $ custodia-cli get /certs/HTTP/client1.ipa.example
+    -----BEGIN RSA PRIVATE KEY-----
+    ...
+    -----END RSA PRIVATE KEY-----
+
+    Issuer: organizationName=IPA.EXAMPLE, commonName=Certificate Authority
+    Subject: organizationName=IPA.EXAMPLE, commonName=client1.ipa.example
+    Serial Number: 22
+    Validity:
+        Not Before: 2017-04-27 09:44:20
+        Not After: 2019-04-28 09:44:20
+    -----BEGIN CERTIFICATE-----
+    ...
+    -----END CERTIFICATE-----
+
+    Issuer: organizationName=IPA.EXAMPLE, commonName=Certificate Authority
+    Issuer: organizationName=IPA.EXAMPLE, commonName=Certificate Authority
+    Serial Number: 1
+    Validity:
+        Not Before: 2017-04-26 08:24:11
+        Not After: 2037-04-26 08:24:11
+    -----BEGIN CERTIFICATE-----
+    ...
+    -----END CERTIFICATE-----
+
+A DELETE request removes the cert/key pair from the backing store and
+revokes the cert at the same time.
 
 Automatical renewal of revoked or expired certificates is not
 implemented yet.
