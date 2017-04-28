@@ -71,6 +71,7 @@ custodia_authenticators = [
     'SimpleAuthKeys = custodia.httpd.authenticators:SimpleAuthKeys',
     ('SimpleClientCertAuth = '
      'custodia.httpd.authenticators:SimpleClientCertAuth'),
+    'OIDCTokenAuth = custodia.httpd.authenticators:OpenIDCTokenAuth',
 ]
 
 custodia_authorizers = [
