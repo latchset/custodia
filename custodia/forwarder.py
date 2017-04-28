@@ -4,12 +4,13 @@ from __future__ import absolute_import
 import uuid
 
 from custodia.client import CustodiaHTTPClient
-from custodia.plugin import HTTPConsumer, HTTPError, PluginOption, REQUIRED
+from custodia.plugin import HTTPConsumer, HTTPError
+from custodia.plugin import INHERIT_GLOBAL, PluginOption, REQUIRED
 
 
 class Forwarder(HTTPConsumer):
     forward_uri = PluginOption(str, REQUIRED, None)
-    tls_cafile = PluginOption(str, None, 'Path to CA file')
+    tls_cafile = PluginOption(str, INHERIT_GLOBAL(None), 'Path to CA file')
     tls_certfile = PluginOption(
         str, None, 'Path to cert file for client cert auth')
     tls_keyfile = PluginOption(

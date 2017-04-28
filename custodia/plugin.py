@@ -21,8 +21,20 @@ logger = getLogger(__name__)
 
 
 class _Required(object):
+    __slots__ = ()
+
     def __repr__(self):
         return 'REQUIRED'
+
+
+class INHERIT_GLOBAL(object):  # noqa: N801
+    __slots__ = ('default',)
+
+    def __init__(self, default):
+        self.default = default
+
+    def __repr__(self):
+        return 'INHERIT_GLOBAL({})'.format(self.default)
 
 
 REQUIRED = _Required()
@@ -76,14 +88,23 @@ class OptionHandler(object):
         name = po.name
         typ = po.typ
         default = po.default
-        if (default is REQUIRED and
-                not self.parser.has_option(self.section, name)):
-            raise NameError(self.section, name)
+
         handler = getattr(self, '_get_{}'.format(typ), None)
         if handler is None:
             raise ValueError(typ)
         self.seen.add(name)
-        return handler(name, default)  # pylint: disable=not-callable
+
+        # pylint: disable=not-callable
+        if not self.parser.has_option(self.section, name):
+            if default is REQUIRED:
+                raise NameError(self.section, name)
+            if isinstance(default, INHERIT_GLOBAL):
+                return handler('global', name, default.default)
+            # don't return default here, give the handler a chance to modify
+            # the default, e.g. pw_uid with default='root' returns 0.
+
+        return handler(self.section, name, default)
+        # pylint: enable=not-callable
 
     def check_surplus(self):
         surplus = []
@@ -93,36 +114,36 @@ class OptionHandler(object):
                 surplus.append(name)
         return surplus
 
-    def _get_int(self, name, default):
-        return self.parser.getint(self.section, name, fallback=default)
+    def _get_int(self, section, name, default):
+        return self.parser.getint(section, name, fallback=default)
 
-    def _get_oct(self, name, default):
-        value = self.parser.get(self.section, name, fallback=default)
+    def _get_oct(self, section, name, default):
+        value = self.parser.get(section, name, fallback=default)
         return int(value, 8)
 
-    def _get_hex(self, name, default):
-        value = self.parser.get(self.section, name, fallback=default)
+    def _get_hex(self, section, name, default):
+        value = self.parser.get(section, name, fallback=default)
         return int(value, 16)
 
-    def _get_float(self, name, default):
-        return self.parser.getfloat(self.section, name, fallback=default)
+    def _get_float(self, section, name, default):
+        return self.parser.getfloat(section, name, fallback=default)
 
-    def _get_bool(self, name, default):
-        return self.parser.getboolean(self.section, name, fallback=default)
+    def _get_bool(self, section, name, default):
+        return self.parser.getboolean(section, name, fallback=default)
 
-    def _get_regex(self, name, default):
-        value = self.parser.get(self.section, name, fallback=default)
+    def _get_regex(self, section, name, default):
+        value = self.parser.get(section, name, fallback=default)
         if not value:
             return None
         else:
             return re.compile(value)
 
-    def _get_str(self, name, default):
-        return self.parser.get(self.section, name, fallback=default)
+    def _get_str(self, section, name, default):
+        return self.parser.get(section, name, fallback=default)
 
-    def _get_str_set(self, name, default):
+    def _get_str_set(self, section, name, default):
         try:
-            value = self.parser.get(self.section, name)
+            value = self.parser.get(section, name)
         except configparser.NoOptionError:
             return default
         if not value or not value.strip():
@@ -130,9 +151,9 @@ class OptionHandler(object):
         else:
             return set(v.strip() for v in value.split(' '))
 
-    def _get_str_list(self, name, default):
+    def _get_str_list(self, section, name, default):
         try:
-            value = self.parser.get(self.section, name)
+            value = self.parser.get(section, name)
         except configparser.NoOptionError:
             return default
         if not value or not value.strip():
@@ -140,25 +161,25 @@ class OptionHandler(object):
         else:
             return list(v.strip() for v in value.split(' ') if v.strip())
 
-    def _get_store(self, name, default):
-        return self.parser.get(self.section, name, fallback=default)
+    def _get_store(self, section, name, default):
+        return self.parser.get(section, name, fallback=default)
 
-    def _get_pwd_uid(self, name, default):
-        value = self.parser.get(self.section, name, fallback=default)
+    def _get_pwd_uid(self, section, name, default):
+        value = self.parser.get(section, name, fallback=default)
         try:
             return int(value)
         except ValueError:
             return pwd.getpwnam(value).pw_uid
 
-    def _get_grp_gid(self, name, default):
-        value = self.parser.get(self.section, name, fallback=default)
+    def _get_grp_gid(self, section, name, default):
+        value = self.parser.get(section, name, fallback=default)
         try:
             return int(value)
         except ValueError:
             return grp.getgrnam(value).gr_gid
 
-    def _get_json(self, name, default):
-        value = self.parser.get(self.section, name, fallback=default)
+    def _get_json(self, section, name, default):
+        value = self.parser.get(section, name, fallback=default)
         return json.loads(value)
 
 
@@ -246,9 +267,10 @@ class CustodiaPluginMeta(abc.ABCMeta):
             return ncls
 
         # new-style plugin class
-        # every plugin has a debug option
+        # every plugin has a debug option. In case it is not set, the debug
+        # flag from [global] is inherited.
         if not hasattr(ncls, 'debug'):
-            ncls.debug = PluginOption(bool, False, '')
+            ncls.debug = PluginOption(bool, INHERIT_GLOBAL(False), '')
         # get options
         options = []
         for name, value in inspect.getmembers(ncls):
