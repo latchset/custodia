@@ -88,7 +88,7 @@ def setup_logging(debug=False, auditfile=None, handler=None):
     # output handlers.
     handler_cls = type(handler)
     root_logger.handlers[:] = list(
-        isinstance(h, handler_cls) for h in root_logger.handlers
+        h for h in root_logger.handlers if not isinstance(h, handler_cls)
     )
 
     # configure handler

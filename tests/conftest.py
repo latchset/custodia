@@ -1,11 +1,12 @@
 # Copyright (C) 2016  Custodia Project Contributors - see LICENSE file
 from __future__ import absolute_import
 
+import logging
 import warnings
 
 import pytest
 
-from custodia.log import ProvisionalWarning
+from custodia.log import ProvisionalWarning, setup_logging
 
 # deprecated APIs raise an exception
 warnings.simplefilter('error', category=DeprecationWarning)
@@ -15,6 +16,10 @@ warnings.filterwarnings('ignore', category=DeprecationWarning,
 # silence our own warnings about provisional APIs
 warnings.simplefilter('ignore', category=ProvisionalWarning)
 
+
+# don't spam stderr with log messages
+logging.getLogger().handlers[:] = []
+setup_logging(debug=False, auditfile=None, handler=logging.NullHandler())
 
 SKIP_SERVERTEST = "--skip-servertests"
 
