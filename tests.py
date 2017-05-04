@@ -2,7 +2,6 @@
 from __future__ import absolute_import
 
 import base64
-import configparser
 import os
 
 from cryptography import x509
@@ -18,6 +17,7 @@ import pkg_resources
 
 import pytest
 
+from custodia.compat import configparser
 from custodia.ipa.certrequest import IPACertRequest
 from custodia.ipa.interface import IPAInterface
 from custodia.ipa.vault import IPAVault, krb5_unparse_principal_name
