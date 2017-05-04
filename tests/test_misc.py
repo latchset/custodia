@@ -11,9 +11,16 @@ from custodia import log
 
 # pylint: disable=redefined-outer-name
 
+PYTEST_VERSION = tuple(int(p) for p in pytest.__version__.split('.'))
 
-@pytest.fixture()
-def loghandler():
+if PYTEST_VERSION < (2, 10):
+    yield_fixture = pytest.yield_fixture
+else:
+    yield_fixture = pytest.fixture
+
+
+@yield_fixture
+def loghandler(request):
     orig_handlers = logging.getLogger().handlers[:]
     handler = logging.handlers.BufferingHandler(10240)
     log.setup_logging(debug=False, auditfile=None, handler=handler)
