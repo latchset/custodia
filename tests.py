@@ -363,8 +363,13 @@ class TestCustodiaIPACertRequests(BaseTest):
 ])
 def test_plugins(group, name, cls, dist='custodia.ipa'):
     ep = pkg_resources.get_entry_info(dist, group, name)
+    assert ep is not None
     assert ep.dist.project_name == dist
-    assert ep.resolve() is cls
+    if hasattr(ep, 'resolve'):
+        resolved = ep.resolve()
+    else:
+        resolved = ep.load(require=False)
+    assert resolved is cls
 
 
 @pytest.mark.parametrize('principal,result', [
