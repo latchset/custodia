@@ -21,7 +21,7 @@ ipalib and GSSAPI authentication.
 
 ### Runtime
 
-* custodia >= 0.3.1
+* custodia >= 0.4.0
 * ipalib >= 4.5.0
 * ipaclient >= 4.5.0
 * Python 2.7 (Python 3 support in IPA vault is unstable.)

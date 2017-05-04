@@ -21,7 +21,9 @@ from ipalib.krb_utils import krb5_format_service_principal_name
 
 import six
 
-from custodia.plugin import CSStore, CSStoreError, PluginOption, REQUIRED
+from custodia.plugin import CSStore, PluginOption, REQUIRED
+from custodia.plugin import CSStoreDenied, CSStoreError
+
 from .interface import IPAInterface
 
 
@@ -230,7 +232,7 @@ class IPACertRequest(CSStore):
                 hostname, principal
             )
             self.logger.exception(msg)
-            raise CSStoreError(msg)
+            raise CSStoreDenied(msg)
         except NotFound:
             msg = "Host '{}' or principal '{}' not found".format(
                 hostname, principal

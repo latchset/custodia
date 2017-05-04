@@ -3,11 +3,15 @@
 """
 from __future__ import absolute_import
 
-from ipalib.errors import DuplicateEntry, NotFound
+from ipalib.errors import AuthorizationError, DuplicateEntry, NotFound
 
 import six
 
-from custodia.plugin import CSStore, CSStoreError, CSStoreExists, PluginOption
+from custodia.plugin import CSStore, PluginOption
+from custodia.plugin import (
+    CSStoreDenied, CSStoreError, CSStoreExists, CSStoreUnsupported
+)
+
 from .interface import IPAInterface
 
 
@@ -132,6 +136,10 @@ class IPAVault(CSStore):
                 self.logger.info("Vault '%s' already exists: %s", key, e)
                 if not replace:
                     raise CSStoreExists(key)
+            except AuthorizationError:
+                msg = "vault_add denied for entry {}".format(key)
+                self.logger.exception(msg)
+                raise CSStoreDenied(msg)
             except Exception:
                 msg = "Failed to add entry {}".format(key)
                 self.logger.exception(msg)
@@ -139,19 +147,27 @@ class IPAVault(CSStore):
             try:
                 ipa.Command.vault_archive(
                     key, data=value, **self._vault_args)
+            except AuthorizationError:
+                msg = "vault_archive denied for entry {}".format(key)
+                self.logger.exception(msg)
+                raise CSStoreDenied(msg)
             except Exception:
                 msg = "Failed to archive entry {}".format(key)
                 self.logger.exception(msg)
                 raise CSStoreError(msg)
 
     def span(self, key):
-        raise CSStoreError("span is not implemented")
+        raise CSStoreUnsupported("span is not implemented")
 
     def list(self, keyfilter=None):
         with self.ipa as ipa:
             try:
                 result = ipa.Command.vault_find(
                     ipavaulttype=u"standard", **self._vault_args)
+            except AuthorizationError:
+                msg = "vault_find denied"
+                self.logger.exception(msg)
+                raise CSStoreDenied(msg)
             except Exception:
                 msg = "Failed to list entries"
                 self.logger.exception(msg)
@@ -173,6 +189,10 @@ class IPAVault(CSStore):
                 ipa.Command.vault_del(key, **self._vault_args)
             except NotFound:
                 return False
+            except AuthorizationError:
+                msg = "vault_del denied for entry {}".format(key)
+                self.logger.exception(msg)
+                raise CSStoreDenied(msg)
             except Exception:
                 msg = "Failed to delete entry {}".format(key)
                 self.logger.exception(msg)

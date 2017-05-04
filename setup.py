@@ -5,7 +5,7 @@
 from setuptools import setup
 
 requirements = [
-    'custodia >= 0.3.1',
+    'custodia >= 0.4.0',
     'ipalib >= 4.5.0',
     'ipaclient >= 4.5.0',
     'six',
