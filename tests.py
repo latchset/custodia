@@ -11,8 +11,6 @@ from cryptography.hazmat.primitives import serialization
 import ipalib
 from ipalib.errors import NotFound
 
-import mock
-
 import pkg_resources
 
 import pytest
@@ -21,6 +19,14 @@ from custodia.compat import configparser
 from custodia.ipa.certrequest import IPACertRequest
 from custodia.ipa.interface import IPAInterface
 from custodia.ipa.vault import IPAVault, krb5_unparse_principal_name
+
+try:
+    from unittest import mock
+except ImportError:
+    try:
+        import mock
+    except ImportError:
+        mock = None
 
 
 CONFIG = u"""
@@ -150,7 +156,6 @@ K3quV1cduocb2y4lwLF0I6aRqe73pzLnTvoUjnhutYoCMjKT0ebFPZIHbVgYPTI=
 -----END CERTIFICATE-----
 """
 
-
 vault_parametrize = pytest.mark.parametrize(
     'plugin,vault_type,vault_args',
     [
@@ -161,6 +166,7 @@ vault_parametrize = pytest.mark.parametrize(
 )
 
 
+@pytest.mark.skipif(mock is None, reason='requires mock')
 class BaseTest(object):
     def setup_method(self, method):
         self.parser = configparser.ConfigParser(
@@ -218,9 +224,9 @@ class TestCustodiaIPA(BaseTest):
 
         m_api.Backend.rpcclient.isconnected.return_value = False
         with ipa:
-            m_api.Backend.rpcclient.connect.assert_called()
+            m_api.Backend.rpcclient.connect.assert_any_call()
             m_api.Backend.rpcclient.isconnected.return_value = True
-        m_api.Backend.rpcclient.disconnect.assert_called()
+        m_api.Backend.rpcclient.disconnect.assert_any_call()
 
         assert os.environ == dict(
             NSS_STRICT_NOFORK='DISABLED',
@@ -262,7 +268,7 @@ class TestCustodiaIPAVault(BaseTest):
         ipa = self.mkinstance('john@IPA.EXAMPLE', 'store:ipa_autodiscover')
         ipa = IPAVault(self.parser, plugin)
         assert ipa.vault_type == vault_type
-        self.m_api.Command.ping.assert_called_once()
+        self.m_api.Command.ping.assert_called_once_with()
         ipa.set('directory/testkey', 'testvalue')
         self.m_api.Command.vault_add.assert_called_once_with(
             'directory__testkey',

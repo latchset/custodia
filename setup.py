@@ -2,7 +2,13 @@
 #
 # Copyright (C) 2016  Custodia project Contributors, for licensee see COPYING
 
+import sys
+
+import setuptools
 from setuptools import setup
+
+SETUPTOOLS_VERSION = tuple(int(v) for v in setuptools.__version__.split("."))
+
 
 requirements = [
     'custodia >= 0.4.0',
@@ -11,9 +17,21 @@ requirements = [
     'six',
 ]
 # test requirements
-test_requires = ['coverage', 'pytest', 'mock']
-test_pylint_requires = ['pylint'] + test_requires
-test_pep8_requires = ['flake8', 'flake8-import-order', 'pep8-naming']
+test_requires = ['coverage', 'pytest']
+
+extras_require = {
+    'test': test_requires,
+    'test_docs': ['docutils', 'markdown'],
+    'test_pep8': ['flake8', 'flake8-import-order', 'pep8-naming'],
+    'test_pylint': ['pylint'] + test_requires,
+}
+
+# backwards compatibility with old setuptools
+# unittest.mock was added in Python 3.3
+if SETUPTOOLS_VERSION < (18, 0, 0) and sys.version_info < (3, 3):
+    requirements.append('mock')
+else:
+    extras_require[':python_version<"3.3"'] = ['mock']
 
 
 with open('README') as f:
@@ -55,10 +73,5 @@ setup(
     ],
     install_requires=requirements,
     tests_require=test_requires,
-    extras_require={
-        'test': test_requires,
-        'test_docs': ['docutils', 'markdown'],
-        'test_pep8': test_pep8_requires,
-        'test_pylint': test_pylint_requires,
-    },
+    extras_require=extras_require,
 )
