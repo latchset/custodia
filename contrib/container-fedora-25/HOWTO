@@ -1,0 +1,20 @@
+
+Build the container image with
+
+	docker build -t custodia .
+
+On IPA-enrolled machine, follow the keytab and privileged steps
+from https://pypi.python.org/pypi/custodia.ipa.
+
+Then run the container with
+
+	mkdir /var/run/custodia
+	docker run --rm -ti \
+		-v /etc/ipa:/etc/ipa:ro \
+		-v /etc/krb5.conf:/etc/krb5.conf:ro \
+		-v /etc/krb5.conf.d:/etc/krb5.conf.d:ro \
+		-v /var/lib/sss/pubconf/krb5.include.d:/var/lib/sss/pubconf/krb5.include.d:ro \
+		-v /etc/custodia/custodia.keytab:/etc/custodia/custodia.keytab:ro \
+		-v /var/run/custodia:/var/run/custodia \
+		custodia
+
