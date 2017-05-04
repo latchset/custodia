@@ -171,4 +171,4 @@ dockerreleasebuild:
 	$(MAKE) dockerbuild \
 	    DOCKER_BUILD_ARGS="$(DOCKER_RELEASE_ARGS)" \
 	    DOCKER_IMAGE="$(DOCKER_IMAGE):$(VERSION)" && \
-	echo -e "\n\nRun: $(DOCKER_CMD) push $(DOCKER_IMAGE):$${VERSION}"
+	echo -e "\n\nRun: $(DOCKER_CMD) push $(DOCKER_IMAGE):$(VERSION)"
