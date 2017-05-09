@@ -12,7 +12,8 @@ include man/custodia.7
 recursive-include contrib *.txt *.conf *.service *.socket Dockerfile
 
 recursive-include tests *.py
-recursive-include tests/ca *.conf *.key *.pem *.sh
+recursive-include tests *.conf
+recursive-include tests/ca *.key *.pem *.sh
 prune tests/tmp
 prune tests/ca/tmp
 
