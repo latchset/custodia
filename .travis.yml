@@ -40,3 +40,6 @@ script:
 after_success:
   - python -m coverage combine
   - codecov
+
+after_failure:
+  - test -f tests/tmp/test_log.txt && cat tests/tmp/test_log.txt
