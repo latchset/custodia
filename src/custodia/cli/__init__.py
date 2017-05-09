@@ -58,18 +58,32 @@ def server_check(arg):
     return 'http+unix://{}'.format(url_escape(arg, ''))
 
 
+def instance_check(arg):
+    if set(arg).intersection(':/@'):
+        raise argparse.ArgumentTypeError(
+            'Instance name contains invalid characters')
+    return arg
+
+
 def split_header(arg):
     name, value = arg.split('=')
     return name, value
 
 
-main_parser.add_argument(
+group = main_parser.add_mutually_exclusive_group()
+group.add_argument(
     '--server',
     type=server_check,
-    default='/var/run/custodia/custodia.sock',
     help=('Custodia server location, supports http://, https://, '
           'or path to a unix socket.')
 )
+group.add_argument(
+    '--instance',
+    default=os.getenv('CUSTODIA_INSTANCE', 'custodia'),
+    type=instance_check,
+    help="Instance name (default: CUSTODIA_INSTANCE or 'custodia')",
+)
+
 main_parser.add_argument(
     '--uds-urlpath', type=str, default='/secrets/',
     help='URL path for Unix Domain Socket'
@@ -260,13 +274,15 @@ def error_message(args, exc):
                                unix_path=unquote(parts.netloc))
 
 
-def main():
-    args = main_parser.parse_args()
-
-    log.setup_logging(debug=args.debug, auditfile=None)
+def parse_args(arglist=None):
+    args = main_parser.parse_args(arglist)
 
     if args.debug:
         args.verbose = True
+
+    if not args.server:
+        instance_socket = '/var/run/custodia/{}.sock'.format(args.instance)
+        args.server = 'http+unix://{}'.format(url_escape(instance_socket, ''))
 
     if args.server.startswith('http+unix://'):
         # append uds-path
@@ -284,6 +300,14 @@ def main():
     if args.certfile:
         args.client_conn.set_client_cert(args.certfile, args.keyfile)
         args.client_conn.headers['CUSTODIA_CERT_AUTH'] = 'true'
+
+    return args
+
+
+def main():
+    args = parse_args()
+
+    log.setup_logging(debug=args.debug, auditfile=None)
 
     try:
         result = args.func(args)
