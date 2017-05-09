@@ -42,6 +42,7 @@ server_version = "Secret/0.0.7"
 server_url = ${SOCKET_URL}
 auditlog = ${TEST_DIR}/test_audit.log
 debug = True
+makedirs = False
 tls_certfile = tests/ca/custodia-server.pem
 tls_keyfile = tests/ca/custodia-server.key
 tls_cafile = tests/ca/custodia-ca.pem
