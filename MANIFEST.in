@@ -1,6 +1,7 @@
 include setup.py setup.cfg
 include Makefile LICENSE README
 include *.md *.ini .coveragerc
+include bin/custodia bin/custodia-cli
 
 include custodia.conf
 recursive-include examples *.key *.db

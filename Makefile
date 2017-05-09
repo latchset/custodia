@@ -109,7 +109,7 @@ release: clean
 	@echo "  twine-3 upload dist/*.gz dist/*.whl"
 
 run: egg_info
-	PYTHONPATH=$(CURDIR)/src $(PYTHON) -m custodia.server $(CONF)
+	$(PYTHON) $(CURDIR)/bin/custodia $(CONF)
 
 
 .PHONY: rpmroot rpmfiles rpm
