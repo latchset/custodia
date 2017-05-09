@@ -60,10 +60,6 @@ Requires:           python3-custodia = %{version}-%{release}
 Requires:           python2-custodia = %{version}-%{release}
 %endif
 
-# FreeIPA 4.3 and 4.4 are not compatible with custodia because the custodia
-# script now runs under Python 3.
-Conflicts:          freeipa-server-common < 4.5
-Conflicts:          ipa-server-common < 4.5
 
 %global overview                                                           \
 Custodia is a Secrets Service Provider, it stores or proxies access to     \
@@ -91,7 +87,6 @@ Requires:   python-jwcrypto
 Requires:   python2-requests
 Requires:   python2-setuptools
 Requires:   python2-systemd
-Conflicts:  python2-ipalib < 4.5
 
 %description -n python2-custodia
 Sub-package with python custodia modules
@@ -118,7 +113,6 @@ Requires:   python3-jwcrypto
 Requires:   python3-requests
 Requires:   python3-setuptools
 Requires:   python3-systemd
-Conflicts:  python3-ipalib < 4.5
 
 %description -n python3-custodia
 Sub-package with python custodia modules
