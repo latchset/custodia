@@ -1,5 +1,6 @@
 %if 0%{?fedora}
 %global with_python3 1
+%global with_etcdstore 1
 %endif
 
 %{!?version: %define version 0.3.1}
@@ -27,10 +28,12 @@ BuildRequires:      python2-setuptools >= 18
 BuildRequires:      python2-coverage
 BuildRequires:      python-tox >= 2.3.1
 BuildRequires:      python2-pytest
-BuildRequires:      python2-python-etcd
 BuildRequires:      python-docutils
 BuildRequires:      python2-configparser
 BuildRequires:      python2-systemd
+%if 0%{?with_etcdstore}
+BuildRequires:      python2-python-etcd
+%endif
 
 %if 0%{?with_python3}
 BuildRequires:      python3-devel
@@ -91,17 +94,18 @@ Sub-package with python custodia modules
 
 %{overview}
 
-
-%package -n python2-custodia-extra
-Summary:    Sub-package with python2 custodia extra modules
+%if 0%{?with_etcdstore}
+%package -n python2-custodia-etcdstore
+Summary:    Sub-package with python2 custodia etcdstore
 Requires:   python2-python-etcd
 Requires:   python2-custodia = %{version}-%{release}
+Obsoletes:  python2-custodia-extras <= 0.3.1
 
-%description -n python2-custodia-extra
-Sub-package with python2 custodia extra modules (etcdstore)
+%description -n python2-custodia-etcdstore
+Sub-package with python2 custodia etcdstore plugin
 
 %{overview}
-
+%endif  # with_etcdstore
 
 %if 0%{?with_python3}
 %package -n python3-custodia
@@ -117,18 +121,20 @@ Sub-package with python custodia modules
 
 %{overview}
 
-
-%package -n python3-custodia-extra
-Summary:    Sub-package with python3 custodia extra modules
+%if 0%{?with_etcdstore}
+%package -n python3-custodia-etcdstore
+Summary:    Sub-package with python3 custodia etcdstoore
 Requires:   python3-python-etcd
 Requires:   python3-custodia = %{version}-%{release}
+Obsoletes:  python3-custodia-extras <= 0.3.1
 
-%description -n python3-custodia-extra
-Sub-package with python3 custodia extra modules (etcdstore)
+%description -n python3-custodia-etcdstore
+Sub-package with python3 custodia extra etcdstore plugin
 
 %{overview}
 
-%endif
+%endif  # with_etcdstore
+%endif  # with_python3
 
 
 %prep
@@ -220,9 +226,11 @@ exit 0
 %{_sbindir}/custodia-2
 %{_bindir}/custodia-cli-2
 
-%files -n python2-custodia-extra
+%if 0%{?with_etcdstore}
+%files -n python2-custodia-etcdstore
 %license LICENSE
 %{python2_sitelib}/custodia/store/etcdstore.py*
+%endif  # with_etcdstore
 
 %if 0%{?with_python3}
 %files -n python3-custodia
@@ -233,9 +241,11 @@ exit 0
 %{_sbindir}/custodia-3
 %{_bindir}/custodia-cli-3
 
-%files -n python3-custodia-extra
+%if 0%{?with_etcdstore}
+%files -n python3-custodia-etcdstore
 %license LICENSE
 %{python3_sitelib}/custodia/store/etcdstore.py
 %{python3_sitelib}/custodia/store/__pycache__/etcdstore.*
-%endif
+%endif  # with_etcdstore
+%endif  # with_python3
 
