@@ -61,7 +61,7 @@ class CustodiaConfig(object):
 
         # default globals
         parser.add_section(u'global')
-        parser.set(u'global', u'auditlog', u'${logdir}/custodia.audit.log')
+        parser.set(u'global', u'auditlog', u'${logdir}/audit.log')
         parser.set(u'global', u'debug', u'false')
         parser.set(u'global', u'umask', u'027')
         parser.set(u'global', u'makedirs', u'false')

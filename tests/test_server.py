@@ -42,7 +42,7 @@ def test_parse_config(args):
     assert parser.get(u'/', u'handler') == u'Root'
 
     assert config == {
-        'auditlog': u'/var/log/custodia/custodia.audit.log',
+        'auditlog': u'/var/log/custodia/audit.log',
         'authenticators': {},
         'authorizers': {},
         'confdpattern': EMPTY_CONF + u'.d/*.conf',
@@ -74,7 +74,7 @@ def test_parse_config_instance(args_instance):
     assert parser.get(u'/', u'handler') == u'Root'
 
     assert config == {
-        'auditlog': u'/var/log/custodia/testing/custodia.audit.log',
+        'auditlog': u'/var/log/custodia/testing/audit.log',
         'authenticators': {},
         'authorizers': {},
         'confdpattern': EMPTY_CONF + u'.d/*.conf',
