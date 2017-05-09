@@ -1,14 +1,14 @@
-# /etc/systemd/system/custodia.service
+# /etc/systemd/system/custodia@.service
 
 [Unit]
-Description=Custodia Secrets Service
+Description=Custodia Secrets Service for %I
 Documentation=https://github.com/latchset/custodia
-Requires=custodia.socket
+Requires=custodia@%i.socket
 After=network.target
 
 [Service]
 Type=notify
-ExecStart=/usr/sbin/custodia /etc/custodia/custodia.conf
+ExecStart=/usr/sbin/custodia --instance=%i /etc/custodia/%i.conf
 User=custodia
 Group=custodia
 ProtectSystem=full

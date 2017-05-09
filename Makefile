@@ -122,9 +122,9 @@ rpmroot:
 
 rpmfiles: rpmroot packages
 	mv dist/custodia-$(VERSION).tar.gz* $(RPMBUILD)/SOURCES
-	cp contrib/config/custodia/custodia.conf $(RPMBUILD)/SOURCES/custodia.conf
-	cp contrib/config/systemd/system/custodia.service $(RPMBUILD)/SOURCES/custodia.service
-	cp contrib/config/systemd/system/custodia.socket $(RPMBUILD)/SOURCES/custodia.socket
+	cp contrib/config/custodia/custodia.conf $(RPMBUILD)/SOURCES/
+	cp contrib/config/systemd/system/custodia@.service $(RPMBUILD)/SOURCES/
+	cp contrib/config/systemd/system/custodia@.socket $(RPMBUILD)/SOURCES/
 	cp contrib/config/tmpfiles.d/custodia.conf $(RPMBUILD)/SOURCES/custodia.tmpfiles.conf
 
 rpm: clean rpmfiles egg_info
@@ -132,6 +132,7 @@ rpm: clean rpmfiles egg_info
 	    --define "_topdir $(RPMBUILD)" \
 	    --define "version $(VERSION)" \
 	    -ba custodia.spec
+	echo "$(RPMBUILD)/RPMS"
 
 
 .PHONY: dockerbuild dockerdemo dockerdemoinit dockershell dockerreleasebuild
