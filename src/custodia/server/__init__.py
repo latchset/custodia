@@ -11,10 +11,12 @@ import six
 from custodia import log
 from custodia.httpd.server import HTTPServer
 from .args import default_argparser
+from .args import parse_args as _parse_args
 from .config import parse_config as _parse_config
 
-
 logger = log.getLogger('custodia')
+
+__all__ = ['default_argparser', 'main']
 
 
 def attach_store(typename, plugins, stores):
@@ -122,15 +124,13 @@ def _load_plugins(config, parser):
 
 
 def main(argparser=None):
-    if argparser is None:
-        argparser = default_argparser
-    args = argparser.parse_args()
+    args = _parse_args(argparser=argparser)
     # parse arguments and populate config with basic settings
-    config = {}
-    cfgparser = _parse_config(args, config)
+    cfgparser, config = _parse_config(args)
     # initialize logging
     log.setup_logging(config['debug'], config['auditlog'])
-    logger.debug('Config file %s loaded', args.configfile)
+    logger.info('Custodia instance %s', args.instance or '<main>')
+    logger.debug('Config file(s) %s loaded', config['configfiles'])
     # load plugins after logging
     _load_plugins(config, cfgparser)
     # create and run server
