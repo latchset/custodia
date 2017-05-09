@@ -15,8 +15,8 @@ URL:            https://github.com/latchset/%{name}
 Source0:        https://github.com/latchset/%{name}/releases/download/v%{version}/%{name}-%{version}.tar.gz
 Source1:        https://github.com/latchset/%{name}/releases/download/v%{version}/%{name}-%{version}.tar.gz.sha512sum.txt
 Source2:        custodia.conf
-Source3:        custodia.service
-Source4:        custodia.socket
+Source3:        custodia@.service
+Source4:        custodia@.socket
 Source5:        custodia.tmpfiles.conf
 
 BuildArch:      noarch
@@ -207,16 +207,16 @@ getent passwd custodia >/dev/null || \
 exit 0
 
 %post
-%systemd_post custodia.socket
-%systemd_post custodia.service
+%systemd_post custodia@\*.socket
+%systemd_post custodia@\*.service
 
 %preun
-%systemd_preun custodia.socket
-%systemd_preun custodia.service
+%systemd_preun custodia@\*.socket
+%systemd_preun custodia@\*.service
 
 %postun
-%systemd_postun custodia.socket
-%systemd_postun custodia.service
+%systemd_postun custodia@\*.socket
+%systemd_postun custodia@\*.service
 
 
 %files
@@ -228,8 +228,8 @@ exit 0
 %{_bindir}/custodia-cli
 %dir %attr(0700,custodia,custodia) %{_sysconfdir}/custodia
 %config(noreplace) %attr(600,custodia,custodia) %{_sysconfdir}/custodia/custodia.conf
-%attr(644,root,root)  %{_unitdir}/custodia.socket
-%attr(644,root,root)  %{_unitdir}/custodia.service
+%attr(644,root,root) %{_unitdir}/custodia@.socket
+%attr(644,root,root) %{_unitdir}/custodia@.service
 %dir %attr(0700,custodia,custodia) %{_localstatedir}/lib/custodia
 %dir %attr(0700,custodia,custodia) %{_localstatedir}/log/custodia
 %dir %attr(0755,custodia,custodia) %{_localstatedir}/run/custodia
