@@ -21,6 +21,7 @@ Source5:        custodia.tmpfiles.conf
 
 BuildArch:      noarch
 
+BuildRequires:      systemd
 BuildRequires:      python2-devel
 BuildRequires:      python-jwcrypto
 BuildRequires:      python2-requests
@@ -49,6 +50,9 @@ BuildRequires:      python3-systemd
 %endif
 
 Requires(pre):      shadow-utils
+Requires(preun):    systemd-units
+Requires(postun):   systemd-units
+Requires(post):     systemd-units
 
 %if 0%{?with_python3}
 Requires:           python3-custodia = %{version}-%{release}
@@ -202,6 +206,18 @@ getent passwd custodia >/dev/null || \
     -c "User for custodia" custodia
 exit 0
 
+%post
+%systemd_post custodia.socket
+%systemd_post custodia.service
+
+%preun
+%systemd_preun custodia.socket
+%systemd_preun custodia.service
+
+%postun
+%systemd_postun custodia.socket
+%systemd_postun custodia.service
+
 
 %files
 %doc README API.md
@@ -248,4 +264,3 @@ exit 0
 %{python3_sitelib}/custodia/store/__pycache__/etcdstore.*
 %endif  # with_etcdstore
 %endif  # with_python3
-
