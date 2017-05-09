@@ -11,6 +11,9 @@ Type=notify
 ExecStart=/usr/sbin/custodia /etc/custodia/custodia.conf
 User=custodia
 Group=custodia
+ProtectSystem=full
+ProtectHome=true
+NoNewPrivileges=true
 
 [Install]
 WantedBy=multi-user.target
