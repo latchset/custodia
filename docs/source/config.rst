@@ -139,7 +139,7 @@ empty config file::
     socketdir = /var/run/custodia
 
     [global]
-    auditlog = /var/log/custodia/example/custodia.audit.log
+    auditlog = /var/log/custodia/example/audit.log
     debug = False
     server_socket = /var/run/custodia/example.sock
     makedirs = True
