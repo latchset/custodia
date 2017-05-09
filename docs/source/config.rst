@@ -24,7 +24,9 @@ server_url [str]
        $ /usr/lib/systemd/systemd-activate -l $(pwd)/custodia.sock python -m custodia.server custodia.conf
 
 server_socket [str]
-   Path to :const:`AF_UNIX` socket file.
+   Path to :const:`AF_UNIX` socket file. In the absence of *server_url* and
+   *server_socket*, the default value for *server_socket* is
+   ``/var/run/custodia/${instance}.sock``.
 
 server_string [str]
    String to send as HTTP Server string
@@ -96,7 +98,52 @@ Special sections
 DEFAULT
 -------
 
-The :const:`DEFAULT` section contains default values for all sections.
+The :const:`DEFAULT` section contains default values for all sections. Some
+values are always defined. Predefined values can be overridden. Paths to
+files and directories are converted to absolute paths.
+
+hostname
+    hostname from ``socket.gethostname()``
+
+instance
+    name of the Custodia server instance or empty string
+
+configdir
+    Directory of the server's config file
+
+confdpattern
+    Glob pattern for additional config files
+
+libdir
+    Directory for persistent variable data (e.g. sqlite database)
+
+logdir
+    Directory for log files
+
+rundir
+    Directory for ephemeral data (e.g. ccache)
+
+socketdir
+    Directory for socket file
+
+Example for ``custodia --instance=example /etc/custodia/ex.conf`` with an
+empty config file::
+
+    [DEFAULT]
+    hostname = hostname.example
+    configdir = /etc/custodia
+    confdpattern = /etc/custodia/ex.conf.d/*.conf
+    libdir = /var/lib/custodia/example
+    logdir = /var/log/custodia/example
+    rundir = /var/run/custodia/example
+    socketdir = /var/run/custodia
+
+    [global]
+    auditlog = /var/log/custodia/example/custodia.audit.log
+    debug = False
+    server_socket = /var/run/custodia/example.sock
+    makedirs = True
+    umask = 027
 
 ENV
 ---
