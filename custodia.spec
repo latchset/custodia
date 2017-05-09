@@ -45,6 +45,8 @@ BuildRequires:      python3-docutils
 BuildRequires:      python3-systemd
 %endif
 
+Requires(pre):      shadow-utils
+
 %if 0%{?with_python3}
 Requires:           python3-custodia = %{version}-%{release}
 %else
@@ -164,6 +166,7 @@ mkdir -p %{buildroot}/%{_unitdir}
 mkdir -p %{buildroot}/%{_tmpfilesdir}
 mkdir -p %{buildroot}/%{_localstatedir}/lib/custodia
 mkdir -p %{buildroot}/%{_localstatedir}/log/custodia
+mkdir -p %{buildroot}/%{_localstatedir}/run/custodia
 
 %{__python2} setup.py install --skip-build --root %{buildroot}
 mv %{buildroot}/%{_bindir}/custodia %{buildroot}/%{_sbindir}/custodia
@@ -186,6 +189,14 @@ cp %{buildroot}/%{_bindir}/custodia-cli %{buildroot}/%{_bindir}/custodia-cli-3
 %endif
 
 
+%pre
+getent group custodia >/dev/null || groupadd -r custodia
+getent passwd custodia >/dev/null || \
+    useradd -r -g custodia -d / -s /sbin/nologin \
+    -c "User for custodia" custodia
+exit 0
+
+
 %files
 %doc README API.md
 %doc %{_defaultdocdir}/custodia/examples/custodia.conf
@@ -193,12 +204,13 @@ cp %{buildroot}/%{_bindir}/custodia-cli %{buildroot}/%{_bindir}/custodia-cli-3
 %{_mandir}/man7/custodia*
 %{_sbindir}/custodia
 %{_bindir}/custodia-cli
-%dir %attr(0700,root,root) %{_sysconfdir}/custodia
-%config(noreplace) %attr(600,root,root) %{_sysconfdir}/custodia/custodia.conf
+%dir %attr(0700,custodia,custodia) %{_sysconfdir}/custodia
+%config(noreplace) %attr(600,custodia,custodia) %{_sysconfdir}/custodia/custodia.conf
 %attr(644,root,root)  %{_unitdir}/custodia.socket
 %attr(644,root,root)  %{_unitdir}/custodia.service
-%dir %attr(0700,root,root) %{_localstatedir}/lib/custodia
-%dir %attr(0700,root,root) %{_localstatedir}/log/custodia
+%dir %attr(0700,custodia,custodia) %{_localstatedir}/lib/custodia
+%dir %attr(0700,custodia,custodia) %{_localstatedir}/log/custodia
+%dir %attr(0755,custodia,custodia) %{_localstatedir}/run/custodia
 %{_tmpfilesdir}/custodia.conf
 
 %files -n python2-custodia
