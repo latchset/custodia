@@ -1,4 +1,3 @@
-
 api
 Args
 auditable
@@ -43,6 +42,7 @@ kem
 keyfile
 libdir
 logdir
+makedirs
 metadata
 mkdir
 namespace
