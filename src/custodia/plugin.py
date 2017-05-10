@@ -339,6 +339,33 @@ class CustodiaPlugin(object):
 
         return origin, debug
 
+    def _attach_store(self, config, cfgparser, context):
+        """Attach nested store
+        """
+        if getattr(self, 'store', None) is not None:
+            # already attached
+            return
+        store_plugin = config['stores'].get(self.store_name)
+        if store_plugin is None:
+            raise ValueError(
+                "'{}' references non-existing store '{}'".format(
+                    self.section, self.store_name))
+        # pylint: disable=attribute-defined-outside-init
+        self.store = store_plugin
+        # pylint: enable=attribute-defined-outside-init
+        store_plugin.finalize_init(config, cfgparser, context=self)
+
+    def finalize_init(self, config, cfgparser, context=None):
+        """Two-phase initialization
+
+        Args:
+            config: server config dictionary
+            cfgparser: configparser instance
+            context: initialization context (None for global)
+        """
+        if getattr(self, 'store_name', None) is not None:
+            self._attach_store(config, cfgparser, context)
+
 
 class CSStore(CustodiaPlugin):
     """Base class for stores
