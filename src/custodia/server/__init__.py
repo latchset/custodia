@@ -72,12 +72,14 @@ def _create_plugin(cfgparser, section, menu):
 
     if handler._options is not None:  # pylint: disable=protected-access
         # new-style plugin with parser and section
-        return handler(cfgparser, section)
+        plugin = handler(cfgparser, section)
     else:
         # old-style plugin with config dict
         hconf.update(cfgparser.items(section))
         hconf.pop('handler')
-        return handler(hconf)
+        plugin = handler(hconf)
+        plugin.section = section
+    return plugin
 
 
 def _load_plugins(config, cfgparser):

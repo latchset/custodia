@@ -292,6 +292,7 @@ class CustodiaPlugin(object):
     def __init__(self, config, section=None):
         origin, debug = self._configure(config, section)
         self._auditlog = auditlog
+        self.section = section  # plugin loader sets section for old plugins
         self.origin = origin
         self.logger = CustodiaLoggingAdapter(self, debug)
 
