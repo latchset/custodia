@@ -6,6 +6,8 @@ Custodia
 
 A tool for managing secrets.
 
+See our `Quick Start Guide <docs/source/quick.rst>`__
+
 Custodia is a project that aims to define an API for modern cloud
 applications that allows to easily store and share passwords, tokens,
 certificates and any other secret in a way that keeps data secure,
@@ -50,3 +52,4 @@ Some APIs are provisional and may change in the future.
 
 -  Command line interface in module ``custodia.cli``.
 -  The script custodia-cli.
+

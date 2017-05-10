@@ -3,7 +3,7 @@
 %global with_etcdstore 1
 %endif
 
-%{!?version: %define version 0.3.1}
+%{!?version: %define version 0.5.dev1}
 
 Name:           custodia
 Version:        %{version}
