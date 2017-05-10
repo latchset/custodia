@@ -21,7 +21,7 @@ ipalib and GSSAPI authentication.
 
 ### Runtime
 
-* custodia >= 0.4.0
+* custodia >= 0.5.0
 * ipalib >= 4.5.0
 * ipaclient >= 4.5.0
 * Python 2.7 (Python 3 support in IPA vault is unstable.)
@@ -81,10 +81,11 @@ Create service account and keytab
 
 ```
 $ kinit admin
-$ ipa service-add custodia/client1.ipa.example
-$ ipa service-allow-create-keytab custodia/client1.ipa.example --users=admin
+$ ipa service-add custodia/$HOSTNAME
+$ ipa service-allow-create-keytab custodia/$HOSTNAME --users=admin
 $ mkdir -p /etc/custodia
-$ ipa-getkeytab -p custodia/client1.ipa.example -k /etc/custodia/custodia.keytab
+$ ipa-getkeytab -p custodia/$HOSTNAME -k /etc/custodia/ipa.keytab
+$ chown custodia:custodia /etc/custodia/ipa.keytab
 ```
 
 The IPA cert request plugin needs additional permissions
@@ -110,27 +111,22 @@ $ ipa role-add-privilege \
     --privileges="Custodia Service Certs" \
     "Custodia Service Cert Adminstrator"
 $ ipa role-add-member \
-    --services="custodia/client1.ipa.example" \
+    --services="custodia/$HOSTNAME" \
     "Custodia Service Cert Adminstrator"
 ```
 
-Create ```/etc/custodia/custodia.conf```
+Create ```/etc/custodia/ipa.conf```
 
 ```
-[DEFAULT]
-confdir = /etc/custodia
-libdir = /var/lib/custodia
-logdir = /var/log/custodia
-rundir = /var/run/custodia
+# /etc/custodia/ipa.conf
 
 [global]
 debug = true
-server_socket = ${rundir}/custodia.sock
-auditlog = ${logdir}/audit.log
+makedirs = true
 
 [auth:ipa]
 handler = IPAInterface
-keytab = ${confdir}/custodia.keytab
+keytab = ${configdir}/${instance}.keytab
 ccache = FILE:${rundir}/ccache
 
 [auth:creds]
@@ -164,7 +160,7 @@ store = cert
 Run Custodia server
 
 ```
-$ custodia /etc/custodia/custodia.conf
+$ systemctl start custodia@ipa.socket
 ```
 
 
@@ -183,6 +179,7 @@ Dogtag. The resulting cert and its trust chain is returned together with the
 private key as a PEM bundle.
 
 ```
+$ export CUSTODIA_INSTANCE=ipa
 $ custodia-cli get /certs/HTTP/client1.ipa.example
 -----BEGIN RSA PRIVATE KEY-----
 ...
