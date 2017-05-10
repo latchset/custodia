@@ -56,11 +56,11 @@ def _load_plugin_class(menu, name):
         raise ValueError("{}: {} not found".format(menu, name))
 
 
-def _create_plugin(parser, section, menu):
-    if not parser.has_option(section, 'handler'):
+def _create_plugin(cfgparser, section, menu):
+    if not cfgparser.has_option(section, 'handler'):
         raise ValueError('Invalid section, missing "handler"')
 
-    handler_name = parser.get(section, 'handler')
+    handler_name = cfgparser.get(section, 'handler')
     hconf = {'facility_name': section}
     try:
         handler = _load_plugin_class(menu, handler_name)
@@ -72,21 +72,21 @@ def _create_plugin(parser, section, menu):
 
     if handler._options is not None:  # pylint: disable=protected-access
         # new-style plugin with parser and section
-        return handler(parser, section)
+        return handler(cfgparser, section)
     else:
         # old-style plugin with config dict
-        hconf.update(parser.items(section))
+        hconf.update(cfgparser.items(section))
         hconf.pop('handler')
         return handler(hconf)
 
 
-def _load_plugins(config, parser):
+def _load_plugins(config, cfgparser):
     """Load and initialize plugins
     """
     # set umask before any plugin gets a chance to create a file
     os.umask(config['umask'])
 
-    for s in parser.sections():
+    for s in cfgparser.sections():
         if s in {'ENV', 'global'}:
             # ENV section is only used for interpolation
             continue
@@ -111,7 +111,7 @@ def _load_plugins(config, parser):
                 raise ValueError('Invalid section name [%s].\n' % s)
 
         try:
-            config[menu][name] = _create_plugin(parser, s, menu)
+            config[menu][name] = _create_plugin(cfgparser, s, menu)
         except Exception as e:
             logger.debug("Plugin '%s' failed to load.", name, exc_info=True)
             raise RuntimeError(menu, name, e)
