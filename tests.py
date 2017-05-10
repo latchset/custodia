@@ -8,6 +8,8 @@ from cryptography import x509
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import serialization
 
+import ipaclient.plugins.vault
+
 import ipalib
 from ipalib.errors import NotFound
 
@@ -30,6 +32,9 @@ except ImportError:
 
 
 CONFIG = u"""
+[DEFAULT]
+rundir = /tmp/invalid
+
 [store:ipa_service]
 handler = IPAVault
 vault_type = service
@@ -227,6 +232,8 @@ class TestCustodiaIPA(BaseTest):
         m_api.bootstrap.assert_called_once_with(
             context='cli',
             debug=False,
+            dot_ipa=u'/tmp/invalid',
+            home=u'/tmp/invalid',
             log=None,
         )
 
@@ -242,6 +249,7 @@ class TestCustodiaIPA(BaseTest):
             KRB5_CLIENT_KTNAME='/path/to/custodia.keytab',
             KRB5CCNAME='FILE:/path/to/ccache',
         )
+        assert ipaclient.plugins.vault.USER_CACHE_PATH == '/tmp/invalid'
 
 
 class TestCustodiaIPAVault(BaseTest):

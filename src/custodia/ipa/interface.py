@@ -4,9 +4,13 @@
 from __future__ import absolute_import
 
 import os
+import sys
 
 import ipalib
+import ipalib.constants
 from ipalib.krb_utils import get_principal
+
+import six
 
 from custodia.plugin import HTTPAuthenticator, PluginOption
 
@@ -62,6 +66,19 @@ class IPAInterface(HTTPAuthenticator):
         if self.principal:
             # already initialized
             return
+
+        # get rundir from own section or DEFAULT
+        rundir = cfgparser.get(self.section, 'rundir', fallback=None)
+        if rundir:
+            self._ipa_config['dot_ipa'] = rundir
+            self._ipa_config['home'] = rundir
+            # workaround https://pagure.io/freeipa/issue/6761#comment-440329
+            # monkey-patch ipalib.constants and all loaded ipa modules
+            ipalib.constants.USER_CACHE_PATH = rundir
+            for name, mod in six.iteritems(sys.modules):
+                if (name.startswith(('ipalib.', 'ipaclient.')) and
+                        hasattr(mod, 'USER_CACHE_PATH')):
+                    mod.USER_CACHE_PATH = rundir
 
         self._gssapi_config()
         self._bootstrap()
