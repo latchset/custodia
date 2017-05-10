@@ -11,7 +11,7 @@ SETUPTOOLS_VERSION = tuple(int(v) for v in setuptools.__version__.split("."))
 
 
 requirements = [
-    'custodia >= 0.4.0',
+    'custodia >= 0.5.0',
     'ipalib >= 4.5.0',
     'ipaclient >= 4.5.0',
     'six',

@@ -17,7 +17,7 @@ import pytest
 
 from custodia.compat import configparser
 from custodia.ipa.certrequest import IPACertRequest
-from custodia.ipa.interface import IPAInterface
+from custodia.ipa.interface import IPAInterface, IPA_SECTIONNAME
 from custodia.ipa.vault import IPAVault, krb5_unparse_principal_name
 
 try:
@@ -173,6 +173,12 @@ class BaseTest(object):
             interpolation=configparser.ExtendedInterpolation(),
         )
         self.parser.read_string(CONFIG)
+        # config
+        self.config = {
+            'debug': False,
+            'authorizers': {},
+            'stores': {},
+        }
         # mocked ipalib.api
         self.p_api = mock.patch('ipalib.api', autospec=ipalib.api)
         self.m_api = self.p_api.start()
@@ -212,9 +218,11 @@ class TestCustodiaIPA(BaseTest):
         m_api = self.m_api
         ipa = IPAInterface(
             self.parser,
-            'auth:ipa',
+            IPA_SECTIONNAME,
             api=m_api
         )
+        self.config['authorizers'][IPA_SECTIONNAME] = ipa
+        ipa.finalize_init(self.config, self.parser, None)
         m_api.isdone.assert_called_once_with('bootstrap')
         m_api.bootstrap.assert_called_once_with(
             context='cli',
@@ -239,8 +247,15 @@ class TestCustodiaIPA(BaseTest):
 class TestCustodiaIPAVault(BaseTest):
     def mkinstance(self, principal, section):
         self.m_get_principal.return_value = principal
-        IPAInterface(self.parser, 'auth:ipa')
-        return IPAVault(self.parser, section)
+
+        ipa = IPAInterface(self.parser, IPA_SECTIONNAME)
+        self.config['authorizers'][IPA_SECTIONNAME] = ipa
+        ipa.finalize_init(self.config, self.parser, None)
+
+        vault = IPAVault(self.parser, section)
+        self.config['stores'][section] = vault
+        vault.finalize_init(self.config, self.parser, None)
+        return vault
 
     def test_invalid_vault_type(self):
         pytest.raises(
@@ -265,8 +280,7 @@ class TestCustodiaIPAVault(BaseTest):
 
     @vault_parametrize
     def test_vault_set(self, plugin, vault_type, vault_args):
-        ipa = self.mkinstance('john@IPA.EXAMPLE', 'store:ipa_autodiscover')
-        ipa = IPAVault(self.parser, plugin)
+        ipa = self.mkinstance('john@IPA.EXAMPLE', plugin)
         assert ipa.vault_type == vault_type
         self.m_api.Command.ping.assert_called_once_with()
         ipa.set('directory/testkey', 'testvalue')
@@ -343,10 +357,22 @@ class TestCustodiaIPACertRequests(BaseTest):
 
     def mkinstance(self, principal, section):
         self.m_get_principal.return_value = principal
-        IPAInterface(self.parser, 'auth:ipa')
+
+        ipa = IPAInterface(self.parser, IPA_SECTIONNAME)
+        self.config['authorizers'][IPA_SECTIONNAME] = ipa
+        ipa.finalize_init(self.config, self.parser, None)
+
         certreq = IPACertRequest(self.parser, section)
-        storename = u'store:{0.backing_store}'.format(certreq)
-        certreq.store = IPAVault(self.parser, storename)
+        self.config['stores'][section] = certreq
+        storename = certreq.backing_store
+        storesection = u'store:{0}'.format(storename)
+
+        vault = IPAVault(self.parser, storesection)
+        self.config['stores'][storename] = vault
+        vault.finalize_init(self.config, self.parser, None)
+
+        # finalize last
+        certreq.finalize_init(self.config, self.parser, None)
         return certreq
 
     def test_get(self):

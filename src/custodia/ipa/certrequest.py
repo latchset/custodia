@@ -24,7 +24,7 @@ import six
 from custodia.plugin import CSStore, PluginOption, REQUIRED
 from custodia.plugin import CSStoreDenied, CSStoreError
 
-from .interface import IPAInterface
+from .interface import IPA_SECTIONNAME
 
 
 TLS_SERVERAUTH = oid.ObjectIdentifier('2.5.29.37.1')
@@ -194,9 +194,14 @@ class IPACertRequest(CSStore):
         super(IPACertRequest, self).__init__(config, section)
         self.store_name = self.backing_store
         self.store = None
-        self.ipa = IPAInterface.get_instance()
+        self.ipa = None
         if not isinstance(self.cert_profile, six.text_type):
             self.cert_profile = self.cert_profile.decode('utf-8')
+
+    def finalize_init(self, config, cfgparser, context=None):
+        super(IPACertRequest, self).finalize_init(config, cfgparser, context)
+        self.ipa = config['authorizers'][IPA_SECTIONNAME]
+        self.ipa.finalize_init(config, cfgparser, context=self)
 
     def _parse_key(self, key):
         if not isinstance(key, six.text_type):
@@ -303,10 +308,11 @@ class IPACertRequest(CSStore):
             return certs
 
 
-if __name__ == '__main__':
+def test():
     from custodia.compat import configparser
     from custodia.log import setup_logging
-    from custodia.store.sqlite import SqliteStore
+    from .interface import IPAInterface
+    from .vault import IPAVault
 
     parser = configparser.ConfigParser(
         interpolation=configparser.ExtendedInterpolation()
@@ -314,18 +320,28 @@ if __name__ == '__main__':
     parser.read_string(u"""
     [auth:ipa]
     handler = IPAInterface
-    [store:sqlite]
-    handler = SqliteStore
-    dburi = /tmp/test.sqlite
+    [store:ipa_vault]
+    handler = IPAVault
     [store:ipa_certreq]
     handler = IPAVault
-    backing_store = sqlite
+    backing_store = ipa_vault
     """)
 
     setup_logging(debug=True, auditfile=None)
-    IPAInterface(parser, 'auth:ipa')
+    config = {
+        'authorizers': {
+            IPA_SECTIONNAME: IPAInterface(parser, IPA_SECTIONNAME)
+        }
+    }
+    vault = IPAVault(parser, 'store:ipa_vault')
+    vault.finalize_init(config, parser, None)
     s = IPACertRequest(parser, 'store:ipa_certreq')
-    s.store = SqliteStore(parser, 'store:sqlite')
-    print(s.get('HTTP/client1.ipa.example'))
-    print(s.get('HTTP/client1.ipa.example'))
-    print(s.cut('HTTP/client1.ipa.example'))
+    s.store = vault
+    s.finalize_init(config, parser, None)
+    print(s.get('keys/HTTP/client1.ipa.example'))
+    print(s.get('keys/HTTP/client1.ipa.example'))
+    print(s.cut('keys/HTTP/client1.ipa.example'))
+
+
+if __name__ == '__main__':
+    test()

@@ -12,7 +12,7 @@ from custodia.plugin import (
     CSStoreDenied, CSStoreError, CSStoreExists, CSStoreUnsupported
 )
 
-from .interface import IPAInterface
+from .interface import IPA_SECTIONNAME
 
 
 def krb5_unparse_principal_name(name):
@@ -50,9 +50,16 @@ class IPAVault(CSStore):
         "auto-discovered from GSSAPI"
     )
 
-    def __init__(self, config, section=None):
+    def __init__(self, config, section=None, api=None):
         super(IPAVault, self).__init__(config, section)
-        self.ipa = IPAInterface.get_instance()
+        self._vault_args = None
+        self.ipa = None
+
+    def finalize_init(self, config, cfgparser, context=None):
+        super(IPAVault, self).finalize_init(config, cfgparser, context)
+        self.ipa = config['authorizers'][IPA_SECTIONNAME]
+        self.ipa.finalize_init(config, cfgparser, context=self)
+
         # connect
         with self.ipa:
             # retrieve and cache KRA transport cert
@@ -201,9 +208,10 @@ class IPAVault(CSStore):
                 return True
 
 
-if __name__ == '__main__':
+def test():
     from custodia.compat import configparser
     from custodia.log import setup_logging
+    from .interface import IPAInterface
 
     parser = configparser.ConfigParser(
         interpolation=configparser.ExtendedInterpolation()
@@ -216,10 +224,19 @@ if __name__ == '__main__':
     """)
 
     setup_logging(debug=True, auditfile=None)
-    IPAInterface(parser, 'auth:ipa')
+    config = {
+        'authorizers': {
+            IPA_SECTIONNAME: IPAInterface(parser, IPA_SECTIONNAME)
+        }
+    }
     v = IPAVault(parser, 'store:ipa_vault')
+    v.finalize_init(config, parser, None)
     v.set('foo', 'bar', replace=True)
     print(v.get('foo'))
     print(v.list())
     v.cut('foo')
     print(v.list())
+
+
+if __name__ == '__main__':
+    test()

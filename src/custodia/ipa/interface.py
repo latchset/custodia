@@ -34,19 +34,6 @@ class IPAInterface(HTTPAuthenticator):
     # filled by gssapi()
     principal = False
 
-    # singleton
-    _instance = None
-
-    @classmethod
-    def get_instance(cls):
-        if cls._instance is None:
-            raise RuntimeError("{} not initialized".format(IPA_SECTIONNAME))
-        return cls._instance
-
-    @classmethod
-    def set_instance(cls, instance):
-        cls._instance = instance
-
     def __init__(self, config, section=None, api=None):
         super(IPAInterface, self).__init__(config, section)
         # only one instance of this plugin is supported
@@ -69,15 +56,19 @@ class IPAInterface(HTTPAuthenticator):
         if self.ipa_confdir is not None:
             self._ipa_config['confdir'] = self.ipa_confdir
 
+    def finalize_init(self, config, cfgparser, context=None):
+        super(IPAInterface, self).finalize_init(config, cfgparser, context)
+
+        if self.principal:
+            # already initialized
+            return
+
         self._gssapi_config()
         self._bootstrap()
-
         with self:
             self.logger.info("IPA server '%s': %s",
                              self.env.server,
                              self.Command.ping()[u'summary'])
-
-        self.set_instance(self)
 
     def handle(self, request):
         request[IPA_SECTIONNAME] = self
