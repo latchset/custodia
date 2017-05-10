@@ -1,13 +1,13 @@
 [run]
 branch = True
 source =
-    custodia
+    custodia.ipa
     tests
 
 [paths]
 source =
-   src/custodia
-   .tox/*/lib/python*/site-packages/custodia
+   src/custodia/ipa
+   .tox/*/lib/python*/site-packages/custodia/ipa
 
 [report]
 ignore_errors = False

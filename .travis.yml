@@ -30,10 +30,15 @@ before_install:
   - sudo apt-get install -y python-pip python-virtualenv python-dev gcc krb5-user libkrb5-dev libffi-dev libnss3-dev libldap2-dev libsasl2-dev libssl-dev
 
 install:
-  - pip install --upgrade pip setuptools
+  - pip install --upgrade pip
+  - pip install --upgrade setuptools
   - pip --version
-  - pip install tox
+  - pip install --upgrade codecov tox
   - tox --version
 
 script:
   - tox -v
+
+after_success:
+  - python -m coverage combine
+  - codecov
