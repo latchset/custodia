@@ -34,6 +34,9 @@ server_string [str]
 debug [bool, default=False]
    enable debugging
 
+makedirs [bool, default=False]
+   Create *libdir*, *logdir*, *rundir*, and *socketdir*.
+
 tls_certfile [str]
    The filename of the server cert file and its intermediate certs. The server
    cert file can also contain the private key. The option is required for
