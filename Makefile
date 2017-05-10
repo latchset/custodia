@@ -82,7 +82,7 @@ docs: $(DOCS_DIR)/source/readme.rst
 	PYTHONPATH=$(CURDIR)/src \
 	    $(MAKE) -C $(DOCS_DIR) html SPHINXBUILD="$(PYTHON) -m sphinx"
 
-.PHONY: install egg_info run packages release
+.PHONY: install egg_info run packages release releasecheck
 install: clean_socket egg_info
 	$(PYTHON) setup.py install --root "$(PREFIX)"
 	install -d "$(PREFIX)/share/man/man7"
@@ -107,6 +107,18 @@ release: clean
 	@echo "  $$(find dist -type f -printf '%p ')"
 	@echo "* Upload source dist and wheel to PyPI:"
 	@echo "  twine-3 upload dist/*.gz dist/*.whl"
+
+releasecheck: clean
+	@ # ensure README is rebuild
+	touch README.md
+	$(MAKE) README $(DOCS_DIR)/source/readme.rst
+	@ # check for version in spec
+	grep -q 'version $(VERSION)' custodia.spec || exit 1
+	@ # re-run tox
+	tox -r
+	$(MAKE) packages
+	$(MAKE) rpm
+	$(MAKE) dockerbuild
 
 run: egg_info
 	$(PYTHON) $(CURDIR)/bin/custodia $(CONF)
