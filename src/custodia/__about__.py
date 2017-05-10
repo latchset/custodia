@@ -9,7 +9,7 @@ __title__ = 'custodia'
 __summary__ = 'A service to manage, retrieve and store secrets.'
 __uri__ = 'https://github.com/latchset/custodia'
 
-__version_info__ = (0, 5, 'dev1')
+__version_info__ = (0, 5, 0)
 __version__ = '.'.join(str(v) for v in __version_info__)
 
 __author__ = 'Custodia project Contributors'
