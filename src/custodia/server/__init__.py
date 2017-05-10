@@ -118,11 +118,12 @@ def _load_plugins(config, cfgparser):
             logger.debug("Plugin '%s' failed to load.", name, exc_info=True)
             raise RuntimeError(menu, name, e)
 
-    # Attach stores to other plugins
-    attach_store('auth:', config['authenticators'], config['stores'])
-    attach_store('authz:', config['authorizers'], config['stores'])
-    attach_store('', config['consumers'], config['stores'])
-    attach_store('store:', config['stores'], config['stores'])
+    # 2nd initialization stage
+    for menu in ['authenticators', 'authorizers', 'consumers', 'stores']:
+        plugins = config[menu]
+        for name in sorted(plugins):
+            plugin = plugins[name]
+            plugin.finalize_init(config, cfgparser, context=None)
 
 
 def main(argparser=None):
