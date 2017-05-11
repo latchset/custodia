@@ -12,7 +12,7 @@ from custodia.plugin import (
     CSStoreDenied, CSStoreError, CSStoreExists, CSStoreUnsupported
 )
 
-from .interface import IPA_SECTIONNAME
+from .interface import IPAInterface
 
 
 def krb5_unparse_principal_name(name):
@@ -57,7 +57,10 @@ class IPAVault(CSStore):
 
     def finalize_init(self, config, cfgparser, context=None):
         super(IPAVault, self).finalize_init(config, cfgparser, context)
-        self.ipa = config['authorizers'][IPA_SECTIONNAME]
+
+        if self.ipa is not None:
+            return
+        self.ipa = IPAInterface.from_config(config)
         self.ipa.finalize_init(config, cfgparser, context=self)
 
         # connect
@@ -211,7 +214,7 @@ class IPAVault(CSStore):
 def test():
     from custodia.compat import configparser
     from custodia.log import setup_logging
-    from .interface import IPAInterface
+    from .interface import IPA_SECTIONNAME
 
     parser = configparser.ConfigParser(
         interpolation=configparser.ExtendedInterpolation()
@@ -225,8 +228,8 @@ def test():
 
     setup_logging(debug=True, auditfile=None)
     config = {
-        'authorizers': {
-            IPA_SECTIONNAME: IPAInterface(parser, IPA_SECTIONNAME)
+        'authenticators': {
+            'ipa': IPAInterface(parser, IPA_SECTIONNAME)
         }
     }
     v = IPAVault(parser, 'store:ipa_vault')

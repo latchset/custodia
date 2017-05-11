@@ -24,7 +24,7 @@ import six
 from custodia.plugin import CSStore, PluginOption, REQUIRED
 from custodia.plugin import CSStoreDenied, CSStoreError
 
-from .interface import IPA_SECTIONNAME
+from .interface import IPAInterface
 
 
 TLS_SERVERAUTH = oid.ObjectIdentifier('2.5.29.37.1')
@@ -200,7 +200,9 @@ class IPACertRequest(CSStore):
 
     def finalize_init(self, config, cfgparser, context=None):
         super(IPACertRequest, self).finalize_init(config, cfgparser, context)
-        self.ipa = config['authorizers'][IPA_SECTIONNAME]
+        if self.ipa is not None:
+            return
+        self.ipa = IPAInterface.from_config(config)
         self.ipa.finalize_init(config, cfgparser, context=self)
 
     def _parse_key(self, key):
@@ -311,7 +313,7 @@ class IPACertRequest(CSStore):
 def test():
     from custodia.compat import configparser
     from custodia.log import setup_logging
-    from .interface import IPAInterface
+    from .interface import IPA_SECTIONNAME
     from .vault import IPAVault
 
     parser = configparser.ConfigParser(
@@ -329,8 +331,8 @@ def test():
 
     setup_logging(debug=True, auditfile=None)
     config = {
-        'authorizers': {
-            IPA_SECTIONNAME: IPAInterface(parser, IPA_SECTIONNAME)
+        'authenticators': {
+            'ipa': IPAInterface(parser, IPA_SECTIONNAME)
         }
     }
     vault = IPAVault(parser, 'store:ipa_vault')

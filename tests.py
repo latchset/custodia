@@ -181,7 +181,7 @@ class BaseTest(object):
         # config
         self.config = {
             'debug': False,
-            'authorizers': {},
+            'authenticators': {},
             'stores': {},
         }
         # mocked ipalib.api
@@ -226,8 +226,11 @@ class TestCustodiaIPA(BaseTest):
             IPA_SECTIONNAME,
             api=m_api
         )
-        self.config['authorizers'][IPA_SECTIONNAME] = ipa
+        self.config['authenticators']['ipa'] = ipa
         ipa.finalize_init(self.config, self.parser, None)
+        assert (self.config['authenticators']['ipa'] is
+                IPAInterface.from_config(self.config))
+
         m_api.isdone.assert_called_once_with('bootstrap')
         m_api.bootstrap.assert_called_once_with(
             context='cli',
@@ -257,8 +260,10 @@ class TestCustodiaIPAVault(BaseTest):
         self.m_get_principal.return_value = principal
 
         ipa = IPAInterface(self.parser, IPA_SECTIONNAME)
-        self.config['authorizers'][IPA_SECTIONNAME] = ipa
+        self.config['authenticators']['ipa'] = ipa
         ipa.finalize_init(self.config, self.parser, None)
+        assert (self.config['authenticators']['ipa'] is
+                IPAInterface.from_config(self.config))
 
         vault = IPAVault(self.parser, section)
         self.config['stores'][section] = vault
@@ -367,8 +372,10 @@ class TestCustodiaIPACertRequests(BaseTest):
         self.m_get_principal.return_value = principal
 
         ipa = IPAInterface(self.parser, IPA_SECTIONNAME)
-        self.config['authorizers'][IPA_SECTIONNAME] = ipa
+        self.config['authenticators']['ipa'] = ipa
         ipa.finalize_init(self.config, self.parser, None)
+        assert (self.config['authenticators']['ipa'] is
+                IPAInterface.from_config(self.config))
 
         certreq = IPACertRequest(self.parser, section)
         self.config['stores'][section] = certreq

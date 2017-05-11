@@ -60,6 +60,10 @@ class IPAInterface(HTTPAuthenticator):
         if self.ipa_confdir is not None:
             self._ipa_config['confdir'] = self.ipa_confdir
 
+    @classmethod
+    def from_config(cls, config):
+        return config['authenticators']['ipa']
+
     def finalize_init(self, config, cfgparser, context=None):
         super(IPAInterface, self).finalize_init(config, cfgparser, context)
 
