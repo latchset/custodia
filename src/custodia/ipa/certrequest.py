@@ -211,11 +211,11 @@ class IPACertRequest(CSStore):
         parts = key.split(u'/')
         # XXX why is 'keys' added in in Secrets._db_key()?
         if len(parts) != 3 or parts[0] != 'keys':
-            raise CSStoreError("Invalid cert request key '{}'".format(key))
+            raise CSStoreDenied("Invalid cert request key '{}'".format(key))
         service, hostname = parts[1:3]
         # pylint: disable=unsupported-membership-test
         if service not in self.allowed_services:
-            raise CSStoreError("Invalid service '{}'".format(key))
+            raise CSStoreDenied("Invalid service '{}'".format(key))
         principal = krb5_format_service_principal_name(
             service, hostname, self.ipa.env.realm
         )
@@ -245,7 +245,7 @@ class IPACertRequest(CSStore):
                 hostname, principal
             )
             self.logger.exception(msg)
-            raise CSStoreError(msg)
+            raise CSStoreDenied(msg)
         except Exception:
             msg = "Failed to request cert '{}' ({})".format(
                 hostname, principal
