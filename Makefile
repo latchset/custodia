@@ -4,6 +4,8 @@ PYTHON := python3
 TOX := $(PYTHON) -m tox --sitepackages
 DOCS_DIR = docs
 SERVER_SOCKET = $(CURDIR)/server_socket
+QUICK_GUIDE = docs/source/quick
+QUICK_SOCKET = $(QUICK_GUIDE)/quick
 
 RPMBUILD = $(CURDIR)/dist/rpmbuild
 
@@ -35,7 +37,7 @@ all: clean_socket lint pep8 test docs
 	echo "All tests passed"
 
 clean_socket:
-	rm -f $(SERVER_SOCKET) $(CONTAINER_SOCKET)
+	rm -f $(SERVER_SOCKET) $(CONTAINER_SOCKET) $(QUICK_SOCKET)
 
 clean_coverage:
 	rm -f .coverage .coverage.*
@@ -55,6 +57,9 @@ clean: clean_socket clean_coverage
 	find ./ -depth -name __pycache__ -exec rm -rf {} \;
 	rm -rf tests/tmp
 	rm -rf vol
+	rm -f $(QUICK_GUIDE)/quick.audit.log \
+	    $(QUICK_GUIDE)/quick.db \
+	    $(QUICK_GUIDE)/quick.key
 
 cscope:
 	git ls-files | xargs pycscope
@@ -82,7 +87,7 @@ docs: $(DOCS_DIR)/source/readme.rst
 	PYTHONPATH=$(CURDIR)/src \
 	    $(MAKE) -C $(DOCS_DIR) html SPHINXBUILD="$(PYTHON) -m sphinx"
 
-.PHONY: install egg_info run packages release releasecheck
+.PHONY: install egg_info run quickrun packages release releasecheck
 install: clean_socket egg_info
 	$(PYTHON) setup.py install --root "$(PREFIX)"
 	install -d "$(PREFIX)/share/man/man7"
@@ -123,6 +128,10 @@ releasecheck: clean
 run: egg_info
 	$(PYTHON) $(CURDIR)/bin/custodia $(CONF)
 
+quickrun: egg_info
+	@ # sed -n -e 's/.*\$$ \(alias\|curl\)/\1/p' docs/source/quick.rst
+	@ # sed 's,./quick,$(QUICK_SOCKET),g'
+	$(PYTHON) bin/custodia $(QUICK_GUIDE)/quick.conf
 
 .PHONY: rpmroot rpmfiles rpm
 rpmroot:

@@ -22,33 +22,10 @@ Configuring
 We'll use a simple a bare minimum configuration to start off.
 
 Write a file named quick.conf with the following contents (feel free to omit
-the comments)::
+the comments):
 
-   [global]
-   # Listen on a socket named './quick'
-   server_socket = ./quick
-   logdir = log
-
-   # Accepts any request that specifies an arbitrary REMOTE_USER header
-   [auth:header]
-   handler = SimpleHeaderAuth
-   header = REMOTE_USER
-
-   # Allow requests for all paths under '/' and '/secrets/'
-   [authz:paths]
-   handler = SimplePathAuthz
-   paths = / /secrets/
-
-   # Store secrets in a sqlite database called quick.db in the table 'secrets'
-   [store:quick]
-   handler = SqliteStore
-   dburi = quick.db
-   table = secrets
-
-   # Serve starting from '/' and using the 'quick' store and the 'Root' handler
-   [/]
-   handler = Root
-   store = quick
+.. literalinclude:: quick/quick.conf
+   :language: ini
 
 Also create the ``logdir`` directory (where Custodia writes its
 audit log)::
@@ -62,7 +39,7 @@ Running
 Now all we need is to start the server.
 We do that with the following command::
 
-   $ python -m custodia.server quick.conf
+   $ bin/custodia quick.conf
 
 The server will output to the terminal logs about the operations being
 performed against it.
@@ -166,13 +143,10 @@ use one of the available modules for actual authentication.
 
 We can add a new authentication module to the configuration.
 
-In quick.conf add
-::
+In quick.conf add:
 
-   [auth:sak]
-   handler = custodia.httpd.authenticators.SimpleAuthKeys
-   store_namespace = keys/sak
-   store = quick
+.. literalinclude:: quick/quick.conf.d/00-sak.conf
+   :language: ini
 
 We chose the namespace keys/sak as this will allow us to manipulate keys via
 normal methods by placing them under the container named 'sak'.
@@ -214,12 +188,11 @@ string as the user name string (equivalent to using the REMOTE_USER header with
 the SimpleHeaderAuth authentication method).
 
 We can restrict access by user using the UserNameSpace handler.
-Remove the current [authz:paths] section and replace it with::
+Remove the current [authz:paths] section and replace it with:
 
-   [authz:namespaces]
-   handler = UserNameSpace
-   path = /secrets/
-   store = quick
+.. literalinclude:: quick/quick.conf.d/10-namespace.conf
+   :language: ini
+
 
 Restart the server and try to fetch the base path.
 It will fail::
@@ -254,40 +227,21 @@ not encrypt data at rest on its own.
 
 We'll also show how we can add a whole new subtree backed by this new database
 so we can keep using both in parallel
-Let's add a new database with overlay encryption to the configuration file::
+Let's add a new database with overlay encryption to the configuration file:
 
-    [store:overlayed]
-    handler = SqliteStore
-    dburi = quick.db
-    table = encrypted
+.. literalinclude:: quick/quick.conf.d/20-encrypted.conf
+   :language: ini
 
-    [store:encrypted]
-    handler = EncryptedOverlay
-    backing_store = overlayed
-    master_key = quick.key
-    master_enctype = A128CBC-HS256
-
-    [authz:encrypted]
-    handler = UserNameSpace
-    path = /encrypted/
-    store = encrypted
-
-    [/encrypted]
-    handler = Secrets
-    store = encrypted
-
-We will also need to create a key file with the master key. The contents of the
-file are a symmetric key formatted according to the JWK_ specification.
-For testing we'll do this::
-
-    $ echo '{"kty":"oct","k":"tnUJ1XMLOXJ7y95SWmEeq514-YSbVQVo1Hc8eLdxkTE"}' > quick.key
+``autogen_master_key = True`` ensures that the key is auto-created on first
+start. The content of the file is a symmetric key formatted according to the
+JWK_ specification.
 
 Restart the server and now try to create a container for qid under the
 /encrypted tree and then try to store a secret there
 ::
 
-    $ curlq -X POST http://localhost/encrypted/qid/
-    $ curlq -H "Content-Type: application/octet-stream" -X PUT http://localhost/encrypted/qid/mykey -d 'P@ssw0rd'
+   $ curlq -X POST http://localhost/encrypted/qid/
+   $ curlq -H "Content-Type: application/octet-stream" -X PUT http://localhost/encrypted/qid/mykey -d 'P@ssw0rd'
 
 If we now examine the database with the sqlite3 editor we'll see that the keys
 in the 'encrypted' table are indeed encrypted (the encryption format is just a
