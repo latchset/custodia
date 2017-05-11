@@ -27,6 +27,7 @@ the comments)::
    [global]
    # Listen on a socket named './quick'
    server_socket = ./quick
+   logdir = log
 
    # Accepts any request that specifies an arbitrary REMOTE_USER header
    [auth:header]
@@ -48,6 +49,11 @@ the comments)::
    [/]
    handler = Root
    store = quick
+
+Also create the ``logdir`` directory (where Custodia writes its
+audit log)::
+
+   $ mkdir -p log
 
 
 Running
