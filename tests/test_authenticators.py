@@ -78,6 +78,14 @@ class TestAuthenticators(unittest.TestCase):
         request = {'creds': {'uid': uid, 'gid': gid}, 'client_id': 'tests'}
         self.assertFalse(cred.handle(request))
 
+    def assertHeaderMatch(self, header, key, value, client_id):
+        request = {'headers': {key: value}, 'client_id': client_id}
+        self.assertIs(header.handle(request), True)
+
+    def assertHeaderMismatch(self, header, key, value, client_id):
+        request = {'headers': {key: value}, 'client_id': client_id}
+        self.assertIs(header.handle(request), False)
+
     def test_cred(self):
         parser = self.parser
         cred = authenticators.SimpleCredsAuth(parser, 'auth:cred_default')
@@ -123,17 +131,22 @@ class TestAuthenticators(unittest.TestCase):
 
     def test_header(self):
         parser = self.parser
+        gssapi = 'GSSAPI'
         hdr = authenticators.SimpleHeaderAuth(parser, 'auth:header_default')
         self.assertEqual(hdr.header, 'REMOTE_USER')
         self.assertEqual(hdr.value, None)
+        self.assertHeaderMatch(hdr, 'REMOTE_USER', None, 0)
 
         hdr = authenticators.SimpleHeaderAuth(parser, 'auth:header_other')
         self.assertEqual(hdr.header, 'GSSAPI')
         self.assertEqual(hdr.value, None)
+        self.assertHeaderMatch(hdr, gssapi, None, 0)
 
         hdr = authenticators.SimpleHeaderAuth(parser, 'auth:header_value')
         self.assertEqual(hdr.header, 'GSSAPI')
         self.assertEqual(hdr.value, {'admin'})
+        self.assertHeaderMatch(hdr, gssapi, 'admin', 0)
+        self.assertHeaderMismatch(hdr, gssapi, 'invalid_rule', 0)
 
         hdr = authenticators.SimpleHeaderAuth(parser, 'auth:header_values')
         self.assertEqual(hdr.header, 'GSSAPI')
