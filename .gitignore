@@ -16,3 +16,8 @@ custodia.audit.log
 secrets.db
 server_socket
 vol
+
+/docs/source/quick/quick.audit.log
+/docs/source/quick/quick.db
+/docs/source/quick/quick.key
+/docs/source/quick/quick
