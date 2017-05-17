@@ -177,6 +177,8 @@ class CustodiaTests(unittest.TestCase):
     verify_client = 'False'
     test_dir = 'tests/tmp'
 
+    maxDiff = None
+
     @classmethod
     def setUpClass(cls):
         env = os.environ.copy()
