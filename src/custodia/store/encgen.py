@@ -23,6 +23,13 @@ class EncryptedOverlay(CSStore):
             auto-generate key file if missing?
         master_enctype (default: A256CBC_HS512)
             JWE algorithm name
+        secret_protection (default: 'encrypt')
+            Determine the kind of protection used to save keys.
+            - 'encrypt': this is the classic method (backwards compatible)
+            - 'pinning': this adds a protected header with the key name as
+                         as aad data, to prevent key swapping in the db
+            - 'migrate': as pinning, but on missing key information the
+                         secret is updated instead of throwing an exception.
     """
     key_sizes = {
         'A128CBC-HS256': 256,
@@ -33,6 +40,7 @@ class EncryptedOverlay(CSStore):
     master_enctype = PluginOption(str, 'A256CBC-HS512', None)
     master_key = PluginOption(str, REQUIRED, None)
     autogen_master_key = PluginOption(bool, False, None)
+    secret_protection = PluginOption(str, False, 'encrypt')
 
     def __init__(self, config, section):
         super(EncryptedOverlay, self).__init__(config, section)
@@ -60,13 +68,29 @@ class EncryptedOverlay(CSStore):
         try:
             jwe = JWE()
             jwe.deserialize(value, self.mkey)
-            return jwe.payload.decode('utf-8')
         except Exception as err:
             self.logger.error("Error parsing key %s: [%r]" % (key, repr(err)))
             raise CSStoreError('Error occurred while trying to parse key')
+        value = jwe.payload.decode('utf-8')
+        if self.secret_protection == 'encrypt':
+            return value
+        if 'custodia.key' not in jwe.jose_header:
+            if self.secret_protection == 'migrate':
+                self.set(key, value, replace=True)
+            else:
+                raise CSStoreError('Secret Pinning check failed!' +
+                                   'Missing custodia.key element')
+        elif jwe.jose_header['custodia.key'] != key:
+            raise CSStoreError(
+                'Secret Pinning check failed! Expected {} got {}'.format(
+                    key, jwe.jose_header['custodia.key']))
+        return value
 
     def set(self, key, value, replace=False):
-        protected = json_encode({'alg': 'dir', 'enc': self.master_enctype})
+        protected_header = {'alg': 'dir', 'enc': self.master_enctype}
+        if self.secret_protection != 'encrypt':
+            protected_header['custodia.key'] = key
+        protected = json_encode(protected_header)
         jwe = JWE(value, protected)
         jwe.add_recipient(self.mkey)
         cvalue = jwe.serialize(compact=True)
