@@ -149,15 +149,26 @@ class ForkingTLSServer(ForkingHTTPServer):
         if not certfile:
             raise ValueError('tls_certfile is not set.')
 
-        logger.info(
-            "Creating SSLContext for TLS server (cafile: '%s', capath: '%s', "
-            "verify client: %s).",
-            cafile, capath, verifymode == ssl.CERT_REQUIRED
-        )
-        context = ssl.create_default_context(
-            ssl.Purpose.CLIENT_AUTH,
-            cafile=cafile,
-            capath=capath)
+        try:
+            logger.info(
+                "Creating SSLContext for TLS server (cafile: '%s', "
+                "capath: '%s', verify client: %s).",
+                cafile, capath, verifymode == ssl.CERT_REQUIRED
+            )
+            context = ssl.create_default_context(
+                ssl.Purpose.CLIENT_AUTH,
+                cafile=cafile,
+                capath=capath)
+            context.load_cert_chain(certfile, keyfile)
+        except ssl.SSLError:
+            msg = ("Error during TLS Server creation, invalid parameters. "
+                   "Certificate Authority file: %s, Certificate Path: "
+                   "%s, Key file: %s and/or Certificate "
+                   "file: %s. Please reverify this data and try "
+                   "again" % (str(cafile), str(capath), str(keyfile),
+                              str(certfile)))
+            logger.debug(msg)
+            raise ssl.SSLError(msg)
         context.verify_mode = verifymode
         logger.info(
             "Loading cert chain '%s' (keyfile: '%s')", certfile, keyfile)
