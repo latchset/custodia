@@ -28,6 +28,7 @@ custodia
 Custodia
 decrypt
 del
+doesn
 enctype
 filename
 gid
@@ -68,3 +69,4 @@ tox
 uid
 unix
 url
+ve
