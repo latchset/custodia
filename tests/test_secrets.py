@@ -273,14 +273,15 @@ class SecretsTests(unittest.TestCase):
             self.POST(req, rep)
         self.assertEqual(err.exception.code, 405)
 
-    def test_8_CREATEcont_erros_409(self):
+    def test_8_CREATEcont_already_exists(self):
         req = {'remote_user': 'test',
                'trail': ['test', 'exists', '']}
         rep = {}
         self.POST(req, rep)
-        with self.assertRaises(HTTPError) as err:
-            self.POST(req, rep)
-        self.assertEqual(err.exception.code, 409)
+        self.assertEqual(rep['code'], 201)
+        # Try to create the container again
+        self.POST(req, rep)
+        self.assertEqual(rep['code'], 200)
 
     def test_8_DESTROYcont(self):
         req = {'remote_user': 'test',
