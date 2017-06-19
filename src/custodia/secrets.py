@@ -206,8 +206,9 @@ class Secrets(HTTPConsumer):
                 "Create: Permission to perform this operation was denied")
             raise HTTPError(403)
         except CSStoreExists:
-            self.logger.exception('Create: Key already exists')
-            raise HTTPError(409)
+            self.logger.debug('Create: Key already exists')
+            response['code'] = 200
+            return
         except CSStoreError:
             self.logger.exception('Create: Internal server error')
             raise HTTPError(500)
