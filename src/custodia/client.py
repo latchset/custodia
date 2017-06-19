@@ -12,6 +12,7 @@ import requests
 from requests.adapters import HTTPAdapter
 from requests.compat import unquote, urlparse
 
+# pylint: disable=import-error
 from requests.packages.urllib3.connection import HTTPConnection
 from requests.packages.urllib3.connectionpool import HTTPConnectionPool
 
