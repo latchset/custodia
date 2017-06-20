@@ -67,8 +67,9 @@ class IPAVault(CSStore):
         with self.ipa:
             # retrieve and cache KRA transport cert
             response = self.ipa.Command.vaultconfig_show()
-            servers = response[u'result'][u'kra_server_server']
-            self.logger.info("KRA server(s) %s", ', '.join(servers))
+            servers = response[u'result'].get(u'kra_server_server', ())
+            if servers:
+                self.logger.info("KRA server(s) %s", ', '.join(servers))
 
         service, user_host, realm = krb5_unparse_principal_name(
             self.ipa.principal)
