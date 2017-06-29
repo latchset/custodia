@@ -1,6 +1,7 @@
 # Copyright (C) 2015  Custodia Project Contributors - see LICENSE file
 from __future__ import absolute_import
 
+import argparse
 import os
 import shlex
 import socket
@@ -8,7 +9,11 @@ import subprocess
 import sys
 import unittest
 
+import pytest
+
 import six
+
+from custodia.cli import timeout
 
 
 def find_free_address():
@@ -95,3 +100,12 @@ class TestsCommandLine(unittest.TestCase):
         self.assertIn(u'[custodia.clients]', output)
         self.assertIn(u'[custodia.consumers]', output)
         self.assertIn(u'[custodia.stores]', output)
+
+
+def test_timeout():
+    assert timeout('1') == 1
+    assert timeout('1.5') == 1.5
+    assert timeout('0') is None
+    assert timeout('0.0') is None
+    pytest.raises(argparse.ArgumentTypeError, timeout, '-1')
+    pytest.raises(argparse.ArgumentTypeError, timeout, 'invalid')

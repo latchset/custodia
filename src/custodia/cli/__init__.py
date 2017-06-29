@@ -70,6 +70,19 @@ def split_header(arg):
     return name, value
 
 
+def timeout(arg):
+    try:
+        arg = float(arg)
+    except (TypeError, ValueError):
+        raise argparse.ArgumentTypeError('Argument is not a float')
+    if arg < 0.0:
+        raise argparse.ArgumentTypeError('Argument is negative')
+    if arg == 0.0:
+        # no timeout
+        return None
+    return arg
+
+
 group = main_parser.add_mutually_exclusive_group()
 group.add_argument(
     '--server',
@@ -99,6 +112,11 @@ main_parser.add_argument(
 )
 main_parser.add_argument(
     '--debug', action='store_true',
+)
+
+main_parser.add_argument(
+    '--timeout', type=timeout, default=10.,
+    help='Connection timeout'
 )
 
 # TLS
@@ -300,6 +318,7 @@ def parse_args(arglist=None):
     if args.certfile:
         args.client_conn.set_client_cert(args.certfile, args.keyfile)
         args.client_conn.headers['CUSTODIA_CERT_AUTH'] = 'true'
+    args.client_conn.timeout = args.timeout
 
     return args
 

@@ -60,6 +60,7 @@ DEFAULT_HEADERS = {'Content-Type': 'application/json'}
 
 
 class CustodiaHTTPClient(object):
+    timeout = None  # seconds (float)
 
     def __init__(self, url):
         self.session = requests.Session()
@@ -96,6 +97,7 @@ class CustodiaHTTPClient(object):
     def _request(self, cmd, path, **kwargs):
         self._last_response = None
         url = self._join_url(path)
+        kwargs.setdefault('timeout', self.timeout)
         kwargs['headers'] = self._add_headers(**kwargs)
         logger.debug("%s %s", cmd.__name__.upper(), url)
         self._last_response = cmd(url, **kwargs)
