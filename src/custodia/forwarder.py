@@ -17,6 +17,7 @@ class Forwarder(HTTPConsumer):
         str, None, 'Path to key file for client cert auth')
     forward_headers = PluginOption('json', '{}', None)
     prefix_remote_user = PluginOption(bool, True, None)
+    timeout = PluginOption(float, 10.0, 'Connection timeout in seconds')
 
     def __init__(self, config, section):
         super(Forwarder, self).__init__(config, section)
@@ -25,6 +26,7 @@ class Forwarder(HTTPConsumer):
             self.client.set_client_cert(self.tls_certfile, self.tls_keyfile)
         if self.tls_cafile is not None:
             self.client.set_ca_cert(self.tls_cafile)
+        self.client.timeout = self.timeout
         self.uuid = str(uuid.uuid4())
         # pylint: disable=unsubscriptable-object
         # pylint: disable=unsupported-assignment-operation

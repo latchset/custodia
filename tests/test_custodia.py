@@ -242,6 +242,8 @@ class CustodiaTests(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
+        if cls.custodia_process.poll() is not None:
+            raise AssertionError("Custodia server crashed, see test_log.txt")
         cls.custodia_process.terminate()
         cls.custodia_process.wait()
 
