@@ -121,9 +121,20 @@ class ForkingUnixHTTPServer(ForkingHTTPServer):
 
 
 class ForkingTLSServer(ForkingHTTPServer):
-    def __init__(self, server_address, handler_class, config, context=None):
-        ForkingHTTPServer.__init__(self, server_address, handler_class, config)
-        self._context = context if context is not None else self._mkcontext()
+    def __init__(self, server_address, handler_class, config, context=None,
+                 bind_and_activate=True):
+        ForkingHTTPServer.__init__(self, server_address, handler_class, config,
+                                   bind_and_activate=bind_and_activate)
+        if context is None:
+            try:
+                self._context = self._mkcontext()
+            except Exception as e:
+                logger.error(
+                    "Failed to create a SSLContext for TLS server: %s", e
+                )
+                raise
+        else:
+            self._context = context
 
     def _mkcontext(self):
         certfile = self.config.get('tls_certfile')
@@ -138,12 +149,19 @@ class ForkingTLSServer(ForkingHTTPServer):
         if not certfile:
             raise ValueError('tls_certfile is not set.')
 
+        logger.info(
+            "Creating SSLContext for TLS server (cafile: '%s', capath: '%s', "
+            "verify client: %s).",
+            cafile, capath, verifymode == ssl.CERT_REQUIRED
+        )
         context = ssl.create_default_context(
             ssl.Purpose.CLIENT_AUTH,
             cafile=cafile,
             capath=capath)
-        context.load_cert_chain(certfile, keyfile)
         context.verify_mode = verifymode
+        logger.info(
+            "Loading cert chain '%s' (keyfile: '%s')", certfile, keyfile)
+        context.load_cert_chain(certfile, keyfile)
         return context
 
     def get_request(self):
