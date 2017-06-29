@@ -1,5 +1,0 @@
-include setup.py setup.cfg
-include Makefile LICENSE README README.md
-include contrib/config/custodia.*
-include *.md *.ini .coveragerc
-include tests.py
