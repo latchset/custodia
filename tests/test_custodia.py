@@ -20,7 +20,7 @@ from requests.exceptions import HTTPError, SSLError
 import six
 
 from custodia.client import CustodiaKEMClient, CustodiaSimpleClient
-from custodia.compat import configparser, quote_plus
+from custodia.compat import configparser, quote_plus, unquote, urlparse
 from custodia.store.sqlite import SqliteStore
 
 
@@ -241,6 +241,33 @@ class CustodiaTests(unittest.TestCase):
     def tearDownClass(cls):
         cls.custodia_process.terminate()
         cls.custodia_process.wait()
+
+    def check_socket(self):
+        url = urlparse(self.socket_url)
+        timeout = 0.5
+        if url.scheme == 'http+unix':
+            address = unquote(url.netloc)
+            s = socket.socket(socket.AF_UNIX)
+            s.settimeout(timeout)
+            try:
+                s.connect(address)
+            except OSError as e:
+                self.fail("Server socket unavailable: {}".format(e))
+            finally:
+                s.close()
+        else:
+            host, port = url.netloc.rsplit(":", 1)
+            try:
+                socket.create_connection(
+                    (host, int(port)), timeout=timeout
+                ).close()
+            except OSError as e:
+                self.fail("Server socket unavailable: {}".format(e))
+
+    def setUp(self):
+        if self.custodia_process.poll() is not None:
+            raise AssertionError("Custodia server crashed, see test_log.txt")
+        self.check_socket()
 
     def _custoda_cli(self, *extra_args, **kwargs):
         env = os.environ.copy()
