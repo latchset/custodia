@@ -402,7 +402,7 @@ class TestCustodiaIPACertRequests(BaseTest):
     ('custodia.stores', 'IPACertRequest', IPACertRequest),
     ('custodia.authenticators', 'IPAInterface', IPAInterface),
 ])
-def test_plugins(group, name, cls, dist='custodia.ipa'):
+def test_plugins(group, name, cls, dist='custodia'):
     ep = pkg_resources.get_entry_info(dist, group, name)
     assert ep is not None
     assert ep.dist.project_name == dist

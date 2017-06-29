@@ -39,25 +39,31 @@ requirements = [
 
 # extra requirements
 etcd_requires = ['python-etcd']
+ipa_requires = [
+    'ipalib >= 4.5.0',
+    'ipaclient >= 4.5.0',
+]
 
 # test requirements
-test_requires = ['coverage', 'pytest'] + etcd_requires
+test_requires = ['coverage', 'pytest'] + etcd_requires + ipa_requires
 
 extras_require = {
     'etcd_store': etcd_requires,
+    'ipa': ipa_requires,
     'test': test_requires,
     'test_docs': ['docutils', 'markdown', 'sphinx-argparse',
-                  'sphinxcontrib-spelling'] + etcd_requires,
+                  'sphinxcontrib-spelling'] + etcd_requires + ipa_requires,
     'test_pep8': ['flake8', 'flake8-import-order', 'pep8-naming'],
     'test_pylint': ['pylint'] + test_requires,
 }
 
 # backwards compatibility with old setuptools
 # extended interpolation is provided by stdlib in Python 3.4+
+# unittest.mock is provided by stdlib in Python 3
 if SETUPTOOLS_VERSION < (18, 0, 0) and sys.version_info < (3, 4):
-    requirements.append('configparser')
+    requirements.extend(['configparser', 'mock'])
 else:
-    extras_require[':python_version<"3.4"'] = ['configparser']
+    extras_require[':python_version<"3.4"'] = ['configparser', 'mock']
 
 
 with open('README') as f:
@@ -66,6 +72,7 @@ with open('README') as f:
 
 # Plugins
 custodia_authenticators = [
+    'IPAInterface = custodia.ipa.interface:IPAInterface',
     'SimpleCredsAuth = custodia.httpd.authenticators:SimpleCredsAuth',
     'SimpleHeaderAuth = custodia.httpd.authenticators:SimpleHeaderAuth',
     'SimpleAuthKeys = custodia.httpd.authenticators:SimpleAuthKeys',
@@ -94,6 +101,8 @@ custodia_stores = [
     'EncryptedOverlay = custodia.store.encgen:EncryptedOverlay',
     'EncryptedStore = custodia.store.enclite:EncryptedStore',
     'EtcdStore = custodia.store.etcdstore:EtcdStore',
+    'IPAVault = custodia.ipa.vault:IPAVault',
+    'IPACertRequest = custodia.ipa.certrequest:IPACertRequest',
     'SqliteStore = custodia.store.sqlite:SqliteStore',
 ]
 
@@ -115,6 +124,7 @@ setup(
         'custodia',
         'custodia.cli',
         'custodia.httpd',
+        'custodia.ipa',
         'custodia.message',
         'custodia.server',
         'custodia.store',
