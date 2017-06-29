@@ -12,9 +12,11 @@ import requests
 from requests.adapters import HTTPAdapter
 from requests.compat import unquote, urlparse
 
+# requests 2.18 no longer vendors urllib3
 # pylint: disable=import-error
 from requests.packages.urllib3.connection import HTTPConnection
 from requests.packages.urllib3.connectionpool import HTTPConnectionPool
+# pylint: enable=import-error
 
 from custodia.log import getLogger
 from custodia.message.kem import (
