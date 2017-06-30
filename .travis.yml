@@ -1,4 +1,6 @@
-sudo: false
+sudo: required
+
+dist: trusty
 
 language: python
 
@@ -27,6 +29,10 @@ matrix:
       env: TOXENV=pep8py2
     - python: 3.5
       env: TOXENV=pep8py3
+
+before_install:
+  - sudo apt-get -qq update
+  - sudo apt-get install -y python-pip python-virtualenv python-dev gcc krb5-user libkrb5-dev libffi-dev libnss3-dev libldap2-dev libsasl2-dev libssl-dev
 
 install:
   - pip install --upgrade pip
