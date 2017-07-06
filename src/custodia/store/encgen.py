@@ -23,13 +23,13 @@ class EncryptedOverlay(CSStore):
             auto-generate key file if missing?
         master_enctype (default: A256CBC_HS512)
             JWE algorithm name
-        secret_protection (default: 'encrypt')
-            Determine the kind of protection used to save keys.
+        secret_protection (default: 'encrypt'):
+            Determine the kind of protection used to save keys:
             - 'encrypt': this is the classic method (backwards compatible)
             - 'pinning': this adds a protected header with the key name as
-                         as aad data, to prevent key swapping in the db
+            add data, to prevent key swapping in the db
             - 'migrate': as pinning, but on missing key information the
-                         secret is updated instead of throwing an exception.
+            secret is updated instead of throwing an exception.
     """
     key_sizes = {
         'A128CBC-HS256': 256,
@@ -46,6 +46,7 @@ class EncryptedOverlay(CSStore):
         super(EncryptedOverlay, self).__init__(config, section)
         self.store_name = self.backing_store
         self.store = None
+        self.protected_header = None
 
         if (not os.path.isfile(self.master_key) and
                 self.autogen_master_key):
@@ -68,10 +69,10 @@ class EncryptedOverlay(CSStore):
         try:
             jwe = JWE()
             jwe.deserialize(value, self.mkey)
+            value = jwe.payload.decode('utf-8')
         except Exception as err:
             self.logger.error("Error parsing key %s: [%r]" % (key, repr(err)))
             raise CSStoreError('Error occurred while trying to parse key')
-        value = jwe.payload.decode('utf-8')
         if self.secret_protection == 'encrypt':
             return value
         if 'custodia.key' not in jwe.jose_header:
@@ -87,10 +88,10 @@ class EncryptedOverlay(CSStore):
         return value
 
     def set(self, key, value, replace=False):
-        protected_header = {'alg': 'dir', 'enc': self.master_enctype}
+        self.protected_header = {'alg': 'dir', 'enc': self.master_enctype}
         if self.secret_protection != 'encrypt':
-            protected_header['custodia.key'] = key
-        protected = json_encode(protected_header)
+            self.protected_header['custodia.key'] = key
+        protected = json_encode(self.protected_header)
         jwe = JWE(value, protected)
         jwe.add_recipient(self.mkey)
         cvalue = jwe.serialize(compact=True)

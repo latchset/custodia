@@ -26,6 +26,18 @@ master_key = ${tmpdir}/master.key
 backing_store = teststore
 master_key = ${tmpdir}/master.key
 autogen_master_key = true
+
+[store:enc_default]
+backing_store = teststore
+master_key = ${tmpdir}/master.key
+autogen_master_key = true
+secret_protection = encrypt
+
+[store:enc_pinning]
+backing_store = teststore
+master_key = ${tmpdir}/master.key
+autogen_master_key = true
+secret_protection = pinning
 """
 
 
@@ -70,3 +82,23 @@ class EncryptedOverlayTests(unittest.TestCase):
         with self.assertRaises(CSStoreError):
             # different key causes MAC error during decryption
             self.assertEqual(enc2.get('key'), 'value')
+
+    def test_secret_protection_default(self):
+        enc = EncryptedOverlay(self.parser, 'store:enc_default')
+        enc.store = self.backing_store
+        key = 'key1'
+        enc.set(key, 'value1')
+        self.assertEqual(enc.protected_header['enc'], enc.master_enctype)
+        self.assertNotIn('custodia.key', enc.protected_header)
+        self.assertEqual(enc.secret_protection, 'encrypt')
+        self.assertEqual(enc.get(key), 'value1')
+
+    def test_secret_protection_pinning(self):
+        enc = EncryptedOverlay(self.parser, 'store:enc_pinning')
+        enc.store = self.backing_store
+        key = 'key2'
+        enc.set(key, 'value2')
+        self.assertEqual(enc.protected_header['enc'], enc.master_enctype)
+        self.assertEqual(enc.protected_header['custodia.key'], key)
+        self.assertEqual(enc.secret_protection, 'pinning')
+        self.assertEqual(enc.get(key), 'value2')
