@@ -118,6 +118,7 @@ handler = custodia.store.encgen.EncryptedOverlay
 backing_store = simple
 master_key = ${TEST_DIR}/test_mkey.conf
 master_enctype = A128CBC-HS256
+secret_protection = encrypt
 
 [authz:enc]
 handler = SimplePathAuthz
