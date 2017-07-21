@@ -196,13 +196,13 @@ POST /secrets/mycontainer/
 Default containers may be automatically created by an implementation.
 
 Returns:
+- 200 if the container already exists
 - 201 in case of success.
 - 400 if the request format is invalid
 - 401 if authentication is necessary
 - 403 if access to the key is forbidden
 - 404 one of the elements of the path is not a valid container
 - 406 not acceptable, type unknown/not permitted
-- 409 if the container already exists
 - 501 if the API is not supported
 
 
