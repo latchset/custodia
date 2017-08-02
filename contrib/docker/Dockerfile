@@ -1,5 +1,8 @@
-FROM fedora:25
-MAINTAINER Christian Heimes <cheimes@redhat.com>
+FROM fedora:26
+LABEL \
+    name="latchset/custodia" \
+    maintainer="Christian Heimes <cheimes@redhat.com>" \
+    url="https://latchset.github.io/"
 
 RUN dnf -y update && dnf clean all
 
