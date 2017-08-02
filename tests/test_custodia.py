@@ -15,7 +15,7 @@ from jwcrypto import jwk
 
 import pytest
 
-from requests.exceptions import HTTPError, SSLError, ConnectionError
+from requests.exceptions import ConnectionError, HTTPError, SSLError
 
 import six
 
