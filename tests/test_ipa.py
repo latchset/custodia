@@ -219,6 +219,7 @@ class BaseTest(object):
 class TestCustodiaIPA(BaseTest):
 
     def test_api_init(self):
+        os.environ.pop('PYTEST_CURRENT_TEST', None)
         assert os.environ == {}
         m_api = self.m_api
         ipa = IPAInterface(
