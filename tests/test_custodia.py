@@ -15,7 +15,7 @@ from jwcrypto import jwk
 
 import pytest
 
-from requests.exceptions import HTTPError, SSLError
+from requests.exceptions import HTTPError, SSLError, ConnectionError
 
 import six
 
@@ -490,7 +490,8 @@ class CustodiaHTTPSTests(CustodiaTests):
     def test_client_no_ca_trust(self):
         client = CustodiaSimpleClient(self.socket_url + '/forwarder')
         client.headers['REMOTE_USER'] = 'test'
-        with self.assertRaises(SSLError) as e:
+        # XXX workaround for requests bug with urllib3 v1.22
+        with self.assertRaises((SSLError, ConnectionError)) as e:
             client.list_container('test')
         self.assert_ssl_error_msg("CERTIFICATE_VERIFY_FAILED", e.exception)
 
@@ -498,7 +499,8 @@ class CustodiaHTTPSTests(CustodiaTests):
         client = CustodiaSimpleClient(self.socket_url + '/forwarder')
         client.headers['REMOTE_USER'] = 'test'
         client.set_ca_cert(self.ca_cert)
-        with self.assertRaises(SSLError) as e:
+        # XXX workaround for requests bug with urllib3 v1.22
+        with self.assertRaises((SSLError, ConnectionError)) as e:
             client.list_container('test')
         self.assert_ssl_error_msg("SSLV3_ALERT_HANDSHAKE_FAILURE",
                                   e.exception)
