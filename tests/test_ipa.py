@@ -174,6 +174,7 @@ vault_parametrize = pytest.mark.parametrize(
 @pytest.mark.skipif(mock is None, reason='requires mock')
 class BaseTest(object):
     def setup_method(self, method):
+        # pylint: disable=attribute-defined-outside-init
         self.parser = configparser.ConfigParser(
             interpolation=configparser.ExtendedInterpolation(),
         )

@@ -12,6 +12,8 @@ from custodia.server.config import parse_config
 HERE = os.path.dirname(os.path.abspath(__file__))
 EMPTY_CONF = os.path.join(HERE, 'empty.conf')
 
+# pylint: disable=redefined-outer-name
+
 
 @pytest.fixture()
 def args():

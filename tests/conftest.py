@@ -12,7 +12,7 @@ from custodia.log import ProvisionalWarning, setup_logging
 warnings.simplefilter('error', category=DeprecationWarning)
 # ignore pytest warnings
 warnings.filterwarnings('ignore', category=DeprecationWarning,
-                        module='_pytest\..*')
+                        module=r'_pytest\..*')
 # silence our own warnings about provisional APIs
 warnings.simplefilter('ignore', category=ProvisionalWarning)
 

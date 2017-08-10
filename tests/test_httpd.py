@@ -20,6 +20,7 @@ LOCALADDR = ('127.0.0.1', 0)
 
 
 def test_tlserver():
+    # pylint: disable=protected-access
     config = CONFIG.copy()
     srv = server.ForkingTLSServer(
         LOCALADDR,
