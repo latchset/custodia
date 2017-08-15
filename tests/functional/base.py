@@ -17,8 +17,44 @@ from custodia.server.args import parse_args
 from custodia.server.config import parse_config
 
 
+def wait_pid(process, wait):
+    timeout = time.time() + wait
+    while time.time() < timeout:
+        pid, _ = os.waitpid(process.pid, os.WNOHANG)
+        if pid == process.pid:
+            return True
+        time.sleep(0.1)
+    return False
+
+
+def wait_socket(process, custodia_socket, wait):
+    timeout = time.time() + wait
+    while time.time() < timeout:
+        if process.poll() is not None:
+            raise AssertionError(
+                "Premature termination of Custodia server")
+        try:
+            s = socket.socket(family=socket.AF_UNIX)
+            s.connect(custodia_socket)
+        except OSError:
+            pass
+        else:
+            return True
+        time.sleep(0.1)
+    raise OSError('Timeout error')
+
+
+class UniqueNumber(object):
+
+    unique_number = 0
+
+    def get_unique_number(self):
+        UniqueNumber.unique_number += 1
+        return UniqueNumber.unique_number
+
+
 @pytest.mark.servertest
-class CustodiaServerRunner(object):
+class CustodiaServerRunner(UniqueNumber):
     request_headers = {'REMOTE_USER': 'me'}
     test_dir = 'tests/functional/tmp'
     custodia_client = None
@@ -27,7 +63,6 @@ class CustodiaServerRunner(object):
     args = None
     config = None
     custodia_conf = None
-    unique_number = 0
 
     @classmethod
     def setup_class(cls):
@@ -38,35 +73,6 @@ class CustodiaServerRunner(object):
     @classmethod
     def teardown_class(cls):
         shutil.rmtree(cls.test_dir)
-
-    def _wait_pid(self, process, wait):
-        timeout = time.time() + wait
-        while time.time() < timeout:
-            pid, _ = os.waitpid(process.pid, os.WNOHANG)
-            if pid == process.pid:
-                return True
-            time.sleep(0.1)
-        return False
-
-    def _wait_socket(self, process, wait):
-        timeout = time.time() + wait
-        while time.time() < timeout:
-            if process.poll() is not None:
-                raise AssertionError(
-                    "Premature termination of Custodia server")
-            try:
-                s = socket.socket(family=socket.AF_UNIX)
-                s.connect(self.env['CUSTODIA_SOCKET'])
-            except OSError:
-                pass
-            else:
-                return True
-            time.sleep(0.1)
-        raise OSError('Timeout error')
-
-    def get_unique_number(self):
-        CustodiaServerRunner.unique_number = self.unique_number + 1
-        return CustodiaServerRunner.unique_number
 
     @pytest.fixture(scope="class")
     def simple_configuration(self):
@@ -110,8 +116,8 @@ class CustodiaServerRunner(object):
             stdout=stdout, stderr=stderr
         )
 
-        self._wait_pid(self.process, 2)
-        self._wait_socket(self.process, 5)
+        wait_pid(self.process, 2)
+        wait_socket(self.process, self.env['CUSTODIA_SOCKET'], 5)
 
         arg = '{}/custodia.sock'.format(CustodiaServerRunner.test_dir)
         url = 'http+unix://{}'.format(url_escape(arg, ''))
