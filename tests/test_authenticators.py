@@ -46,6 +46,14 @@ value = admin
 [auth:header_values]
 header = GSSAPI
 value = admin user
+
+[auth:header_commaspace]
+header = GSSAPI
+value = admin, user, space user
+
+[auth:header_comma]
+header = GSSAPI
+value = admin,user,other user
 """
 
 
@@ -151,3 +159,11 @@ class TestAuthenticators(unittest.TestCase):
         hdr = authenticators.SimpleHeaderAuth(parser, 'auth:header_values')
         self.assertEqual(hdr.header, 'GSSAPI')
         self.assertEqual(hdr.value, {'admin', 'user'})
+
+        hdr = authenticators.SimpleHeaderAuth(parser,
+                                              'auth:header_commaspace')
+        self.assertEqual(hdr.value, {'admin', 'user', 'space user'})
+
+        hdr = authenticators.SimpleHeaderAuth(parser,
+                                              'auth:header_comma')
+        self.assertEqual(hdr.value, {'admin', 'user', 'other user'})

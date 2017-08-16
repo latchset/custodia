@@ -141,6 +141,13 @@ class OptionHandler(object):
     def _get_str(self, section, name, default):
         return self.parser.get(section, name, fallback=default)
 
+    def _split_string(self, value):
+        if ',' in value:
+            values = value.split(',')
+        else:
+            values = value.split(' ')
+        return list(v.strip() for v in values if v.strip())
+
     def _get_str_set(self, section, name, default):
         try:
             value = self.parser.get(section, name)
@@ -149,7 +156,7 @@ class OptionHandler(object):
         if not value or not value.strip():
             return None
         else:
-            return set(v.strip() for v in value.split(' '))
+            return set(self._split_string(value))
 
     def _get_str_list(self, section, name, default):
         try:
@@ -159,7 +166,7 @@ class OptionHandler(object):
         if not value or not value.strip():
             return None
         else:
-            return list(v.strip() for v in value.split(' ') if v.strip())
+            return self._split_string(value)
 
     def _get_store(self, section, name, default):
         return self.parser.get(section, name, fallback=default)
@@ -206,9 +213,9 @@ class PluginOption(object):
     *str*
       plain string
     *str_set*
-      set of space-separated strings
+      set of comma-separated or space-separated strings
     *str_list*
-      ordered list of space-separated strings
+      ordered list of comma-separated or space-separated strings
     *int*
       number (converted from base 10)
     *hex*
