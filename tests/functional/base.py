@@ -9,6 +9,7 @@ import socket
 import subprocess
 import sys
 import time
+from enum import Enum
 from string import Template
 
 import pytest
@@ -109,7 +110,6 @@ def translate_meta_gid(meta_gid):
 
 
 class UniqueNumber(object):
-
     unique_number = 0
 
     def get_unique_number(self):
@@ -213,31 +213,55 @@ class CustodiaTestEnvironment(UniqueNumber):
         shutil.rmtree(cls.test_dir)
 
 
-class CustodiaServerWithSimpleCredsAuth(object):
-    def __init__(self, test_dir, meta_uid, meta_gid):
+class AuthPlugin(Enum):
+    SimpleCredsAuth = 1
+    SimpleHeaderAuth = 2
+
+
+class CustodiaServer(object):
+    def __init__(self, test_dir, conf_params):
         self.process = None
         self.custodia_client = None
         self.test_dir = test_dir
+        self.custodia_conf = os.path.join(self.test_dir, 'custodia.conf')
+        self.params = conf_params
 
         self.out_fd = os.open(os.devnull, os.O_RDWR)
 
-        with open(
-                'tests/functional/conf/template_simple_creds_auth.conf') as f:
-            configstr = f.read()
-
-        self.custodia_conf = os.path.join(self.test_dir, 'custodia.conf')
-        with (open(self.custodia_conf, 'w+')) as conffile:
-            t = Template(configstr)
-            conf = t.substitute(
-                {'TEST_DIR': self.test_dir,
-                 'UID': translate_meta_uid(meta_uid),
-                 'GID': translate_meta_gid(meta_gid)})
-            conffile.write(conf)
+        self._create_configuration()
 
         self.args = parse_args([self.custodia_conf])
         _, self.config = parse_config(self.args)
         self.env = os.environ.copy()
         self.env['CUSTODIA_SOCKET'] = self.config['server_socket']
+
+    def _get_conf_template(self):
+        if self.params['auth_type'] == AuthPlugin.SimpleCredsAuth:
+            return 'tests/functional/conf/template_simple_creds_auth.conf'
+        if self.params['auth_type'] == AuthPlugin.SimpleHeaderAuth:
+            return 'tests/functional/conf/template_simple_header_auth.conf'
+
+    def _create_configuration(self):
+        with open(self._get_conf_template()) as f:
+            configstr = f.read()
+
+        if self.params['auth_type'] == AuthPlugin.SimpleCredsAuth:
+            with (open(self.custodia_conf, 'w+')) as conffile:
+                t = Template(configstr)
+                conf = t.substitute(
+                    {'TEST_DIR': self.test_dir,
+                     'UID': translate_meta_uid(self.params['meta_uid']),
+                     'GID': translate_meta_gid(self.params['meta_gid'])})
+                conffile.write(conf)
+
+        if self.params['auth_type'] == AuthPlugin.SimpleHeaderAuth:
+            with (open(self.custodia_conf, 'w+')) as conffile:
+                t = Template(configstr)
+                conf = t.substitute(
+                    {'TEST_DIR': self.test_dir,
+                     'HEADER': self.params['header_name'],
+                     'VALUE': self.params['header_value']})
+                conffile.write(conf)
 
     def __enter__(self):
         # Don't write server messages to stdout unless we are in debug mode
