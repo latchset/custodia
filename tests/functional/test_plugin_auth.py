@@ -80,3 +80,47 @@ class TestBasicsAuthPlugins(CustodiaTestEnvironment):
                 assert resp.status_code == 201
             else:
                 assert resp.status_code == 403
+
+    @pytest.mark.parametrize("conf_k,conf_p,call_k,call_p,expected_access", [
+        ('qid', 'P@ssw0rd', 'qid', 'P@ssw0rd', 'granted'),
+        ('qid', 'P@ssw0rd', 'qid_incorrect', 'P@ssw0rd', 'denied'),
+        ('qid', 'P@ssw0rd', 'qid', 'P@ssw0rd_incrorrect', 'denied'),
+    ])
+    def test_default_answer_simple_auth_keys_auth(self, conf_k, conf_p, call_k,
+                                                  call_p, expected_access):
+
+        self.reset_environment()
+
+        # For setup AuthKeys plugin we need authenticate via SimpleHeaderAuth
+        params = {'auth_type': AuthPlugin.SimpleHeaderAuth,
+                  'header_name': 'REMOTE_USER',
+                  'header_value': 'me'}
+
+        with CustodiaServer(self.test_dir, params) as server:
+            # Create container
+            container = 'secrets/sak/'
+            resp = server.post(container, headers={'REMOTE_USER': 'me'})
+            assert resp.status_code == 201
+
+            # Save Autheys
+            key = '{}{}'.format(container, conf_k)
+            resp = server.put(key, json={"type": "simple",
+                                         "value": conf_p},
+                              headers={'REMOTE_USER': 'me'})
+            assert resp.status_code == 201
+
+        # Testing of AuthKeys plugin
+        params = {'auth_type': AuthPlugin.SimpleAuthKeys,
+                  'store_namespace': 'keys/sak',
+                  'store': 'simple'}
+
+        with CustodiaServer(self.test_dir, params) as server:
+            container = 'secrets/bucket{}/'.format(self.get_unique_number())
+
+            resp = server.post(container,
+                               headers={'CUSTODIA_AUTH_ID': call_k,
+                                        'CUSTODIA_AUTH_KEY': call_p})
+            if expected_access == 'granted':
+                assert resp.status_code == 201
+            else:
+                assert resp.status_code == 403

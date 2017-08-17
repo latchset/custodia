@@ -212,10 +212,16 @@ class CustodiaTestEnvironment(UniqueNumber):
     def teardown_class(cls):
         shutil.rmtree(cls.test_dir)
 
+    def reset_environment(self):
+        if os.path.isdir(self.test_dir):
+            shutil.rmtree(self.test_dir)
+        os.makedirs(self.test_dir)
+
 
 class AuthPlugin(Enum):
     SimpleCredsAuth = 1
     SimpleHeaderAuth = 2
+    SimpleAuthKeys = 3
 
 
 class CustodiaServer(object):
@@ -240,6 +246,8 @@ class CustodiaServer(object):
             return 'tests/functional/conf/template_simple_creds_auth.conf'
         if self.params['auth_type'] == AuthPlugin.SimpleHeaderAuth:
             return 'tests/functional/conf/template_simple_header_auth.conf'
+        if self.params['auth_type'] == AuthPlugin.SimpleAuthKeys:
+            return 'tests/functional/conf/template_simple_auth_keys_auth.conf'
 
     def _create_configuration(self):
         with open(self._get_conf_template()) as f:
@@ -261,6 +269,15 @@ class CustodiaServer(object):
                     {'TEST_DIR': self.test_dir,
                      'HEADER': self.params['header_name'],
                      'VALUE': self.params['header_value']})
+                conffile.write(conf)
+
+        if self.params['auth_type'] == AuthPlugin.SimpleAuthKeys:
+            with (open(self.custodia_conf, 'w+')) as conffile:
+                t = Template(configstr)
+                conf = t.substitute(
+                    {'TEST_DIR': self.test_dir,
+                     'STORE_NAMESPACE': self.params['store_namespace'],
+                     'STORE': self.params['store']})
                 conffile.write(conf)
 
     def __enter__(self):
@@ -295,3 +312,4 @@ class CustodiaServer(object):
             if not wait_pid(self.process, 2):
                 raise AssertionError("Hard kill failed")
         os.close(self.out_fd)
+        os.remove(self.env['CUSTODIA_SOCKET'])
