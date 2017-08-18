@@ -222,6 +222,7 @@ class AuthPlugin(Enum):
     SimpleCredsAuth = 1
     SimpleHeaderAuth = 2
     SimpleAuthKeys = 3
+    SimpleClientCert = 4
 
 
 class CustodiaServer(object):
@@ -248,6 +249,8 @@ class CustodiaServer(object):
             return 'tests/functional/conf/template_simple_header_auth.conf'
         if self.params['auth_type'] == AuthPlugin.SimpleAuthKeys:
             return 'tests/functional/conf/template_simple_auth_keys_auth.conf'
+        if self.params['auth_type'] == AuthPlugin.SimpleClientCert:
+            return 'tests/functional/conf/template_simple_client_cert.conf'
 
     def _create_configuration(self):
         with open(self._get_conf_template()) as f:
@@ -278,6 +281,12 @@ class CustodiaServer(object):
                     {'TEST_DIR': self.test_dir,
                      'STORE_NAMESPACE': self.params['store_namespace'],
                      'STORE': self.params['store']})
+                conffile.write(conf)
+
+        if self.params['auth_type'] == AuthPlugin.SimpleClientCert:
+            with (open(self.custodia_conf, 'w+')) as conffile:
+                t = Template(configstr)
+                conf = t.substitute({'TEST_DIR': self.test_dir})
                 conffile.write(conf)
 
     def __enter__(self):

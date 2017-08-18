@@ -2,6 +2,9 @@
 
 from __future__ import absolute_import
 
+from cryptography import x509
+from cryptography.hazmat.backends import default_backend
+
 import pytest
 
 from .base import AuthPlugin, CustodiaServer, CustodiaTestEnvironment
@@ -120,6 +123,30 @@ class TestBasicsAuthPlugins(CustodiaTestEnvironment):
             resp = server.post(container,
                                headers={'CUSTODIA_AUTH_ID': call_k,
                                         'CUSTODIA_AUTH_KEY': call_p})
+            if expected_access == 'granted':
+                assert resp.status_code == 201
+            else:
+                assert resp.status_code == 403
+
+    def test_default_answer_simple_client_cert_auth(self):
+
+        params = {'auth_type': AuthPlugin.SimpleClientCert}
+
+        expected_access = True
+
+        with open('tests/ca/custodia-ca.pem', 'rb') as pem_file:
+            pem_data = pem_file.read()
+
+        cert = x509.load_pem_x509_certificate(pem_data, default_backend())
+
+        with CustodiaServer(self.test_dir, params) as server:
+
+            container = 'secrets/bucket{}/'.format(self.get_unique_number())
+
+            resp = server.post(container,
+                               headers={
+                                   'CUSTODIA_CERT_AUTH': str(
+                                       cert.public_key())})
             if expected_access == 'granted':
                 assert resp.status_code == 201
             else:
