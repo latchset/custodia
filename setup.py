@@ -35,7 +35,6 @@ requirements = [
     'jwcrypto',
     'six',
     'requests',
-    'pyasn1 < 0.3',  # https://pagure.io/freeipa/issue/7082
 ]
 
 # extra requirements
