@@ -132,6 +132,11 @@ main_parser.add_argument(
     help='PEM encoded key file (if not given, key is read from certfile)'
 )
 
+# Use Negotiate / GSSAPI
+main_parser.add_argument(
+    '--gssapi', action='store_true',
+    help='Use Negotiate / GSSAPI auth'
+)
 
 # handlers
 def handle_name(args):
@@ -317,6 +322,8 @@ def parse_args(arglist=None):
     if args.certfile:
         args.client_conn.set_client_cert(args.certfile, args.keyfile)
         args.client_conn.headers['CUSTODIA_CERT_AUTH'] = 'true'
+    if args.gssapi:
+        args.client_conn.set_gssapi_auth()
     args.client_conn.timeout = args.timeout
 
     return args
