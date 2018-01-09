@@ -8,6 +8,7 @@ from jwcrypto.common import json_decode
 from jwcrypto.jwk import JWK
 
 import requests
+from requests_gssapi import HTTPSPNEGOAuth
 
 from requests.adapters import HTTPAdapter
 from requests.compat import unquote, urlparse
@@ -83,6 +84,9 @@ class CustodiaHTTPClient(object):
             self.session.cert = certfile
         else:
             self.session.cert = (certfile, keyfile)
+
+    def set_gssapi_auth(self):
+        self.session.auth = HTTPSPNEGOAuth()
 
     def _join_url(self, path):
         return self.url.rstrip('/') + '/' + path.lstrip('/')
