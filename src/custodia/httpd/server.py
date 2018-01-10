@@ -85,7 +85,7 @@ class ForkingHTTPServer(ForkingTCPServer):
             try:
                 self.server_bind()
                 self.server_activate()
-            except:
+            except BaseException:
                 self.server_close()
                 raise
 
@@ -537,15 +537,21 @@ class HTTPServer(object):
             if not sd.is_socket_inet(fds[0], family=socket.AF_INET6,
                                      type=socket.SOCK_STREAM,
                                      listening=True, port=port):
-                raise ValueError("FD {} is not TCP IPv6 socket on port {}",
-                                 fds[0], port)
+                raise ValueError(
+                    "FD {} is not TCP IPv6 socket on port {}".format(
+                        fds[0], port
+                    )
+                )
             logger.info('Using systemd socket activation on port %i', port)
             sock = socket.fromfd(fds[0], socket.AF_INET6, socket.SOCK_STREAM)
         else:
             if not sd.is_socket_unix(fds[0], socket.SOCK_STREAM,
                                      listening=True, path=address):
-                raise ValueError("FD {} is not Unix stream socket on path {}",
-                                 fds[0], address)
+                raise ValueError(
+                    "FD {} is not Unix stream socket on path {}".format(
+                        fds[0], address
+                    )
+                )
             logger.info('Using systemd socket activation on path %s', address)
             sock = socket.fromfd(fds[0], socket.AF_UNIX, socket.SOCK_STREAM)
 
