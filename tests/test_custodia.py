@@ -15,7 +15,7 @@ from jwcrypto import jwk
 
 import pytest
 
-from requests.exceptions import ConnectionError, HTTPError, SSLError
+import requests.exceptions
 
 import six
 
@@ -26,6 +26,13 @@ from custodia.store.sqlite import SqliteStore
 
 # mark all tests in this module as 'servertest' test cases
 pytestmark = pytest.mark.servertest
+
+
+# requests raises any of these errors on SSL or connection error
+RequestsConnSSLErrors = (
+    requests.exceptions.SSLError,
+    requests.exceptions.ConnectionError
+)
 
 
 def find_port(host='localhost'):
@@ -353,11 +360,11 @@ class CustodiaTests(unittest.TestCase):
         self.client.del_secret('test/http%3A%2F%2Flocalhost%3A5000')
         try:
             self.client.get_secret('test/key')
-        except HTTPError:
+        except requests.exceptions.HTTPError:
             self.assertEqual(self.client.last_response.status_code, 404)
         try:
             self.client.get_secret('test/http%3A%2F%2Flocalhost%3A5000')
-        except HTTPError:
+        except requests.exceptions.HTTPError:
             self.assertEqual(self.client.last_response.status_code, 404)
 
     def test_4_del_simple_key_cli(self):
@@ -382,13 +389,13 @@ class CustodiaTests(unittest.TestCase):
         self.fwd.delete_container('dir')
         try:
             self.admin.list_container('fwd/dir')
-        except HTTPError:
+        except requests.exceptions.HTTPError:
             self.assertEqual(self.admin.last_response.status_code, 404)
 
     def test_9_loop(self):
         try:
             self.loop.list_container('test')
-        except HTTPError:
+        except requests.exceptions.HTTPError:
             self.assertEqual(self.loop.last_response.status_code, 502)
 
     def test_A_enc_1_create_container(self):
@@ -398,7 +405,7 @@ class CustodiaTests(unittest.TestCase):
         self.enc.delete_container('container')
         try:
             self.enc.list_container('container')
-        except HTTPError:
+        except requests.exceptions.HTTPError:
             self.assertEqual(self.enc.last_response.status_code, 404)
 
     def test_A_enc_2_set_simple_key(self):
@@ -421,12 +428,12 @@ class CustodiaTests(unittest.TestCase):
         self.kem.del_secret('kem/key')
         try:
             self.kem.get_secret('kem/key')
-        except HTTPError:
+        except requests.exceptions.HTTPError:
             self.assertEqual(self.kem.last_response.status_code, 404)
         self.kem.delete_container('kem')
         try:
             self.kem.list_container('kem')
-        except HTTPError:
+        except requests.exceptions.HTTPError:
             self.assertEqual(self.kem.last_response.status_code, 404)
 
     def test_B_1_kem_space(self):
@@ -441,12 +448,12 @@ class CustodiaTests(unittest.TestCase):
         self.kem.del_secret('kem/key with space')
         try:
             self.kem.get_secret('kem/key with space')
-        except HTTPError:
+        except requests.exceptions.HTTPError:
             self.assertEqual(self.kem.last_response.status_code, 404)
         self.kem.delete_container('kem')
         try:
             self.kem.list_container('kem')
-        except HTTPError:
+        except requests.exceptions.HTTPError:
             self.assertEqual(self.kem.last_response.status_code, 404)
 
 
@@ -493,7 +500,7 @@ class CustodiaHTTPSTests(CustodiaTests):
         client = CustodiaSimpleClient(self.socket_url + '/forwarder')
         client.headers['REMOTE_USER'] = 'test'
         # XXX workaround for requests bug with urllib3 v1.22
-        with self.assertRaises((SSLError, ConnectionError)) as e:
+        with self.assertRaises(RequestsConnSSLErrors) as e:
             client.list_container('test')
         self.assert_ssl_error_msg("CERTIFICATE_VERIFY_FAILED", e.exception)
 
@@ -502,7 +509,7 @@ class CustodiaHTTPSTests(CustodiaTests):
         client.headers['REMOTE_USER'] = 'test'
         client.set_ca_cert(self.ca_cert)
         # XXX workaround for requests bug with urllib3 v1.22
-        with self.assertRaises((SSLError, ConnectionError)) as e:
+        with self.assertRaises(RequestsConnSSLErrors) as e:
             client.list_container('test')
         self.assert_ssl_error_msg("SSLV3_ALERT_HANDSHAKE_FAILURE",
                                   e.exception)

@@ -8,8 +8,7 @@ import traceback
 
 import pkg_resources
 
-from requests.exceptions import ConnectionError
-from requests.exceptions import HTTPError as RequestsHTTPError
+import requests.exceptions
 
 import six
 
@@ -18,14 +17,14 @@ from custodia.client import CustodiaSimpleClient
 from custodia.compat import unquote, url_escape, urlparse
 
 if six.PY2:
-    from StringIO import StringIO
+    from StringIO import StringIO  # pylint: disable=import-error
 else:
     from io import StringIO
 
 try:
     from json import JSONDecodeError
 except ImportError:
-    # Python <= 3.4 has no JSONDecodeError
+    # Python 2.7 has no JSONDecodeError
     JSONDecodeError = ValueError
 
 
@@ -265,10 +264,10 @@ def error_message(args, exc):
     if args.verbose:
         out.write("Custodia server '{args.server}'.\n")
 
-    if isinstance(exc, RequestsHTTPError):
+    if isinstance(exc, requests.exceptions.HTTPError):
         errcode = E_HTTP_ERROR
         out.write("{exc.__class__.__name__}: {exc}\n")
-    elif isinstance(exc, ConnectionError):
+    elif isinstance(exc, requests.exceptions.ConnectionError):
         errcode = E_CONNECTION_ERROR
         if parts.scheme == 'http+unix':
             out.write("Failed to connect to Unix socket '{unix_path}':\n")
