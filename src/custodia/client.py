@@ -8,10 +8,8 @@ from jwcrypto.common import json_decode
 from jwcrypto.jwk import JWK
 
 import requests
-
 from requests.adapters import HTTPAdapter
 from requests.compat import unquote, urlparse
-
 # requests 2.18 no longer vendors urllib3
 # pylint: disable=import-error
 from requests.packages.urllib3.connection import HTTPConnection

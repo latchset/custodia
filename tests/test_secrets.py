@@ -4,7 +4,6 @@ from __future__ import absolute_import
 import logging
 import os
 import unittest
-
 from base64 import b64encode
 
 from custodia import log

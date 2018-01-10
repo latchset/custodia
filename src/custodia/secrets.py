@@ -3,7 +3,6 @@ from __future__ import absolute_import
 
 import json
 import os
-
 from base64 import b64decode, b64encode
 
 from custodia import log
