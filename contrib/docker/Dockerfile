@@ -1,15 +1,15 @@
-FROM fedora:26
+FROM registry.fedoraproject.org/fedora:27
 LABEL \
     name="latchset/custodia" \
     maintainer="Christian Heimes <cheimes@redhat.com>" \
     url="https://latchset.github.io/"
 
-RUN dnf -y update && dnf clean all
-
-# install Custodia dependencies
-RUN dnf -y install \
+# install updates and custodia dependencies
+RUN dnf -y update \
+    && dnf -y install \
         python3 python3-pip python3-wheel \
         python3-requests python3-six python3-jwcrypto \
+        python3-ipaclient \
     && dnf clean all
 
 # Create Custodia user and group
