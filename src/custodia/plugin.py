@@ -258,12 +258,14 @@ class PluginOption(object):
 
 
 class CustodiaPluginMeta(abc.ABCMeta):
-    def __new__(cls, name, bases, namespace):
+    def __new__(cls, name, bases, namespace, **kwargs):
         ncls = super(CustodiaPluginMeta, cls).__new__(
-            cls, name, bases, namespace)
+            cls, name, bases, namespace, **kwargs)
 
         if sys.version_info < (3, 0):
+            # pylint: disable=deprecated-method
             args = inspect.getargspec(ncls.__init__).args
+            # pylint: enable=deprecated-method
         else:
             sig = inspect.signature(ncls.__init__)  # pylint: disable=no-member
             args = list(sig.parameters)
