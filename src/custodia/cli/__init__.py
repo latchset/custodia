@@ -13,7 +13,7 @@ import requests.exceptions
 import six
 
 from custodia import log
-from custodia.client import CustodiaSimpleClient
+from custodia.client import CustodiaSimpleClient, requests_gssapi
 from custodia.compat import unquote, url_escape, urlparse
 
 if six.PY2:
@@ -123,20 +123,30 @@ main_parser.add_argument(
     '--cafile', type=str, default=None,
     help='PEM encoded file with root CAs'
 )
-main_parser.add_argument(
+
+# authentication mechanisms
+# TLS client cert auth
+tlsclient_group = main_parser.add_argument_group(
+    title="TLS client cert auth"
+)
+tlsclient_group.add_argument(
     '--certfile', type=str, default=None,
     help='PEM encoded file with certs for TLS client authentication'
 )
-main_parser.add_argument(
+tlsclient_group.add_argument(
     '--keyfile', type=str, default=None,
     help='PEM encoded key file (if not given, key is read from certfile)'
 )
 
 # Use Negotiate / GSSAPI
-main_parser.add_argument(
+gssapi_group = main_parser.add_argument_group(
+    title="GSSAPI auth"
+)
+gssapi_group.add_argument(
     '--gssapi', action='store_true',
     help='Use Negotiate / GSSAPI auth'
 )
+
 
 # handlers
 def handle_name(args):
@@ -299,6 +309,17 @@ def error_message(args, exc):
 def parse_args(arglist=None):
     args = main_parser.parse_args(arglist)
 
+    if args.keyfile and not args.certfile:
+        main_parser.error("keyfile without certfile is not supported\n")
+    # mutually exclusive groups don't supported nested subgroups
+    if args.gssapi and args.certfile:
+        main_parser.error("gssapi and certfile are mutually exclusive.\n")
+    if args.gssapi and requests_gssapi is None:
+        main_parser.error(
+            "'requests_gssapi' package is not available! You can install "
+            "it with: 'pip install custodia[gssapi]'.\n"
+        )
+
     if args.debug:
         args.verbose = True
 
@@ -315,16 +336,17 @@ def parse_args(arglist=None):
             args.server += udspath
 
     args.client_conn = CustodiaSimpleClient(args.server)
+    args.client_conn.timeout = args.timeout
     if args.header is not None:
         args.client_conn.headers.update(args.header)
     if args.cafile:
         args.client_conn.set_ca_cert(args.cafile)
+    # authentication
     if args.certfile:
         args.client_conn.set_client_cert(args.certfile, args.keyfile)
         args.client_conn.headers['CUSTODIA_CERT_AUTH'] = 'true'
-    if args.gssapi:
+    elif args.gssapi:
         args.client_conn.set_gssapi_auth()
-    args.client_conn.timeout = args.timeout
 
     return args
 

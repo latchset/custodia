@@ -16,7 +16,10 @@ from requests.packages.urllib3.connection import HTTPConnection
 from requests.packages.urllib3.connectionpool import HTTPConnectionPool
 # pylint: enable=import-error
 
-from requests_gssapi import HTTPSPNEGOAuth
+try:
+    import requests_gssapi
+except ImportError:
+    requests_gssapi = None
 
 from custodia.log import getLogger
 from custodia.message.kem import (
@@ -84,8 +87,10 @@ class CustodiaHTTPClient(object):
         else:
             self.session.cert = (certfile, keyfile)
 
-    def set_gssapi_auth(self):
-        self.session.auth = HTTPSPNEGOAuth()
+    def set_gssapi_auth(self, **kwargs):
+        if requests_gssapi is None:
+            raise ImportError('requests_gssapi')
+        self.session.auth = requests_gssapi.HTTPSPNEGOAuth(**kwargs)
 
     def _join_url(self, path):
         return self.url.rstrip('/') + '/' + path.lstrip('/')
