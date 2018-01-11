@@ -17,6 +17,8 @@ import pytest
 
 import requests.exceptions
 
+import requests_gssapi
+
 import six
 
 from custodia.client import CustodiaKEMClient, CustodiaSimpleClient
@@ -525,3 +527,28 @@ class CustodiaHTTPSTests(CustodiaTests):
         self.assertEqual(key, 'VmVycnlTZWNyZXQK')
 
         self.client.del_secret('test/key')
+
+
+class CustodiaGSSAPITests(unittest.TestCase):
+    def test_set_gssapi_auth(self):
+        client = CustodiaSimpleClient('http://local.example')
+        self.assertEqual(client.session.auth, None)
+
+        client.set_gssapi_auth()
+        self.assertIsInstance(
+            client.session.auth,
+            requests_gssapi.HTTPSPNEGOAuth
+        )
+        self.assertEqual(
+            client.session.auth.opportunistic_auth,
+            False
+        )
+        client.set_gssapi_auth(opportunistic_auth=True)
+        self.assertIsInstance(
+            client.session.auth,
+            requests_gssapi.HTTPSPNEGOAuth
+        )
+        self.assertEqual(
+            client.session.auth.opportunistic_auth,
+            True
+        )

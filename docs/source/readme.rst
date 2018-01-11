@@ -78,6 +78,23 @@ Some APIs are provisional and may change in the future.
 -  The script custodia-cli.
 -  *custodia.ipa* plugins
 
+Optional components
+-------------------
+
+Custodia has several optional components with additional dependencies
+
+``etcd_store``
+   `ETCD <https://coreos.com/etcd/>`_ store server plugin.
+``gssapi``
+   Negotiate / GSSAPI authentication for Custodia client, also known as
+   Kerberos.
+``ipa``
+   `freeIPA <https://www.freeipa.org/>`_ server plugins.
+
+Optional dependencies can be installed with pip::
+
+    $ pip install custodia[gssapi,ipa]
+
 --------------
 
 custodia.ipa — IPA plugins for Custodia

@@ -39,16 +39,20 @@ requirements = [
 
 # extra requirements
 etcd_requires = ['python-etcd']
+gssapi_requires = ['requests-gssapi']
 ipa_requires = [
     'ipalib >= 4.5.0',
     'ipaclient >= 4.5.0',
 ]
 
 # test requirements
-test_requires = ['coverage', 'pytest'] + etcd_requires + ipa_requires
+test_requires = [
+    'coverage', 'pytest'
+] + etcd_requires + gssapi_requires + ipa_requires
 
 extras_require = {
     'etcd_store': etcd_requires,
+    'gssapi': gssapi_requires,
     'ipa': ipa_requires,
     'test': test_requires,
     'test_docs': ['docutils', 'markdown', 'sphinx-argparse',
