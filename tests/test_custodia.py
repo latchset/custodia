@@ -220,7 +220,22 @@ class CustodiaTests(unittest.TestCase):
                 cls.pexec + ['-m', 'custodia.server', custodia_conf],
                 env=env, stdout=logfile, stderr=logfile
             )
-        time.sleep(1)
+        # check whether custodia server ready for processing or not
+        retry_number = 0
+        max_retries = 10
+        for i in range(max_retries):
+            with open(test_log_file, 'r') as logfile:
+                lines = [line for line in logfile if ' server ' in line]
+                if not lines:
+                    time.sleep(0.5)
+                    retry_number = i + 1
+                else:
+                    break
+
+        if retry_number == max_retries:
+            raise AssertionError(
+                "Perphaps custodia server was not started correctly")
+
         if p.poll() is not None:
             raise AssertionError(
                 "Premature termination of Custodia server, see test_log.txt")
