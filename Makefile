@@ -123,7 +123,9 @@ releasecheck: clean
 	tox -r
 	$(MAKE) packages
 	$(MAKE) rpm
+	$(MAKE) rpmlint
 	$(MAKE) dockerbuild
+	@echo "Release check passed"
 
 run: egg_info
 	$(PYTHON) $(CURDIR)/bin/custodia $(CONF)
@@ -143,7 +145,7 @@ rpmroot:
 
 rpmfiles: rpmroot packages
 	mv dist/custodia-$(VERSION).tar.gz* $(RPMBUILD)/SOURCES
-	cp contrib/config/custodia/custodia.conf $(RPMBUILD)/SOURCES/
+	cp contrib/config/custodia/{custodia,ipa}.conf $(RPMBUILD)/SOURCES/
 	cp contrib/config/systemd/system/custodia@.service $(RPMBUILD)/SOURCES/
 	cp contrib/config/systemd/system/custodia@.socket $(RPMBUILD)/SOURCES/
 	cp contrib/config/tmpfiles.d/custodia.conf $(RPMBUILD)/SOURCES/custodia.tmpfiles.conf
@@ -155,6 +157,8 @@ rpm: clean rpmfiles egg_info
 	    -ba custodia.spec
 	echo "$(RPMBUILD)/RPMS"
 
+rpmlint:
+	rpmlint -f contrib/rpmlint $(RPMBUILD)/RPMS
 
 .PHONY: dockerbuild dockerdemo dockerdemoinit dockershell dockerreleasebuild
 dockerbuild:

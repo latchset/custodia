@@ -1,0 +1,32 @@
+addFilter('spelling-error.*etcdstore')
+
+addFilter('non-readable /etc/custodia/custodia.conf')
+addFilter('non-readable /etc/custodia/ipa.conf')
+addFilter('non-standard-dir-perm /etc/custodia')
+addFilter('non-standard-uid /etc/custodia')
+addFilter('non-standard-gid /etc/custodia')
+addFilter('non-standard-dir-perm /var/lib/custodia')
+addFilter('non-standard-uid /var/lib/custodia')
+addFilter('non-standard-gid /var/lib/custodia')
+addFilter('non-standard-dir-perm /var/log/custodia')
+addFilter('non-standard-uid /var/log/custodia')
+addFilter('non-standard-gid /var/log/custodia')
+addFilter('non-standard-uid /var/run/custodia')
+addFilter('non-standard-gid /var/run/custodia')
+
+# provided by dependencies
+addFilter('dangling-relative-symlink /usr/bin/custodia-cli')
+addFilter('dangling-relative-symlink /usr/sbin/custodia')
+
+# https://github.com/latchset/custodia/issues/228
+addFilter('no-manual-page-for-binary custodia-cli')
+addFilter('no-manual-page-for-binary custodia-cli-2')
+addFilter('no-manual-page-for-binary custodia-cli-3')
+addFilter('no-manual-page-for-binary custodia-2')
+addFilter('no-manual-page-for-binary custodia-3')
+
+# systemd_postun is defined as '%{nil}'
+addFilter('empty-%postun')
+
+# upstream specfile has no changelog
+addFilter('no-changelogname-tag')
