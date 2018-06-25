@@ -4,14 +4,6 @@
 
 %{!?version: %define version 0.6.dev1}
 
-# Workaround for python-etcd issue on PPC64. Although it's a noarch package
-# it depends on etcd for testing. Go does not support PPC64 yet.
-%ifarch ppc64
-%global with_etcd 0
-%else
-%global with_etcd 1
-%endif
-
 # FreeIPA up to 4.4.4 are not compatible with custodia because the custodia
 # script now runs under Python 3. FreeIPA 4.4.5 and 4.4.4-2 on F26 are fixed.
 # ipa_conflict is used with '<' version comparison.
@@ -44,9 +36,6 @@ BuildRequires:      python2-setuptools >= 18
 BuildRequires:      python2-coverage
 BuildRequires:      python2-tox >= 2.3.1
 BuildRequires:      python2-pytest
-%if %{?with_etcd}
-BuildRequires:      python2-python-etcd
-%endif
 BuildRequires:      python2-docutils
 BuildRequires:      python2-configparser
 BuildRequires:      python2-systemd
@@ -59,9 +48,6 @@ BuildRequires:      python%{python3_pkgversion}-setuptools > 18
 BuildRequires:      python%{python3_pkgversion}-coverage
 BuildRequires:      python%{python3_pkgversion}-tox >= 2.3.1
 BuildRequires:      python%{python3_pkgversion}-pytest
-%if %{?with_etcd}
-BuildRequires:      python%{python3_pkgversion}-python-etcd
-%endif
 BuildRequires:      python%{python3_pkgversion}-docutils
 BuildRequires:      python%{python3_pkgversion}-systemd
 %endif
@@ -112,19 +98,6 @@ Sub-package with python custodia modules
 
 %{overview}
 
-%if %{?with_etcd}
-%package -n python2-custodia-extra
-Summary:    Sub-package with python2 custodia extra modules
-Requires:   python2-python-etcd
-Requires:   python2-custodia = %{version}-%{release}
-
-%description -n python2-custodia-extra
-Sub-package with python2 custodia extra modules (etcdstore)
-
-%{overview}
-
-%endif  # with_etcd
-
 %if 0%{?with_python3}
 %package -n python%{python3_pkgversion}-custodia
 Summary:    Sub-package with python3 custodia modules
@@ -140,18 +113,6 @@ Sub-package with python custodia modules
 
 %{overview}
 
-%if %{?with_etcd}
-%package -n python%{python3_pkgversion}-custodia-extra
-Summary:    Sub-package with python3 custodia extra modules
-Requires:   python%{python3_pkgversion}-python-etcd
-Requires:   python%{python3_pkgversion}-custodia = %{version}-%{release}
-
-%description -n python%{python3_pkgversion}-custodia-extra
-Sub-package with python3 custodia extra modules (etcdstore)
-
-%{overview}
-
-%endif  # with_etcd
 %endif  # with_python3
 
 
@@ -255,34 +216,19 @@ exit 0
 
 %files -n python2-custodia
 %license LICENSE
-%exclude %{python2_sitelib}/custodia/store/etcdstore.py*
 %{python2_sitelib}/%{name}
 %{python2_sitelib}/%{name}-%{version}-py%{python2_version}.egg-info
 %{python2_sitelib}/%{name}-%{version}-py%{python2_version}-nspkg.pth
 %{_sbindir}/custodia-2
 %{_bindir}/custodia-cli-2
 
-%if %{?with_etcd}
-%files -n python2-custodia-extra
-%license LICENSE
-%{python2_sitelib}/custodia/store/etcdstore.py*
-%endif  # with_etcd
-
 %if 0%{?with_python3}
 %files -n python%{python3_pkgversion}-custodia
 %license LICENSE
-%exclude %{python3_sitelib}/custodia/store/etcdstore.py
-%exclude %{python3_sitelib}/custodia/store/__pycache__/etcdstore.*
 %{python3_sitelib}/%{name}
 %{python3_sitelib}/%{name}-%{version}-py%{python3_version}.egg-info
 %{python3_sitelib}/%{name}-%{version}-py%{python3_version}-nspkg.pth
 %{_sbindir}/custodia-3
 %{_bindir}/custodia-cli-3
 
-%if %{?with_etcd}
-%files -n python%{python3_pkgversion}-custodia-extra
-%license LICENSE
-%{python3_sitelib}/custodia/store/etcdstore.py
-%{python3_sitelib}/custodia/store/__pycache__/etcdstore.*
-%endif  # with_etcd
 %endif  # with_python3

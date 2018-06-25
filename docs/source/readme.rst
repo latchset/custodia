@@ -83,8 +83,6 @@ Optional components
 
 Custodia has several optional components with additional dependencies
 
-``etcd_store``
-   `ETCD <https://coreos.com/etcd/>`_ store server plugin.
 ``gssapi``
    Negotiate / GSSAPI authentication for Custodia client, also known as
    Kerberos.
