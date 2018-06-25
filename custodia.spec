@@ -2,7 +2,7 @@
 %global with_python3 1
 %endif
 
-%{!?version: %define version 0.6.0}
+%{!?version: %define version 0.7.dev1}
 
 # FreeIPA up to 4.4.4 are not compatible with custodia because the custodia
 # script now runs under Python 3. FreeIPA 4.4.5 and 4.4.4-2 on F26 are fixed.
