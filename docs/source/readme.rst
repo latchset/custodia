@@ -78,21 +78,6 @@ Some APIs are provisional and may change in the future.
 -  The script custodia-cli.
 -  *custodia.ipa* plugins
 
-Optional components
--------------------
-
-Custodia has several optional components with additional dependencies
-
-``gssapi``
-   Negotiate / GSSAPI authentication for Custodia client, also known as
-   Kerberos.
-``ipa``
-   `freeIPA <https://www.freeipa.org/>`_ server plugins.
-
-Optional dependencies can be installed with pip::
-
-    $ pip install custodia[gssapi,ipa]
-
 --------------
 
 custodia.ipa — IPA plugins for Custodia
@@ -223,6 +208,21 @@ Create ``/etc/custodia/ipa.conf``
     [/secrets/certs]
     handler = Secrets
     store = cert
+
+Create ``/etc/systemd/system/custodia@ipa.service.d/override.conf``
+
+On Fedora 26 and newer, the Custodia service file defaults to Python 3.
+Although FreeIPA 4.5 has support for Python 3, it's not stable yet.
+Therefore it is necessary to run the ``custodia.ipa`` plugins with
+Python 2.7. You can either use ``systemctl edit custodia@py2.service``
+to create an override or copy the file manually. Don't forget to run
+``systemctl daemon-reload`` in the latter case.
+
+::
+
+    [Service]
+    ExecStart=
+    ExecStart=/usr/sbin/custodia-2 --instance=%i /etc/custodia/%i.conf
 
 Run Custodia server
 
