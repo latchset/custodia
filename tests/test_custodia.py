@@ -17,7 +17,10 @@ import pytest
 
 import requests.exceptions
 
-import requests_gssapi
+try:
+    import requests_gssapi
+except ImportError:
+    requests_gssapi = None
 
 import six
 
@@ -529,6 +532,10 @@ class CustodiaHTTPSTests(CustodiaTests):
         self.client.del_secret('test/key')
 
 
+@pytest.mark.skipif(
+    requests_gssapi is None,
+    reason="requests_gssapi not available"
+)
 class CustodiaGSSAPITests(unittest.TestCase):
     def test_set_gssapi_auth(self):
         client = CustodiaSimpleClient('http://local.example')

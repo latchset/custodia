@@ -8,19 +8,27 @@ from cryptography import x509
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import serialization
 
-import ipaclient.plugins.vault
-
-import ipalib
-from ipalib.errors import NotFound
-
 import pkg_resources
 
 import pytest
 
 from custodia.compat import configparser
-from custodia.ipa.certrequest import IPACertRequest
-from custodia.ipa.interface import IPAInterface, IPA_SECTIONNAME
-from custodia.ipa.vault import IPAVault, krb5_unparse_principal_name
+
+try:
+    import ipaclient.plugins.vault
+    import ipalib
+except ImportError:
+    HAS_IPA = False
+    NotFound = None
+    IPACertRequest = None
+    IPAInterface = IPA_SECTIONNAME = None
+    IPAVault = krb5_unparse_principal_name = None
+else:
+    HAS_IPA = True
+    from ipalib.errors import NotFound
+    from custodia.ipa.certrequest import IPACertRequest
+    from custodia.ipa.interface import IPAInterface, IPA_SECTIONNAME
+    from custodia.ipa.vault import IPAVault, krb5_unparse_principal_name
 
 try:
     from unittest import mock
@@ -172,6 +180,7 @@ vault_parametrize = pytest.mark.parametrize(
 
 
 @pytest.mark.skipif(mock is None, reason='requires mock')
+@pytest.mark.skipif(not HAS_IPA, reason='requires ipaclient package')
 class BaseTest(object):
     def setup_method(self, method):
         # pylint: disable=attribute-defined-outside-init
@@ -399,6 +408,7 @@ class TestCustodiaIPACertRequests(BaseTest):
         certreq.get('keys/HTTP/client1.ipa.example')
 
 
+@pytest.mark.skipif(not HAS_IPA, reason='requires ipaclient package')
 @pytest.mark.parametrize('group,name,cls', [
     ('custodia.stores', 'IPAVault', IPAVault),
     ('custodia.stores', 'IPACertRequest', IPACertRequest),
@@ -415,6 +425,7 @@ def test_plugins(group, name, cls, dist='custodia'):
     assert resolved is cls
 
 
+@pytest.mark.skipif(not HAS_IPA, reason='requires ipaclient package')
 @pytest.mark.parametrize('principal,result', [
     ('john@IPA.EXAMPLE',
      (None, 'john', 'IPA.EXAMPLE')),

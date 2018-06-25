@@ -45,18 +45,18 @@ ipa_requires = [
 ]
 
 # test requirements
-test_requires = [
-    'coverage', 'pytest'
-] + gssapi_requires + ipa_requires
+test_requires = ['coverage', 'pytest']
+test_extras_requires = test_requires + gssapi_requires + ipa_requires
 
 extras_require = {
     'gssapi': gssapi_requires,
     'ipa': ipa_requires,
     'test': test_requires,
+    'test_extras': test_extras_requires,
     'test_docs': ['docutils', 'markdown', 'sphinx-argparse',
                   'sphinxcontrib-spelling'] + ipa_requires,
     'test_pep8': ['flake8', 'flake8-import-order', 'pep8-naming'],
-    'test_pylint': ['pylint'] + test_requires,
+    'test_pylint': ['pylint'] + test_extras_requires,
 }
 
 # backwards compatibility with old setuptools

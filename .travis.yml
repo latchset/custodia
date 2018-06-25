@@ -14,18 +14,22 @@ addons:
 matrix:
   include:
     - python: 2.7
-      env: TOXENV=py27
+      env: TOXENV=py27-extras
+    - python: 2.7
+      env: TOXENV=py27-noextras
     - python: 3.5
-      env: TOXENV=py35
+      env: TOXENV=py35-extras
     - python: 3.6
-      env: TOXENV=py36
-    - python: 3.5
+      env: TOXENV=py36-extras
+    - python: 3.6
+      env: TOXENV=py36-noextras
+    - python: 3.6
       env: TOXENV=doc
     - python: 3.6
       env: TOXENV=lint
     - python: 2.7
       env: TOXENV=pep8py2
-    - python: 3.5
+    - python: 3.6
       env: TOXENV=pep8py3
 
 before_install:

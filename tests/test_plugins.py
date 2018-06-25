@@ -8,6 +8,14 @@ import pkg_resources
 from custodia.client import CustodiaHTTPClient
 from custodia.plugin import CSStore, HTTPAuthenticator, HTTPAuthorizer
 
+try:
+    # pylint: disable=unused-import
+    import ipaclient  # noqa: F401
+except ImportError:
+    HAS_IPA = False
+else:
+    HAS_IPA = True
+
 
 class TestCustodiaPlugins(unittest.TestCase):
     project_name = 'custodia'
@@ -17,6 +25,9 @@ class TestCustodiaPlugins(unittest.TestCase):
         for e in pkg_resources.iter_entry_points(group):
             if e.dist.project_name != self.project_name:
                 # only interested in our own entry points
+                continue
+            if not HAS_IPA and e.module_name.startswith('custodia.ipa'):
+                # skip IPA plugins when ipaclient isn't installed
                 continue
             eps.append(e)
         return eps
