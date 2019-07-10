@@ -65,9 +65,9 @@ cscope:
 	git ls-files | xargs pycscope
 
 test: clean_socket clean_coverage
-	$(TOX) --skip-missing-interpreters -e py27-extra,py27-noextra
-	$(TOX) --skip-missing-interpreters -e py35-extra,py35-noextra
-	$(TOX) --skip-missing-interpreters -e py36-extra,py36-noextra
+	$(TOX) --skip-missing-interpreters -e py27-extras,py27-noextras
+	$(TOX) --skip-missing-interpreters -e py35-extras,py35-noextras
+	$(TOX) --skip-missing-interpreters -e py36-extras
 	$(TOX) --skip-missing-interpreters -e doc
 	$(TOX) -e coverage-report
 

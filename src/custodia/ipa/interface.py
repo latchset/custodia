@@ -80,8 +80,8 @@ class IPAInterface(HTTPAuthenticator):
             # monkey-patch ipalib.constants and all loaded ipa modules
             ipalib.constants.USER_CACHE_PATH = rundir
             for name, mod in six.iteritems(sys.modules):
-                if (name.startswith(('ipalib.', 'ipaclient.')) and
-                        hasattr(mod, 'USER_CACHE_PATH')):
+                if (name.startswith(('ipalib.', 'ipaclient.'))
+                        and hasattr(mod, 'USER_CACHE_PATH')):
                     mod.USER_CACHE_PATH = rundir
 
         self._gssapi_config()

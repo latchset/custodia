@@ -358,7 +358,7 @@ def main():
 
     try:
         result = args.func(args)
-    except BaseException as e:
+    except BaseException as e:  # pylint: disable=broad-except
         errcode, msg = error_message(args, e)
         main_parser.exit(errcode, msg)
     else:

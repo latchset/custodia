@@ -506,14 +506,16 @@ class CustodiaHTTPSTests(CustodiaTests):
         client.set_client_cert(cls.client_cert, cls.client_key)
         return client
 
-    def assert_ssl_error_msg(self, msg, exc):
-        # CERTIFICATE_VERIFY_FAILED, SSLV3_ALERT_HANDSHAKE_FAILURE
-        if msg in str(exc):
-            return
-        # 'certificate verify failed'
-        msg = msg.lower().replace('_', ' ')
-        if msg in str(exc):
-            return
+    def assert_ssl_error_msg(self, msgs, exc):
+        # CERTIFICATE_VERIFY_FAILED or
+        # SSLV3_ALERT_HANDSHAKE_FAILURE / Connection reset by peer
+        for msg in msgs:
+            if msg in str(exc):
+                return
+            # 'certificate verify failed'
+            msg = msg.lower().replace('_', ' ')
+            if msg in str(exc):
+                return
         self.fail(str(exc))
 
     def test_client_no_ca_trust(self):
@@ -522,7 +524,7 @@ class CustodiaHTTPSTests(CustodiaTests):
         # XXX workaround for requests bug with urllib3 v1.22
         with self.assertRaises(RequestsConnSSLErrors) as e:
             client.list_container('test')
-        self.assert_ssl_error_msg("CERTIFICATE_VERIFY_FAILED", e.exception)
+        self.assert_ssl_error_msg(["CERTIFICATE_VERIFY_FAILED"], e.exception)
 
     def test_client_no_client_cert(self):
         client = CustodiaSimpleClient(self.socket_url + '/forwarder')
@@ -531,7 +533,8 @@ class CustodiaHTTPSTests(CustodiaTests):
         # XXX workaround for requests bug with urllib3 v1.22
         with self.assertRaises(RequestsConnSSLErrors) as e:
             client.list_container('test')
-        self.assert_ssl_error_msg("SSLV3_ALERT_HANDSHAKE_FAILURE",
+        self.assert_ssl_error_msg(["Connection reset by peer",
+                                   "SSLV3_ALERT_HANDSHAKE_FAILURE"],
                                   e.exception)
 
     def test_C_client_cert_auth(self):

@@ -48,8 +48,8 @@ class EncryptedOverlay(CSStore):
         self.store = None
         self.protected_header = None
 
-        if (not os.path.isfile(self.master_key) and
-                self.autogen_master_key):
+        if (not os.path.isfile(self.master_key)
+                and self.autogen_master_key):
             # XXX https://github.com/latchset/jwcrypto/issues/50
             size = self.key_sizes.get(self.master_enctype, 512)
             key = JWK(generate='oct', size=size)
@@ -79,8 +79,8 @@ class EncryptedOverlay(CSStore):
             if self.secret_protection == 'migrate':
                 self.set(key, value, replace=True)
             else:
-                raise CSStoreError('Secret Pinning check failed!' +
-                                   'Missing custodia.key element')
+                raise CSStoreError('Secret Pinning check failed!'
+                                   + 'Missing custodia.key element')
         elif jwe.jose_header['custodia.key'] != key:
             raise CSStoreError(
                 'Secret Pinning check failed! Expected {} got {}'.format(
