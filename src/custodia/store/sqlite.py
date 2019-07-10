@@ -66,7 +66,7 @@ class SqliteStore(CSStore):
                 c.execute(setdata, (key, value))
         except sqlite3.IntegrityError as err:
             raise CSStoreExists(str(err))
-        except sqlite3.Error as err:
+        except sqlite3.Error:
             self.logger.exception("Error storing key %s", key)
             raise CSStoreError('Error occurred while trying to store key')
 
