@@ -98,8 +98,8 @@ class CustodiaServerRunner(object):
     def custodia_server(self, simple_configuration, request, dev_null):
         # Don't write server messages to stdout unless we are in debug mode
         # pylint: disable=no-member
-        if pytest.config.getoption('debug') or \
-                pytest.config.getoption('verbose'):
+        if request.config.getoption('debug') or \
+                request.config.getoption('verbose'):
             stdout = stderr = None
         else:
             stdout = stderr = dev_null
