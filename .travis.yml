@@ -1,6 +1,6 @@
 sudo: required
 
-dist: trusty
+dist: xenial
 
 language: python
 
@@ -23,13 +23,17 @@ matrix:
       env: TOXENV=py36-extras
     - python: 3.6
       env: TOXENV=py36-noextras
-    - python: 3.6
+    - python: 3.7
+      env: TOXENV=py37-extras
+    - python: 3.7
+      env: TOXENV=py37-noextras
+    - python: 3.7
       env: TOXENV=doc
-    - python: 3.6
+    - python: 3.7
       env: TOXENV=lint
     - python: 2.7
       env: TOXENV=pep8py2
-    - python: 3.6
+    - python: 3.7
       env: TOXENV=pep8py3
 
 before_install:
