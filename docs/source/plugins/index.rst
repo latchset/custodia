@@ -64,4 +64,3 @@ Plugin Modules
    consumers.rst
    stores.rst
    clients.rst
-   ipa.rst
