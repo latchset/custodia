@@ -30,7 +30,7 @@ BuildArch:      noarch
 
 BuildRequires:      systemd
 BuildRequires:      python2-devel
-BuildRequires:      python2-jwcrypto >= 0.4.2
+BuildRequires:      python2-jwcrypto >= 1.4.0
 BuildRequires:      python2-requests
 BuildRequires:      python2-setuptools >= 18
 BuildRequires:      python2-coverage
@@ -42,7 +42,7 @@ BuildRequires:      python2-systemd
 
 %if 0%{?with_python3}
 BuildRequires:      python%{python3_pkgversion}-devel
-BuildRequires:      python%{python3_pkgversion}-jwcrypto >= 0.4.2
+BuildRequires:      python%{python3_pkgversion}-jwcrypto >= 1.4.0
 BuildRequires:      python%{python3_pkgversion}-requests
 BuildRequires:      python%{python3_pkgversion}-setuptools > 18
 BuildRequires:      python%{python3_pkgversion}-coverage
@@ -87,7 +87,7 @@ A service to manage, retrieve and store secrets for other processes
 Summary:    Sub-package with python2 custodia modules
 %{?python_provide:%python_provide python2-%{name}}
 Requires:   python2-configparser
-Requires:   python2-jwcrypto > 0.4.2
+Requires:   python2-jwcrypto > 1.4.0
 Requires:   python2-requests
 Requires:   python2-setuptools
 Requires:   python2-systemd
@@ -102,7 +102,7 @@ Sub-package with python custodia modules
 %package -n python%{python3_pkgversion}-custodia
 Summary:    Sub-package with python3 custodia modules
 %{?python_provide:%python_provide python3-%{name}}
-Requires:   python%{python3_pkgversion}-jwcrypto >= 0.4.2
+Requires:   python%{python3_pkgversion}-jwcrypto >= 1.4.0
 Requires:   python%{python3_pkgversion}-requests
 Requires:   python%{python3_pkgversion}-setuptools
 Requires:   python%{python3_pkgversion}-systemd
