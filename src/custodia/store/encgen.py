@@ -50,9 +50,10 @@ class EncryptedOverlay(CSStore):
 
         if (not os.path.isfile(self.master_key)
                 and self.autogen_master_key):
-            # XXX https://github.com/latchset/jwcrypto/issues/50
-            size = self.key_sizes.get(self.master_enctype, 512)
-            key = JWK(generate='oct', size=size)
+            # xxx https://github.com/latchset/jwcrypto/issues/50
+            # xxx https://github.com/latchset/jwcrypto/issues/302
+            key = JWK(generate='oct', alg=self.master_enctype,
+                      size=self.key_sizes.get(self.master_enctype, 512))
             with open(self.master_key, 'w') as f:
                 os.fchmod(f.fileno(), 0o600)
                 f.write(key.export())

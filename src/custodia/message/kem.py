@@ -1,4 +1,4 @@
-# Copyright (C) 2015  Custodia Project Contributors - see LICENSE file
+# Copyright (C) 2022  Custodia Project Contributors - see LICENSE file
 from __future__ import absolute_import
 
 import os
@@ -242,6 +242,6 @@ def make_enc_kem(name, value, sig_key, alg, enc_key, enc):
 
 
 def decode_enc_kem(message, enc_key, sig_key):
-    jwe = JWT(jwt=message, key=enc_key)
-    jws = JWT(jwt=jwe.claims, key=sig_key)
+    jwe = JWT(jwt=message, key=enc_key, expected_type="JWE")
+    jws = JWT(jwt=jwe.claims, key=sig_key, expected_type="JWS")
     return json_decode(jws.claims)
