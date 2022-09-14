@@ -29,7 +29,7 @@ https://custodia.readthedocs.io
 
 * configparser (Python 2.7)
 * cryptography
-* jwcrypto >= 0.2
+* jwcrypto >= 1.4.0
 * requests
 * six
 

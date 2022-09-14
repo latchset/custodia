@@ -32,7 +32,7 @@ with open(os.path.join('src', 'custodia', '__about__.py')) as f:
 
 requirements = [
     'cryptography',
-    'jwcrypto',
+    'jwcrypto >= 1.4.0',
     'six',
     'requests',
 ]
@@ -58,15 +58,6 @@ extras_require = {
     'test_pep8': ['flake8', 'flake8-import-order', 'pep8-naming'],
     'test_pylint': ['pylint'] + test_extras_requires,
 }
-
-# backwards compatibility with old setuptools
-# extended interpolation is provided by stdlib in Python 3.4+
-# unittest.mock is provided by stdlib in Python 3
-if SETUPTOOLS_VERSION < (18, 0, 0) and sys.version_info < (3, 4):
-    requirements.extend(['configparser', 'mock'])
-else:
-    extras_require[':python_version<"3.4"'] = ['configparser', 'mock']
-
 
 with open('README') as f:
     long_description = f.read()
@@ -143,9 +134,10 @@ setup(
     },
     cmdclass={'version': Version},
     classifiers=[
-        'Programming Language :: Python :: 2.7',
-        'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6',
+        'Programming Language :: Python :: 3.7',
+        'Programming Language :: Python :: 3.8',
+        'Programming Language :: Python :: 3.9',
         'Intended Audience :: Developers',
         'Topic :: Security',
         'Topic :: Software Development :: Libraries :: Python Modules'
@@ -153,5 +145,5 @@ setup(
     install_requires=requirements,
     tests_require=test_requires,
     extras_require=extras_require,
-    python_requires='>=2.7,!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*,!=3.4.*',
+    python_requires='>=3.6',
 )
