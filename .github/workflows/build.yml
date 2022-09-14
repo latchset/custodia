@@ -1,0 +1,101 @@
+{
+    "name": "Build",
+    "on": {
+      "push": {
+          "branches": [ "master" ]
+      },
+      "pull_request": null,
+    },
+    "jobs": {
+        "linux": {
+            "name": "CI on x86_64",
+            "runs-on": "ubuntu-latest",
+            "strategy": {
+                "fail-fast": false,
+                "matrix": {
+                    "name": [
+                        "python-36",
+                        "python-37",
+                        "python-38",
+                        "python-39",
+                        "python-310",
+                        "doc",
+                        "lint",
+                        "pep8py3",
+                    ],
+                    "include": [
+                        {
+                            "name": "python-36",
+                            "python": "3.6",
+                            "toxenv": "py36",
+                            "arch": "x64",
+                        },
+                        {
+                            "name": "python-37",
+                            "python": "3.7",
+                            "toxenv": "py37",
+                            "arch": "x64",
+                        },
+                        {
+                            "name": "python-38",
+                            "python": "3.8",
+                            "toxenv": "py38",
+                            "arch": "x64",
+                        },
+                        {
+                            "name": "python-39",
+                            "python": "3.9",
+                            "toxenv": "py39",
+                            "arch": "x64",
+                        },
+                        {
+                            "name": "python-310",
+                            "python": "3.10",
+                            "toxenv": "py310",
+                            "arch": "x64",
+                        },
+                        {
+                            "name": "doc",
+                            "python": "3.10",
+                            "toxenv": "doc",
+                            "arch": "x64",
+                        },
+                        {
+                            "name": "lint",
+                            "python": "3.10",
+                            "toxenv": "lint",
+                            "arch": "x64",
+                        },
+                        {
+                            "name": "pep8py3",
+                            "python": "3.10",
+                            "toxenv": "pep8py3",
+                            "arch": "x64",
+                        },
+                    ],
+                },
+            },
+            "steps": [
+                { "uses": "actions/checkout@v3" },
+                {
+                    "uses": "actions/setup-python@v4",
+                    "with": {
+                        "python-version": "${{ matrix.python }}",
+                        "architecture": "${{ matrix.arch }}"
+                    },
+                },
+                { "run": "sudo apt-get update" },
+                { "run": "sudo apt-get install python-dev gcc krb5-user libkrb5-dev libffi-dev libnss3-dev libldap2-dev libsasl2-dev libssl-dev" },
+                { "run": "pip --version" },
+                { "run": "pip install tox" },
+                { "run": "tox --version" },
+                {
+                    "env": {
+                          "TOXENV": "${{matrix.toxenv}}"
+                    },
+                    "run": "tox",
+                },
+            ],
+        },
+    },
+}
