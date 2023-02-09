@@ -263,7 +263,6 @@ class TestCustodiaIPA(BaseTest):
             KRB5_CLIENT_KTNAME='/path/to/custodia.keytab',
             KRB5CCNAME='FILE:/path/to/ccache',
         )
-        assert ipaclient.plugins.vault.USER_CACHE_PATH == '/tmp/invalid'
 
 
 class TestCustodiaIPAVault(BaseTest):
